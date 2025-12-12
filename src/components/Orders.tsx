@@ -22,7 +22,7 @@ export default function Orders() {
   const [isAddingNewRow, setIsAddingNewRow] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<'orders' | 'returns'>('orders');
-  const [activeViewTab, setActiveViewTab] = useState<'all' | 'archived' | 'returns' | 'problematic' | 'cancelled'>('all');
+  const [activeViewTab, setActiveViewTab] = useState<'active' | 'archived'>('active');
   const [newRowData, setNewRowData] = useState({
     order_number: '',
     supplier_id: '',
@@ -776,16 +776,10 @@ export default function Orders() {
       return false;
     }
 
-    if (activeViewTab === 'all') {
-      return !order.archived && order.status !== 'повернення' && order.status !== 'проблемні' && order.status !== 'анульовано';
+    if (activeViewTab === 'active') {
+      return !order.archived;
     } else if (activeViewTab === 'archived') {
       return order.archived === true;
-    } else if (activeViewTab === 'returns') {
-      return order.status === 'повернення' && !order.archived;
-    } else if (activeViewTab === 'problematic') {
-      return order.status === 'проблемні' && !order.archived;
-    } else if (activeViewTab === 'cancelled') {
-      return order.status === 'анульовано' && !order.archived;
     }
     return false;
   });
@@ -859,14 +853,14 @@ export default function Orders() {
       {activeTab === 'orders' && (
         <div className="flex gap-2 mb-4 bg-gray-50 dark:bg-gray-800 p-1 rounded-lg w-fit">
           <button
-            onClick={() => setActiveViewTab('all')}
+            onClick={() => setActiveViewTab('active')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-              activeViewTab === 'all'
+              activeViewTab === 'active'
                 ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow dark:shadow-md'
                 : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
             }`}
           >
-            Всі ({orders.filter(o => !o.archived && o.status !== 'повернення' && o.status !== 'проблемні' && o.status !== 'анульовано').length})
+            Активні ({orders.filter(o => !o.archived).length})
           </button>
           <button
             onClick={() => setActiveViewTab('archived')}
@@ -877,36 +871,6 @@ export default function Orders() {
             }`}
           >
             Архів ({orders.filter(o => o.archived === true).length})
-          </button>
-          <button
-            onClick={() => setActiveViewTab('returns')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-              activeViewTab === 'returns'
-                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow dark:shadow-md'
-                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
-            }`}
-          >
-            Повернення ({orders.filter(o => o.status === 'повернення' && !o.archived).length})
-          </button>
-          <button
-            onClick={() => setActiveViewTab('problematic')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-              activeViewTab === 'problematic'
-                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow dark:shadow-md'
-                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
-            }`}
-          >
-            Проблемні ({orders.filter(o => o.status === 'проблемні' && !o.archived).length})
-          </button>
-          <button
-            onClick={() => setActiveViewTab('cancelled')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-              activeViewTab === 'cancelled'
-                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow dark:shadow-md'
-                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
-            }`}
-          >
-            Анульовано ({orders.filter(o => o.status === 'анульовано' && !o.archived).length})
           </button>
         </div>
       )}
