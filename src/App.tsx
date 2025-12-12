@@ -5,7 +5,7 @@ import ActiveReceipts from './components/ActiveReceipts';
 import SupplierBalance from './components/SupplierBalance';
 import ReceiptManagement from './components/ReceiptManagement';
 import MutualSettlement from './components/MutualSettlement';
-import CardPayments from './components/CardPayments';
+import CardMutualSettlement from './components/CardMutualSettlement';
 import { useTheme } from './contexts/ThemeContext';
 
 type Tab = 'orders' | 'receipts' | 'management' | 'balance' | 'settlement' | 'cards';
@@ -96,7 +96,7 @@ function App() {
               }`}
             >
               <CreditCard size={20} />
-              Розрахунки по картам
+              Взаєморозрахунок по картках
             </button>
           </div>
         </div>
@@ -108,7 +108,7 @@ function App() {
         {activeTab === 'management' && <ReceiptManagement />}
         {activeTab === 'balance' && <SupplierBalance />}
         {activeTab === 'settlement' && <MutualSettlement />}
-        {activeTab === 'cards' && <CardPayments />}
+        {activeTab === 'cards' && <CardMutualSettlement />}
       </main>
     </div>
   );
