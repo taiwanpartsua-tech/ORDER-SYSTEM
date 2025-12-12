@@ -266,41 +266,6 @@ export default function CardPayments() {
       return;
     }
 
-    const totalAmount = summary.totalPartPrice + summary.totalDeliveryCost;
-
-    const { error: transactionError } = await supabase.from('card_transactions').insert([{
-      transaction_type: 'payment',
-      amount: totalAmount,
-      description: `Розрахунок за накладну №${summary.receipt.receipt_number}`,
-      transaction_date: new Date().toISOString().split('T')[0],
-      receipt_id: summary.receipt.id
-    }]);
-
-    if (transactionError) {
-      alert('Помилка створення транзакції');
-      console.error(transactionError);
-      return;
-    }
-
-    const newCardPartsBalance = Number(supplier.card_balance_parts_pln || 0) - Number(summary.totalPartPrice);
-    const newCardDeliveryBalance = Number(supplier.card_balance_delivery_pln || 0) - Number(summary.totalDeliveryCost);
-    const newTotalPln = Number(supplier.balance_pln || 0) - Number(totalAmount);
-
-    const { error: supplierError } = await supabase
-      .from('suppliers')
-      .update({
-        card_balance_parts_pln: newCardPartsBalance,
-        card_balance_delivery_pln: newCardDeliveryBalance,
-        balance_pln: newTotalPln
-      })
-      .eq('id', supplier.id);
-
-    if (supplierError) {
-      alert('Помилка оновлення балансу');
-      console.error(supplierError);
-      return;
-    }
-
     const { error: receiptError } = await supabase
       .from('active_receipts')
       .update({
@@ -319,7 +284,7 @@ export default function CardPayments() {
   }
 
   async function reverseTransaction(tx: CardTransaction) {
-    const typeText = tx.transaction_type === 'payment' ? 'оплату' : 'повернення';
+    const typeText = tx.transaction_type === 'payment' ? 'оплату' : tx.transaction_type === 'charge' ? 'нарахування' : 'повернення';
     const confirmed = confirm(`Ви впевнені, що хочете сторнувати цю операцію (${typeText})?\n\nОпис: ${tx.description}\nСума: ${formatNumber(tx.amount)} zł\n\nЦя дія незворотна!`);
     if (!confirmed) return;
 
@@ -328,89 +293,22 @@ export default function CardPayments() {
       return;
     }
 
-    if (tx.order_id) {
-      const { error: orderError } = await supabase
-        .from('orders')
-        .update({ verified: false })
-        .eq('id', tx.order_id);
+    const amountChange = tx.transaction_type === 'payment' ? tx.amount : -tx.amount;
+    const newTotalPln = (supplier.balance_pln || 0) + amountChange;
+    const newCardPartsBalance = (supplier.card_balance_parts_pln || 0) + amountChange;
 
-      if (orderError) {
-        console.error('Помилка оновлення статусу замовлення:', orderError);
-      }
-    } else if (tx.receipt_id) {
-      const { data: receipt } = await supabase
-        .from('active_receipts')
-        .select('*')
-        .eq('id', tx.receipt_id)
-        .maybeSingle();
+    const { error: supplierError } = await supabase
+      .from('suppliers')
+      .update({
+        card_balance_parts_pln: newCardPartsBalance,
+        balance_pln: newTotalPln
+      })
+      .eq('id', supplier.id);
 
-      if (receipt && receipt.settled_date) {
-        const { error: receiptError } = await supabase
-          .from('active_receipts')
-          .update({
-            settled_date: null
-          })
-          .eq('id', tx.receipt_id);
-
-        if (receiptError) {
-          console.error('Помилка оновлення статусу накладної:', receiptError);
-        }
-
-        const { data: receiptOrderLinks } = await supabase
-          .from('receipt_orders')
-          .select('order_id')
-          .eq('receipt_id', receipt.id);
-
-        if (receiptOrderLinks && receiptOrderLinks.length > 0) {
-          const orderIds = receiptOrderLinks.map(ro => ro.order_id);
-          const { data: ordersData } = await supabase
-            .from('orders')
-            .select('*')
-            .in('id', orderIds)
-            .eq('verified', true)
-            .eq('payment_type', 'оплачено');
-
-          if (ordersData && ordersData.length > 0) {
-            const totalPartPrice = ordersData.reduce((sum, order) => sum + order.part_price, 0);
-            const totalDeliveryCost = ordersData.reduce((sum, order) => sum + order.delivery_cost, 0);
-
-            const newCardPartsBalance = Number(supplier.card_balance_parts_pln || 0) + Number(totalPartPrice);
-            const newCardDeliveryBalance = Number(supplier.card_balance_delivery_pln || 0) + Number(totalDeliveryCost);
-            const newTotalPln = Number(supplier.balance_pln || 0) + Number(totalPartPrice + totalDeliveryCost);
-
-            const { error: supplierError } = await supabase
-              .from('suppliers')
-              .update({
-                card_balance_parts_pln: newCardPartsBalance,
-                card_balance_delivery_pln: newCardDeliveryBalance,
-                balance_pln: newTotalPln
-              })
-              .eq('id', supplier.id);
-
-            if (supplierError) {
-              console.error('Помилка оновлення балансу:', supplierError);
-            }
-          }
-        }
-      }
-    } else {
-      const amountChange = tx.transaction_type === 'payment' ? tx.amount : -tx.amount;
-      const newTotalPln = (supplier.balance_pln || 0) + amountChange;
-      const newCardPartsBalance = (supplier.card_balance_parts_pln || 0) + amountChange;
-
-      const { error: supplierError } = await supabase
-        .from('suppliers')
-        .update({
-          card_balance_parts_pln: newCardPartsBalance,
-          balance_pln: newTotalPln
-        })
-        .eq('id', supplier.id);
-
-      if (supplierError) {
-        alert('Помилка оновлення балансу постачальника');
-        console.error(supplierError);
-        return;
-      }
+    if (supplierError) {
+      alert('Помилка оновлення балансу постачальника');
+      console.error(supplierError);
+      return;
     }
 
     const { error: deleteError } = await supabase
@@ -756,14 +654,16 @@ export default function CardPayments() {
                         <span className={`px-2 py-1 rounded font-medium ${
                           transaction.transaction_type === 'payment'
                             ? 'bg-green-100 text-green-700'
+                            : transaction.transaction_type === 'charge'
+                            ? 'bg-blue-100 text-blue-700'
                             : 'bg-red-100 text-red-700'
                         }`}>
-                          {transaction.transaction_type === 'payment' ? 'Оплата' : 'Повернення'}
+                          {transaction.transaction_type === 'payment' ? 'Оплата' : transaction.transaction_type === 'charge' ? 'Нарахування' : 'Повернення'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{transaction.description}</td>
                       <td className={`px-4 py-3 text-sm text-right font-semibold ${
-                        transaction.transaction_type === 'payment' ? 'text-green-600' : 'text-red-600'
+                        transaction.transaction_type === 'payment' ? 'text-green-600' : transaction.transaction_type === 'charge' ? 'text-blue-600' : 'text-red-600'
                       }`}>
                         {transaction.transaction_type === 'payment' ? '-' : '+'}{formatNumber(transaction.amount)}
                       </td>
