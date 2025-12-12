@@ -246,36 +246,6 @@ export default function CardMutualSettlement() {
               settlement_date: null
             })
             .eq('id', tx.receipt_id);
-
-          const { data: supplier } = await supabase
-            .from('suppliers')
-            .select('*')
-            .eq('id', receipt.supplier_id)
-            .maybeSingle();
-
-          if (supplier) {
-            const orders = receiptOrders[tx.receipt_id] || [];
-            const paidOrders = orders.filter(o => o.verified && o.payment_type === 'оплачено');
-
-            const totalPartPrice = paidOrders.reduce((sum, order) => sum + (order.part_price || 0), 0);
-            const totalDeliveryCost = paidOrders.reduce((sum, order) => sum + (order.delivery_cost || 0), 0);
-
-            await supabase
-              .from('suppliers')
-              .update({
-                balance_pln: Number(supplier.balance_pln) - Number(receipt.total_pln),
-                balance_usd: Number(supplier.balance_usd) - Number(receipt.transport_cost_usd),
-                balance_parts_pln: Number(supplier.balance_parts_pln) - Number(receipt.parts_cost_pln),
-                balance_delivery_pln: Number(supplier.balance_delivery_pln) - Number(receipt.delivery_cost_pln),
-                balance_receipt_pln: Number(supplier.balance_receipt_pln) - Number(receipt.receipt_cost_pln),
-                balance_cash_on_delivery_pln: Number(supplier.balance_cash_on_delivery_pln) - Number(receipt.cash_on_delivery_pln),
-                balance_transport_usd: Number(supplier.balance_transport_usd) - Number(receipt.transport_cost_usd),
-                card_balance: Number(supplier.card_balance) - (totalPartPrice + totalDeliveryCost),
-                card_balance_parts_pln: Number(supplier.card_balance_parts_pln) - totalPartPrice,
-                card_balance_delivery_pln: Number(supplier.card_balance_delivery_pln) - totalDeliveryCost
-              })
-              .eq('id', receipt.supplier_id);
-          }
         }
 
         await supabase

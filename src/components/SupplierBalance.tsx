@@ -222,12 +222,12 @@ export default function SupplierBalance() {
 
     await supabase
       .from('transactions')
-      .update({ is_reversed: true, reversed_at: new Date().toISOString() })
+      .update({ is_reversed: true })
       .eq('receipt_id', receipt.id);
 
     await supabase
       .from('supplier_transactions')
-      .update({ is_reversed: true, reversed_at: new Date().toISOString() })
+      .update({ is_reversed: true })
       .eq('receipt_id', receipt.id);
 
     alert('Прийомку повернуто назад. Баланс зменшено.');

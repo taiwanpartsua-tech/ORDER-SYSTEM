@@ -267,32 +267,11 @@ export default function MutualSettlement() {
               settlement_date: null
             })
             .eq('id', tx.receipt_id);
-
-          const { data: supplier } = await supabase
-            .from('suppliers')
-            .select('*')
-            .eq('id', receipt.supplier_id)
-            .maybeSingle();
-
-          if (supplier) {
-            await supabase
-              .from('suppliers')
-              .update({
-                balance_pln: Number(supplier.balance_pln) - Number(receipt.total_pln),
-                balance_usd: Number(supplier.balance_usd) - Number(receipt.transport_cost_usd),
-                balance_parts_pln: Number(supplier.balance_parts_pln) - Number(receipt.parts_cost_pln),
-                balance_delivery_pln: Number(supplier.balance_delivery_pln) - Number(receipt.delivery_cost_pln),
-                balance_receipt_pln: Number(supplier.balance_receipt_pln) - Number(receipt.receipt_cost_pln),
-                balance_cash_on_delivery_pln: Number(supplier.balance_cash_on_delivery_pln) - Number(receipt.cash_on_delivery_pln),
-                balance_transport_usd: Number(supplier.balance_transport_usd) - Number(receipt.transport_cost_usd)
-              })
-              .eq('id', receipt.supplier_id);
-          }
         }
 
         await supabase
           .from('card_transactions')
-          .update({ is_reversed: true, reversed_at: new Date().toISOString() })
+          .update({ is_reversed: true })
           .eq('receipt_id', tx.receipt_id)
           .eq('is_reversed', false);
 
@@ -305,7 +284,7 @@ export default function MutualSettlement() {
         if (supplierTx) {
           await supabase
             .from('supplier_transactions')
-            .update({ is_reversed: true, reversed_at: new Date().toISOString() })
+            .update({ is_reversed: true })
             .eq('id', supplierTx.id);
         }
       }
@@ -314,8 +293,7 @@ export default function MutualSettlement() {
     const { error } = await supabase
       .from('transactions')
       .update({
-        is_reversed: true,
-        reversed_at: new Date().toISOString()
+        is_reversed: true
       })
       .eq('id', tx.id);
 
@@ -720,7 +698,7 @@ export default function MutualSettlement() {
                 <td className="px-3 py-2 text-center">
                   {tx.is_reversed ? (
                     <span className="text-[10px] text-red-400 italic">
-                      {tx.reversed_at && new Date(tx.reversed_at).toLocaleDateString('uk-UA')}
+                      Сторновано
                     </span>
                   ) : (
                     <button

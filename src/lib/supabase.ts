@@ -151,7 +151,6 @@ export type Transaction = {
   created_at: string;
   created_by: string;
   is_reversed?: boolean;
-  reversed_at?: string;
 };
 
 export type CardTransaction = {
@@ -163,6 +162,5 @@ export type CardTransaction = {
   receipt_id?: string;
   order_id?: string;
   is_reversed?: boolean;
-  reversed_at?: string;
   created_at: string;
 };
