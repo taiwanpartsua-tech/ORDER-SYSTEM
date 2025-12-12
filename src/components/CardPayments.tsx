@@ -296,11 +296,6 @@ export default function CardPayments() {
   }
 
   async function settleReceipt(summary: ReceiptSummary) {
-    if (!supplier) {
-      alert('Помилка: постачальник не знайдений');
-      return;
-    }
-
     const totalAmount = summary.totalPartPrice + summary.totalDeliveryCost;
 
     const { error: transactionError } = await supabase.from('card_transactions').insert([{
@@ -314,25 +309,6 @@ export default function CardPayments() {
     if (transactionError) {
       alert('Помилка створення транзакції');
       console.error(transactionError);
-      return;
-    }
-
-    const newPartsBalance = Number(supplier.balance_parts_pln || 0) - Number(summary.totalPartPrice);
-    const newDeliveryBalance = Number(supplier.balance_delivery_pln || 0) - Number(summary.totalDeliveryCost);
-    const newTotalPln = Number(supplier.balance_pln || 0) - Number(totalAmount);
-
-    const { error: supplierError } = await supabase
-      .from('suppliers')
-      .update({
-        balance_parts_pln: newPartsBalance,
-        balance_delivery_pln: newDeliveryBalance,
-        balance_pln: newTotalPln
-      })
-      .eq('id', supplier.id);
-
-    if (supplierError) {
-      alert('Помилка оновлення балансу');
-      console.error(supplierError);
       return;
     }
 
