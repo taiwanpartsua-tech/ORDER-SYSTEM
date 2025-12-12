@@ -102,7 +102,7 @@ export default function CardMutualSettlement() {
 
     txns.forEach(tx => {
       if (tx.is_reversed) return;
-      if (tx.receipt_id && receiptIdsOnSettlement.includes(tx.receipt_id)) return;
+      if (tx.receipt_id) return;
 
       if (tx.transaction_type === 'charge') {
         partsPln += tx.amount || 0;

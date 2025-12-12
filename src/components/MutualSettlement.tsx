@@ -97,7 +97,7 @@ export default function MutualSettlement() {
 
     txns.forEach(tx => {
       if (tx.is_reversed) return;
-      if (tx.receipt_id && receiptIdsOnSettlement.includes(tx.receipt_id)) return;
+      if (tx.receipt_id) return;
 
       if (tx.transaction_type === 'debit') {
         receiptPln += tx.cash_on_delivery_pln || 0;
