@@ -275,6 +275,7 @@ export default function CardPayments() {
     const { error: receiptError } = await supabase
       .from('active_receipts')
       .update({
+        status: 'settled',
         settled_date: new Date().toISOString()
       })
       .eq('id', summary.receipt.id);
@@ -326,9 +327,19 @@ export default function CardPayments() {
       return;
     }
 
+    await supabase
+      .from('transactions')
+      .update({
+        is_reversed: true,
+        reversed_at: new Date().toISOString()
+      })
+      .eq('receipt_id', summary.receipt.id)
+      .eq('is_reversed', false);
+
     const { error: receiptError } = await supabase
       .from('active_receipts')
       .update({
+        status: 'sent_for_settlement',
         settled_date: null
       })
       .eq('id', summary.receipt.id);
@@ -364,10 +375,20 @@ export default function CardPayments() {
         await supabase
           .from('active_receipts')
           .update({
+            status: 'sent_for_settlement',
             settled_date: null
           })
           .eq('id', tx.receipt_id);
       }
+
+      await supabase
+        .from('transactions')
+        .update({
+          is_reversed: true,
+          reversed_at: new Date().toISOString()
+        })
+        .eq('receipt_id', tx.receipt_id)
+        .eq('is_reversed', false);
     }
 
     const { error } = await supabase

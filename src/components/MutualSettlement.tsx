@@ -293,7 +293,8 @@ export default function MutualSettlement() {
         await supabase
           .from('card_transactions')
           .update({ is_reversed: true, reversed_at: new Date().toISOString() })
-          .eq('receipt_id', tx.receipt_id);
+          .eq('receipt_id', tx.receipt_id)
+          .eq('is_reversed', false);
 
         const { data: supplierTx } = await supabase
           .from('supplier_transactions')
