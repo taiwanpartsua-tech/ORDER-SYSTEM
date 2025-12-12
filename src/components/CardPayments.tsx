@@ -266,6 +266,25 @@ export default function CardPayments() {
       return;
     }
 
+    const totalAmount = summary.totalPartPrice + summary.totalDeliveryCost;
+
+    const { error: transactionError } = await supabase
+      .from('card_transactions')
+      .insert({
+        transaction_type: 'charge',
+        amount: totalAmount,
+        description: `Нарахування за накладною №${summary.receipt.receipt_number}`,
+        transaction_date: new Date().toISOString().split('T')[0],
+        receipt_id: summary.receipt.id,
+        is_reversed: false
+      });
+
+    if (transactionError) {
+      alert('Помилка створення транзакції');
+      console.error(transactionError);
+      return;
+    }
+
     const { error: receiptError } = await supabase
       .from('active_receipts')
       .update({
@@ -279,6 +298,18 @@ export default function CardPayments() {
       return;
     }
 
+    const newBalance = (supplier.card_balance || 0) + totalAmount;
+    const { error: supplierError } = await supabase
+      .from('suppliers')
+      .update({ card_balance: newBalance })
+      .eq('id', supplier.id);
+
+    if (supplierError) {
+      alert('Помилка оновлення балансу');
+      console.error(supplierError);
+      return;
+    }
+
     alert('Накладну успішно розраховано!');
     loadData();
   }
@@ -286,6 +317,44 @@ export default function CardPayments() {
   async function reverseReceipt(summary: ReceiptSummary) {
     const confirmed = confirm(`Ви впевнені, що хочете сторнувати розрахунок накладної №${summary.receipt.receipt_number}?\n\nНакладна повернеться в статус "На розрахунок".`);
     if (!confirmed) return;
+
+    if (!supplier) {
+      alert('Помилка: постачальник не знайдений');
+      return;
+    }
+
+    const { data: transaction, error: findError } = await supabase
+      .from('card_transactions')
+      .select('*')
+      .eq('receipt_id', summary.receipt.id)
+      .eq('transaction_type', 'charge')
+      .eq('is_reversed', false)
+      .maybeSingle();
+
+    if (findError) {
+      alert('Помилка пошуку транзакції');
+      console.error(findError);
+      return;
+    }
+
+    if (!transaction) {
+      alert('Транзакція не знайдена');
+      return;
+    }
+
+    const { error: transactionError } = await supabase
+      .from('card_transactions')
+      .update({
+        is_reversed: true,
+        reversed_at: new Date().toISOString()
+      })
+      .eq('id', transaction.id);
+
+    if (transactionError) {
+      alert('Помилка сторнування транзакції');
+      console.error(transactionError);
+      return;
+    }
 
     const { error: receiptError } = await supabase
       .from('active_receipts')
@@ -295,8 +364,20 @@ export default function CardPayments() {
       .eq('id', summary.receipt.id);
 
     if (receiptError) {
-      alert('Помилка сторнування накладної');
+      alert('Помилка оновлення накладної');
       console.error(receiptError);
+      return;
+    }
+
+    const newBalance = (supplier.card_balance || 0) - transaction.amount;
+    const { error: supplierError } = await supabase
+      .from('suppliers')
+      .update({ card_balance: newBalance })
+      .eq('id', supplier.id);
+
+    if (supplierError) {
+      alert('Помилка оновлення балансу');
+      console.error(supplierError);
       return;
     }
 
@@ -306,7 +387,7 @@ export default function CardPayments() {
 
   async function reverseTransaction(tx: CardTransaction) {
     const typeText = tx.transaction_type === 'payment' ? 'оплату' : tx.transaction_type === 'charge' ? 'нарахування' : 'повернення';
-    const confirmed = confirm(`Ви впевнені, що хочете сторнувати цю операцію (${typeText})?\n\nОпис: ${tx.description}\nСума: ${formatNumber(tx.amount)} zł\n\nЦя дія незворотна!`);
+    const confirmed = confirm(`Ви впевнені, що хочете сторнувати цю операцію (${typeText})?\n\nОпис: ${tx.description}\nСума: ${formatNumber(tx.amount)} zł`);
     if (!confirmed) return;
 
     if (!supplier) {
@@ -314,32 +395,31 @@ export default function CardPayments() {
       return;
     }
 
-    const amountChange = tx.transaction_type === 'payment' ? tx.amount : -tx.amount;
-    const newTotalPln = (supplier.balance_pln || 0) + amountChange;
-    const newCardPartsBalance = (supplier.card_balance_parts_pln || 0) + amountChange;
-
-    const { error: supplierError } = await supabase
-      .from('suppliers')
+    const { error: transactionError } = await supabase
+      .from('card_transactions')
       .update({
-        card_balance_parts_pln: newCardPartsBalance,
-        balance_pln: newTotalPln
+        is_reversed: true,
+        reversed_at: new Date().toISOString()
       })
-      .eq('id', supplier.id);
+      .eq('id', tx.id);
 
-    if (supplierError) {
-      alert('Помилка оновлення балансу постачальника');
-      console.error(supplierError);
+    if (transactionError) {
+      alert('Помилка сторнування транзакції');
+      console.error(transactionError);
       return;
     }
 
-    const { error: deleteError } = await supabase
-      .from('card_transactions')
-      .delete()
-      .eq('id', tx.id);
+    const amountChange = tx.transaction_type === 'payment' ? tx.amount : -tx.amount;
+    const newBalance = (supplier.card_balance || 0) + amountChange;
 
-    if (deleteError) {
-      alert('Помилка при сторнуванні транзакції');
-      console.error(deleteError);
+    const { error: supplierError } = await supabase
+      .from('suppliers')
+      .update({ card_balance: newBalance })
+      .eq('id', supplier.id);
+
+    if (supplierError) {
+      alert('Помилка оновлення балансу');
+      console.error(supplierError);
       return;
     }
 
@@ -676,9 +756,12 @@ export default function CardPayments() {
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {transactions.map((transaction) => (
-                    <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
+                    <tr key={transaction.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700 ${transaction.is_reversed ? 'opacity-40' : ''}`}>
                       <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
                         {new Date(transaction.transaction_date).toLocaleDateString('uk-UA')}
+                        {transaction.is_reversed && (
+                          <div className="text-[10px] text-orange-600 font-medium">Сторновано</div>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-xs">
                         <span className={`px-2 py-1 rounded font-medium ${
@@ -698,14 +781,16 @@ export default function CardPayments() {
                         {transaction.transaction_type === 'payment' ? '-' : '+'}{formatNumber(transaction.amount)}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <button
-                          onClick={() => reverseTransaction(transaction)}
-                          className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100 transition text-[10px]"
-                          title="Сторнувати операцію"
-                        >
-                          <XCircle size={12} />
-                          Сторнувати
-                        </button>
+                        {!transaction.is_reversed && (
+                          <button
+                            onClick={() => reverseTransaction(transaction)}
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100 transition text-[10px]"
+                            title="Сторнувати операцію"
+                          >
+                            <XCircle size={12} />
+                            Сторнувати
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -713,10 +798,19 @@ export default function CardPayments() {
                 <tfoot className="bg-gray-100 dark:bg-gray-700">
                   <tr>
                     <td className="px-4 py-3 text-sm font-bold text-gray-900 dark:text-gray-100" colSpan={3}>
+                      Всього нараховано:
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right font-bold text-blue-600">
+                      +{formatNumber(transactions.filter(t => t.transaction_type === 'charge' && !t.is_reversed).reduce((sum, t) => sum + t.amount, 0))}
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-3 text-sm font-bold text-gray-900 dark:text-gray-100" colSpan={3}>
                       Всього оплачено:
                     </td>
                     <td className="px-4 py-3 text-sm text-right font-bold text-green-600">
-                      -{formatNumber(transactions.filter(t => t.transaction_type === 'payment').reduce((sum, t) => sum + t.amount, 0))}
+                      -{formatNumber(transactions.filter(t => t.transaction_type === 'payment' && !t.is_reversed).reduce((sum, t) => sum + t.amount, 0))}
                     </td>
                     <td></td>
                   </tr>
@@ -725,7 +819,7 @@ export default function CardPayments() {
                       Всього повернень:
                     </td>
                     <td className="px-4 py-3 text-sm text-right font-bold text-red-600">
-                      +{formatNumber(transactions.filter(t => t.transaction_type === 'refund').reduce((sum, t) => sum + t.amount, 0))}
+                      +{formatNumber(transactions.filter(t => t.transaction_type === 'refund' && !t.is_reversed).reduce((sum, t) => sum + t.amount, 0))}
                     </td>
                     <td></td>
                   </tr>
