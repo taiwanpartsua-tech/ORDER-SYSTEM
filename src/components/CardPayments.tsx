@@ -201,6 +201,25 @@ export default function CardPayments() {
       return;
     }
 
+    const newPartsBalance = Number(supplier.balance_parts_pln || 0) + Number(order.part_price);
+    const newDeliveryBalance = Number(supplier.balance_delivery_pln || 0) + Number(order.delivery_cost);
+    const newTotalPln = Number(supplier.balance_pln || 0) + Number(totalAmount);
+
+    const { error: supplierError } = await supabase
+      .from('suppliers')
+      .update({
+        balance_parts_pln: newPartsBalance,
+        balance_delivery_pln: newDeliveryBalance,
+        balance_pln: newTotalPln
+      })
+      .eq('id', supplier.id);
+
+    if (supplierError) {
+      alert('Помилка оновлення балансу');
+      console.error(supplierError);
+      return;
+    }
+
     const { error } = await supabase
       .from('orders')
       .update({ verified: true })
@@ -345,6 +364,25 @@ export default function CardPayments() {
       return;
     }
 
+    const newPartsBalance = Number(supplier.balance_parts_pln || 0) + Number(summary.totalPartPrice);
+    const newDeliveryBalance = Number(supplier.balance_delivery_pln || 0) + Number(summary.totalDeliveryCost);
+    const newTotalPln = Number(supplier.balance_pln || 0) + Number(totalAmount);
+
+    const { error: supplierError } = await supabase
+      .from('suppliers')
+      .update({
+        balance_parts_pln: newPartsBalance,
+        balance_delivery_pln: newDeliveryBalance,
+        balance_pln: newTotalPln
+      })
+      .eq('id', supplier.id);
+
+    if (supplierError) {
+      alert('Помилка оновлення балансу');
+      console.error(supplierError);
+      return;
+    }
+
     const { error: receiptError } = await supabase
       .from('active_receipts')
       .update({
@@ -389,6 +427,23 @@ export default function CardPayments() {
         if (orderError) {
           console.error('Помилка оновлення статусу замовлення:', orderError);
         }
+
+        const newPartsBalance = Number(supplier.balance_parts_pln || 0) - Number(order.part_price);
+        const newDeliveryBalance = Number(supplier.balance_delivery_pln || 0) - Number(order.delivery_cost);
+        const newTotalPln = Number(supplier.balance_pln || 0) - Number(order.part_price + order.delivery_cost);
+
+        const { error: supplierError } = await supabase
+          .from('suppliers')
+          .update({
+            balance_parts_pln: newPartsBalance,
+            balance_delivery_pln: newDeliveryBalance,
+            balance_pln: newTotalPln
+          })
+          .eq('id', supplier.id);
+
+        if (supplierError) {
+          console.error('Помилка оновлення балансу:', supplierError);
+        }
       }
     } else if (tx.receipt_id) {
       const { data: receipt } = await supabase
@@ -408,6 +463,43 @@ export default function CardPayments() {
 
         if (receiptError) {
           console.error('Помилка оновлення статусу накладної:', receiptError);
+        }
+
+        const { data: receiptOrderLinks } = await supabase
+          .from('receipt_orders')
+          .select('order_id')
+          .eq('receipt_id', receipt.id);
+
+        if (receiptOrderLinks && receiptOrderLinks.length > 0) {
+          const orderIds = receiptOrderLinks.map(ro => ro.order_id);
+          const { data: ordersData } = await supabase
+            .from('orders')
+            .select('*')
+            .in('id', orderIds)
+            .eq('verified', true)
+            .eq('payment_type', 'оплачено');
+
+          if (ordersData && ordersData.length > 0) {
+            const totalPartPrice = ordersData.reduce((sum, order) => sum + order.part_price, 0);
+            const totalDeliveryCost = ordersData.reduce((sum, order) => sum + order.delivery_cost, 0);
+
+            const newPartsBalance = Number(supplier.balance_parts_pln || 0) - Number(totalPartPrice);
+            const newDeliveryBalance = Number(supplier.balance_delivery_pln || 0) - Number(totalDeliveryCost);
+            const newTotalPln = Number(supplier.balance_pln || 0) - Number(totalPartPrice + totalDeliveryCost);
+
+            const { error: supplierError } = await supabase
+              .from('suppliers')
+              .update({
+                balance_parts_pln: newPartsBalance,
+                balance_delivery_pln: newDeliveryBalance,
+                balance_pln: newTotalPln
+              })
+              .eq('id', supplier.id);
+
+            if (supplierError) {
+              console.error('Помилка оновлення балансу:', supplierError);
+            }
+          }
         }
       }
     } else {
