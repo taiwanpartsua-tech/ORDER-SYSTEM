@@ -36,7 +36,7 @@ export default function Orders() {
     delivery_cost: 0,
     total_cost: 0,
     part_number: '',
-    payment_type: 'оплачено',
+    payment_type: 'не обрано',
     cash_on_delivery: 0,
     client_id: '',
     received_pln: 0,
@@ -61,7 +61,7 @@ export default function Orders() {
     delivery_cost: 0,
     total_cost: 0,
     part_number: '',
-    payment_type: 'оплачено',
+    payment_type: 'не обрано',
     cash_on_delivery: 0,
     client_id: '',
     received_pln: 0,
@@ -117,7 +117,7 @@ export default function Orders() {
   }, [formData.part_price, formData.delivery_cost]);
 
   useEffect(() => {
-    if (formData.payment_type === 'оплачено') {
+    if (formData.payment_type === 'оплачено' || formData.payment_type === 'не обрано') {
       setFormData(prev => ({ ...prev, cash_on_delivery: 0 }));
     }
   }, [formData.payment_type]);
@@ -135,7 +135,7 @@ export default function Orders() {
   }, [newRowData.part_price, newRowData.delivery_cost]);
 
   useEffect(() => {
-    if (newRowData.payment_type === 'оплачено') {
+    if (newRowData.payment_type === 'оплачено' || newRowData.payment_type === 'не обрано') {
       setNewRowData(prev => ({ ...prev, cash_on_delivery: 0 }));
     }
   }, [newRowData.payment_type]);
@@ -324,7 +324,7 @@ export default function Orders() {
 
     const updateData: any = { [field]: valueToSave };
 
-    if (field === 'payment_type' && valueToSave === 'оплачено') {
+    if (field === 'payment_type' && (valueToSave === 'оплачено' || valueToSave === 'не обрано')) {
       updateData.cash_on_delivery = 0;
     }
 
@@ -497,6 +497,7 @@ export default function Orders() {
   }
 
   function renderPaymentTypeCell(orderId: string, paymentType: string) {
+    const displayPaymentType = paymentType || 'не обрано';
     return (
       <td className="p-0 relative">
         <button
@@ -506,9 +507,9 @@ export default function Orders() {
             setPaymentDropdownPosition({ top: rect.bottom + window.scrollY, left: rect.left + window.scrollX });
             setOpenPaymentDropdown(openPaymentDropdown === orderId ? null : orderId);
           }}
-          className={`w-full h-full px-3 py-3 text-xs font-semibold ${paymentTypeColors[paymentType]} hover:opacity-80 transition flex items-center justify-center gap-1 min-h-[48px]`}
+          className={`w-full h-full px-3 py-3 text-xs font-semibold ${paymentTypeColors[displayPaymentType]} hover:opacity-80 transition flex items-center justify-center gap-1 min-h-[48px]`}
         >
-          {paymentTypeLabels[paymentType]}
+          {paymentTypeLabels[displayPaymentType]}
           <ChevronDown size={14} />
         </button>
       </td>
@@ -530,7 +531,7 @@ export default function Orders() {
       delivery_cost: order.delivery_cost || 0,
       total_cost: order.total_cost || 0,
       part_number: order.part_number || '',
-      payment_type: order.payment_type || 'оплачено',
+      payment_type: order.payment_type || 'не обрано',
       cash_on_delivery: order.cash_on_delivery || 0,
       client_id: order.client_id || '',
       received_pln: order.received_pln || 0,
@@ -555,7 +556,7 @@ export default function Orders() {
       delivery_cost: 0,
       total_cost: 0,
       part_number: '',
-      payment_type: 'оплачено',
+      payment_type: 'не обрано',
       cash_on_delivery: 0,
       client_id: '',
       received_pln: 0,
@@ -580,7 +581,7 @@ export default function Orders() {
       delivery_cost: 0,
       total_cost: 0,
       part_number: '',
-      payment_type: 'оплачено',
+      payment_type: 'не обрано',
       cash_on_delivery: 0,
       client_id: '',
       received_pln: 0,
@@ -591,14 +592,25 @@ export default function Orders() {
   }
 
   async function saveNewRow() {
+    if (!newRowData.client_id || newRowData.client_id.trim() === '') {
+      alert('ID клієнта є обов\'язковим полем!');
+      return;
+    }
+
+    if (!newRowData.title || newRowData.title.trim() === '') {
+      alert('Назва є обов\'язковим полем!');
+      return;
+    }
+
+    if (!newRowData.link || newRowData.link.trim() === '') {
+      alert('Посилання є обов\'язковим полем!');
+      return;
+    }
+
     const dataToSubmit: any = { ...newRowData };
 
     if (!dataToSubmit.supplier_id || dataToSubmit.supplier_id === '') {
       delete dataToSubmit.supplier_id;
-    }
-
-    if (dataToSubmit.client_id === '') {
-      delete dataToSubmit.client_id;
     }
 
     try {
@@ -684,18 +696,20 @@ export default function Orders() {
   };
 
   const paymentTypeColors: Record<string, string> = {
+    'не обрано': 'bg-gray-100 text-gray-800',
     'оплачено': 'bg-green-100 text-green-800',
     'побранє': 'bg-orange-100 text-orange-800',
     'самовивіз pl': 'bg-blue-100 text-blue-800'
   };
 
   const paymentTypeLabels: Record<string, string> = {
+    'не обрано': 'Не обрано',
     'оплачено': 'Оплачено',
     'побранє': 'Побранє',
     'самовивіз pl': 'Самовивіз PL'
   };
 
-  const paymentTypes = ['оплачено', 'побранє', 'самовивіз pl'];
+  const paymentTypes = ['не обрано', 'оплачено', 'побранє', 'самовивіз pl'];
 
   const statusLabels: Record<string, string> = {
     'в роботі на сьогодні': 'В роботі на сьогодні',
@@ -736,7 +750,7 @@ export default function Orders() {
   const groupOrdersByPaymentType = () => {
     const grouped: Record<string, (Order & { supplier: Supplier })[]> = {};
     paymentTypes.forEach(type => {
-      grouped[type] = filteredOrders.filter(order => (order.payment_type || 'оплачено') === type);
+      grouped[type] = filteredOrders.filter(order => (order.payment_type || 'не обрано') === type);
     });
     return grouped;
   };
@@ -1025,6 +1039,7 @@ export default function Orders() {
                   onChange={(e) => setFormData({ ...formData, payment_type: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 >
+                  <option value="не обрано" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Не обрано</option>
                   <option value="оплачено" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Оплачено</option>
                   <option value="побранє" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Побранє</option>
                   <option value="самовивіз pl" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Самовивіз PL</option>
@@ -1242,8 +1257,8 @@ export default function Orders() {
                         value={newRowData.client_id}
                         onChange={(e) => setNewRowData({ ...newRowData, client_id: e.target.value })}
                         onKeyDown={handleNewRowKeyDown}
-                        placeholder="ID клієнта"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        placeholder="ID клієнта *"
+                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       />
                     </td>
                     <td className="px-3 py-3 min-h-[48px]">
@@ -1252,8 +1267,8 @@ export default function Orders() {
                         value={newRowData.title}
                         onChange={(e) => setNewRowData({ ...newRowData, title: e.target.value })}
                         onKeyDown={handleNewRowKeyDown}
-                        placeholder="Назва"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        placeholder="Назва *"
+                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       />
                     </td>
                     <td className="px-3 py-3 min-h-[48px]">
@@ -1262,8 +1277,8 @@ export default function Orders() {
                         value={newRowData.link}
                         onChange={(e) => setNewRowData({ ...newRowData, link: e.target.value })}
                         onKeyDown={handleNewRowKeyDown}
-                        placeholder="https://"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        placeholder="Посилання *"
+                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       />
                     </td>
                     <td className="px-3 py-3 min-h-[48px]">
