@@ -231,6 +231,7 @@ export default function CardPayments() {
       return;
     }
 
+    alert('Замовлення успішно оплачено!');
     loadData();
   }
 
@@ -396,6 +397,7 @@ export default function CardPayments() {
       return;
     }
 
+    alert('Накладну успішно розраховано!');
     loadData();
   }
 
