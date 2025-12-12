@@ -22,6 +22,8 @@ export type Supplier = {
   balance_receipt_pln?: number;
   balance_cash_on_delivery_pln?: number;
   balance_transport_usd?: number;
+  card_balance_parts_pln?: number;
+  card_balance_delivery_pln?: number;
   created_at: string;
 };
 

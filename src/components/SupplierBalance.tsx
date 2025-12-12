@@ -114,6 +114,31 @@ export default function SupplierBalance() {
       notes: `Прийомка ${receipt.receipt_number}`
     }]);
 
+    const { data: receiptOrderLinks2 } = await supabase
+      .from('receipt_orders')
+      .select('order_id')
+      .eq('receipt_id', receipt.id);
+
+    let cardPartsCost2 = 0;
+    let cardDeliveryCost2 = 0;
+
+    if (receiptOrderLinks2 && receiptOrderLinks2.length > 0) {
+      const orderIds2 = receiptOrderLinks2.map(ro => ro.order_id);
+      const { data: ordersData2 } = await supabase
+        .from('orders')
+        .select('*')
+        .in('id', orderIds2);
+
+      if (ordersData2) {
+        ordersData2.forEach(order => {
+          if (order.payment_type === 'оплачено') {
+            cardPartsCost2 += order.part_price || 0;
+            cardDeliveryCost2 += order.delivery_cost || 0;
+          }
+        });
+      }
+    }
+
     await supabase
       .from('suppliers')
       .update({
@@ -123,7 +148,9 @@ export default function SupplierBalance() {
         balance_delivery_pln: Number(supplier.balance_delivery_pln) + Number(receipt.delivery_cost_pln),
         balance_receipt_pln: Number(supplier.balance_receipt_pln) + Number(receipt.receipt_cost_pln),
         balance_cash_on_delivery_pln: Number(supplier.balance_cash_on_delivery_pln) + Number(receipt.cash_on_delivery_pln),
-        balance_transport_usd: Number(supplier.balance_transport_usd) + Number(receipt.transport_cost_usd)
+        balance_transport_usd: Number(supplier.balance_transport_usd) + Number(receipt.transport_cost_usd),
+        card_balance_parts_pln: Number(supplier.card_balance_parts_pln || 0) + Number(cardPartsCost2),
+        card_balance_delivery_pln: Number(supplier.card_balance_delivery_pln || 0) + Number(cardDeliveryCost2)
       })
       .eq('id', supplier.id);
 
@@ -153,6 +180,31 @@ export default function SupplierBalance() {
       return;
     }
 
+    const { data: receiptOrderLinks3 } = await supabase
+      .from('receipt_orders')
+      .select('order_id')
+      .eq('receipt_id', receipt.id);
+
+    let cardPartsCost3 = 0;
+    let cardDeliveryCost3 = 0;
+
+    if (receiptOrderLinks3 && receiptOrderLinks3.length > 0) {
+      const orderIds3 = receiptOrderLinks3.map(ro => ro.order_id);
+      const { data: ordersData3 } = await supabase
+        .from('orders')
+        .select('*')
+        .in('id', orderIds3);
+
+      if (ordersData3) {
+        ordersData3.forEach(order => {
+          if (order.payment_type === 'оплачено') {
+            cardPartsCost3 += order.part_price || 0;
+            cardDeliveryCost3 += order.delivery_cost || 0;
+          }
+        });
+      }
+    }
+
     await supabase
       .from('suppliers')
       .update({
@@ -162,7 +214,9 @@ export default function SupplierBalance() {
         balance_delivery_pln: Number(supplier.balance_delivery_pln) - Number(receipt.delivery_cost_pln),
         balance_receipt_pln: Number(supplier.balance_receipt_pln) - Number(receipt.receipt_cost_pln),
         balance_cash_on_delivery_pln: Number(supplier.balance_cash_on_delivery_pln) - Number(receipt.cash_on_delivery_pln),
-        balance_transport_usd: Number(supplier.balance_transport_usd) - Number(receipt.transport_cost_usd)
+        balance_transport_usd: Number(supplier.balance_transport_usd) - Number(receipt.transport_cost_usd),
+        card_balance_parts_pln: Number(supplier.card_balance_parts_pln || 0) - Number(cardPartsCost3),
+        card_balance_delivery_pln: Number(supplier.card_balance_delivery_pln || 0) - Number(cardDeliveryCost3)
       })
       .eq('id', supplier.id);
 

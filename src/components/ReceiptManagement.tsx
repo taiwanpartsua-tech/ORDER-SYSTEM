@@ -299,6 +299,31 @@ export default function ReceiptManagement() {
       return;
     }
 
+    const { data: receiptOrderLinks } = await supabase
+      .from('receipt_orders')
+      .select('order_id')
+      .eq('receipt_id', receipt.id);
+
+    let cardPartsCost = 0;
+    let cardDeliveryCost = 0;
+
+    if (receiptOrderLinks && receiptOrderLinks.length > 0) {
+      const orderIds = receiptOrderLinks.map(ro => ro.order_id);
+      const { data: ordersData } = await supabase
+        .from('orders')
+        .select('*')
+        .in('id', orderIds);
+
+      if (ordersData) {
+        ordersData.forEach(order => {
+          if (order.payment_type === 'оплачено') {
+            cardPartsCost += order.part_price || 0;
+            cardDeliveryCost += order.delivery_cost || 0;
+          }
+        });
+      }
+    }
+
     const { error: receiptError } = await supabase
       .from('active_receipts')
       .update({
@@ -356,7 +381,9 @@ export default function ReceiptManagement() {
         balance_delivery_pln: Number(supplierData.balance_delivery_pln) + Number(receipt.delivery_cost_pln),
         balance_receipt_pln: Number(supplierData.balance_receipt_pln) + Number(receipt.receipt_cost_pln),
         balance_cash_on_delivery_pln: Number(supplierData.balance_cash_on_delivery_pln) + Number(receipt.cash_on_delivery_pln),
-        balance_transport_usd: Number(supplierData.balance_transport_usd) + Number(receipt.transport_cost_usd)
+        balance_transport_usd: Number(supplierData.balance_transport_usd) + Number(receipt.transport_cost_usd),
+        card_balance_parts_pln: Number(supplierData.card_balance_parts_pln || 0) + Number(cardPartsCost),
+        card_balance_delivery_pln: Number(supplierData.card_balance_delivery_pln || 0) + Number(cardDeliveryCost)
       })
       .eq('id', receipt.supplier_id);
 

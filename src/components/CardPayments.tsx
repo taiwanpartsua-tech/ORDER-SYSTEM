@@ -42,7 +42,7 @@ export default function CardPayments() {
   function calculateBalance() {
     if (!supplier) return;
 
-    let balance = (supplier.balance_parts_pln || 0) + (supplier.balance_delivery_pln || 0);
+    let balance = (supplier.card_balance_parts_pln || 0) + (supplier.card_balance_delivery_pln || 0);
 
     pendingCardOrders.forEach(order => {
       balance += order.part_price + order.delivery_cost;
@@ -154,15 +154,15 @@ export default function CardPayments() {
       return;
     }
 
-    const newPartsBalance = Number(supplier.balance_parts_pln || 0) + Number(order.part_price);
-    const newDeliveryBalance = Number(supplier.balance_delivery_pln || 0) + Number(order.delivery_cost);
+    const newCardPartsBalance = Number(supplier.card_balance_parts_pln || 0) + Number(order.part_price);
+    const newCardDeliveryBalance = Number(supplier.card_balance_delivery_pln || 0) + Number(order.delivery_cost);
     const newTotalPln = Number(supplier.balance_pln || 0) + Number(totalAmount);
 
     const { error: supplierError } = await supabase
       .from('suppliers')
       .update({
-        balance_parts_pln: newPartsBalance,
-        balance_delivery_pln: newDeliveryBalance,
+        card_balance_parts_pln: newCardPartsBalance,
+        card_balance_delivery_pln: newCardDeliveryBalance,
         balance_pln: newTotalPln
       })
       .eq('id', supplier.id);
@@ -220,13 +220,13 @@ export default function CardPayments() {
       return;
     }
 
-    const newPartsBalance = (supplier.balance_parts_pln || 0) - amount;
+    const newCardPartsBalance = (supplier.card_balance_parts_pln || 0) - amount;
     const newTotalPln = (supplier.balance_pln || 0) - amount;
 
     const { error: supplierError } = await supabase
       .from('suppliers')
       .update({
-        balance_parts_pln: newPartsBalance,
+        card_balance_parts_pln: newCardPartsBalance,
         balance_pln: newTotalPln
       })
       .eq('id', supplier.id);
@@ -270,13 +270,13 @@ export default function CardPayments() {
       return;
     }
 
-    const newPartsBalance = (supplier.balance_parts_pln || 0) + amount;
+    const newCardPartsBalance = (supplier.card_balance_parts_pln || 0) + amount;
     const newTotalPln = (supplier.balance_pln || 0) + amount;
 
     const { error: supplierError } = await supabase
       .from('suppliers')
       .update({
-        balance_parts_pln: newPartsBalance,
+        card_balance_parts_pln: newCardPartsBalance,
         balance_pln: newTotalPln
       })
       .eq('id', supplier.id);
@@ -356,15 +356,15 @@ export default function CardPayments() {
           console.error('Помилка оновлення статусу замовлення:', orderError);
         }
 
-        const newPartsBalance = Number(supplier.balance_parts_pln || 0) - Number(order.part_price);
-        const newDeliveryBalance = Number(supplier.balance_delivery_pln || 0) - Number(order.delivery_cost);
+        const newCardPartsBalance = Number(supplier.card_balance_parts_pln || 0) - Number(order.part_price);
+        const newCardDeliveryBalance = Number(supplier.card_balance_delivery_pln || 0) - Number(order.delivery_cost);
         const newTotalPln = Number(supplier.balance_pln || 0) - Number(order.part_price + order.delivery_cost);
 
         const { error: supplierError } = await supabase
           .from('suppliers')
           .update({
-            balance_parts_pln: newPartsBalance,
-            balance_delivery_pln: newDeliveryBalance,
+            card_balance_parts_pln: newCardPartsBalance,
+            card_balance_delivery_pln: newCardDeliveryBalance,
             balance_pln: newTotalPln
           })
           .eq('id', supplier.id);
@@ -410,15 +410,15 @@ export default function CardPayments() {
             const totalPartPrice = ordersData.reduce((sum, order) => sum + order.part_price, 0);
             const totalDeliveryCost = ordersData.reduce((sum, order) => sum + order.delivery_cost, 0);
 
-            const newPartsBalance = Number(supplier.balance_parts_pln || 0) - Number(totalPartPrice);
-            const newDeliveryBalance = Number(supplier.balance_delivery_pln || 0) - Number(totalDeliveryCost);
+            const newCardPartsBalance = Number(supplier.card_balance_parts_pln || 0) - Number(totalPartPrice);
+            const newCardDeliveryBalance = Number(supplier.card_balance_delivery_pln || 0) - Number(totalDeliveryCost);
             const newTotalPln = Number(supplier.balance_pln || 0) - Number(totalPartPrice + totalDeliveryCost);
 
             const { error: supplierError } = await supabase
               .from('suppliers')
               .update({
-                balance_parts_pln: newPartsBalance,
-                balance_delivery_pln: newDeliveryBalance,
+                card_balance_parts_pln: newCardPartsBalance,
+                card_balance_delivery_pln: newCardDeliveryBalance,
                 balance_pln: newTotalPln
               })
               .eq('id', supplier.id);
@@ -432,12 +432,12 @@ export default function CardPayments() {
     } else {
       const amountChange = tx.transaction_type === 'payment' ? tx.amount : -tx.amount;
       const newTotalPln = (supplier.balance_pln || 0) + amountChange;
-      const newPartsBalance = (supplier.balance_parts_pln || 0) + amountChange;
+      const newCardPartsBalance = (supplier.card_balance_parts_pln || 0) + amountChange;
 
       const { error: supplierError } = await supabase
         .from('suppliers')
         .update({
-          balance_parts_pln: newPartsBalance,
+          card_balance_parts_pln: newCardPartsBalance,
           balance_pln: newTotalPln
         })
         .eq('id', supplier.id);
@@ -487,11 +487,11 @@ export default function CardPayments() {
                   <div className="text-sm opacity-90 mt-4 space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-white dark:bg-gray-800 rounded-full"></span>
-                      Запчастини: {formatNumber(supplier?.balance_parts_pln || 0)} zł
+                      Запчастини: {formatNumber(supplier?.card_balance_parts_pln || 0)} zł
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-white dark:bg-gray-800 rounded-full"></span>
-                      Доставка: {formatNumber(supplier?.balance_delivery_pln || 0)} zł
+                      Доставка: {formatNumber(supplier?.card_balance_delivery_pln || 0)} zł
                     </div>
                   </div>
                 </div>
