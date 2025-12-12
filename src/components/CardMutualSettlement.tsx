@@ -280,7 +280,7 @@ export default function CardMutualSettlement() {
 
         await supabase
           .from('card_transactions')
-          .update({ is_reversed: true, reversed_at: new Date().toISOString() })
+          .update({ is_reversed: true })
           .eq('receipt_id', tx.receipt_id)
           .eq('is_reversed', false);
       }
@@ -289,8 +289,7 @@ export default function CardMutualSettlement() {
     const { error } = await supabase
       .from('card_transactions')
       .update({
-        is_reversed: true,
-        reversed_at: new Date().toISOString()
+        is_reversed: true
       })
       .eq('id', tx.id);
 
@@ -652,7 +651,7 @@ export default function CardMutualSettlement() {
                 <td className="px-3 py-2 text-center">
                   {tx.is_reversed ? (
                     <span className="text-[10px] text-red-400 italic">
-                      {tx.reversed_at && new Date(tx.reversed_at).toLocaleDateString('uk-UA')}
+                      Сторновано
                     </span>
                   ) : (
                     <button
