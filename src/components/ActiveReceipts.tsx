@@ -27,7 +27,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
   const [cashOnDeliveryReceiptNumber, setCashOnDeliveryReceiptNumber] = useState<string>('');
   const [paidReceiptNumber, setPaidReceiptNumber] = useState<string>('');
 
-  function generateReceiptNumber(): string {
+  function generateReceiptNumber(group: PaymentGroup): string {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -35,7 +35,8 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const seconds = String(now.getSeconds()).padStart(2, '0');
-    return `${year}${month}${day}-${hours}${minutes}${seconds}`;
+    const prefix = group === 'cash_on_delivery' ? 'ПС' : 'О';
+    return `${prefix}-${year}${month}${day}-${hours}${minutes}${seconds}`;
   }
 
   function formatNumber(num: number): string {
@@ -85,12 +86,12 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
     if (group === 'cash_on_delivery') {
       setCashOnDeliveryOrders(prev => [...prev, editableOrder]);
       if (!cashOnDeliveryReceiptNumber) {
-        setCashOnDeliveryReceiptNumber(generateReceiptNumber());
+        setCashOnDeliveryReceiptNumber(generateReceiptNumber('cash_on_delivery'));
       }
     } else {
       setPaidOrders(prev => [...prev, editableOrder]);
       if (!paidReceiptNumber) {
-        setPaidReceiptNumber(generateReceiptNumber());
+        setPaidReceiptNumber(generateReceiptNumber('paid'));
       }
     }
   }
