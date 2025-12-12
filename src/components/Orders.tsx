@@ -504,7 +504,16 @@ export default function Orders() {
           onClick={(e) => {
             e.stopPropagation();
             const rect = e.currentTarget.getBoundingClientRect();
-            setPaymentDropdownPosition({ top: rect.bottom + window.scrollY, left: rect.left + window.scrollX });
+            const dropdownHeight = 300;
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
+
+            const shouldShowAbove = spaceBelow < 150 && spaceAbove > spaceBelow;
+            const top = shouldShowAbove
+              ? Math.max(20, rect.top + window.scrollY - Math.min(dropdownHeight, spaceAbove - 20))
+              : rect.bottom + window.scrollY;
+
+            setPaymentDropdownPosition({ top, left: rect.left + window.scrollX });
             setOpenPaymentDropdown(openPaymentDropdown === orderId ? null : orderId);
           }}
           className={`w-full h-full px-3 py-3 text-xs font-semibold ${paymentTypeColors[displayPaymentType]} hover:opacity-80 transition flex items-center justify-center gap-1 min-h-[48px]`}
@@ -1432,7 +1441,16 @@ export default function Orders() {
                       onClick={(e) => {
                         e.stopPropagation();
                         const rect = e.currentTarget.getBoundingClientRect();
-                        setDropdownPosition({ top: rect.bottom + window.scrollY, left: rect.left + window.scrollX });
+                        const dropdownHeight = 400;
+                        const spaceBelow = window.innerHeight - rect.bottom;
+                        const spaceAbove = rect.top;
+
+                        const shouldShowAbove = spaceBelow < 200 && spaceAbove > spaceBelow;
+                        const top = shouldShowAbove
+                          ? Math.max(20, rect.top + window.scrollY - Math.min(dropdownHeight, spaceAbove - 20))
+                          : rect.bottom + window.scrollY;
+
+                        setDropdownPosition({ top, left: rect.left + window.scrollX });
                         setOpenDropdown(openDropdown === order.id ? null : order.id);
                       }}
                       className={`w-full h-full px-3 py-3 text-xs font-semibold ${statusColors[order.status]} hover:opacity-80 transition flex items-center justify-center gap-1 min-h-[48px]`}
@@ -1618,7 +1636,16 @@ export default function Orders() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 const rect = e.currentTarget.getBoundingClientRect();
-                                setDropdownPosition({ top: rect.bottom + window.scrollY, left: rect.left + window.scrollX });
+                                const dropdownHeight = 400;
+                                const spaceBelow = window.innerHeight - rect.bottom;
+                                const spaceAbove = rect.top;
+
+                                const shouldShowAbove = spaceBelow < 200 && spaceAbove > spaceBelow;
+                                const top = shouldShowAbove
+                                  ? Math.max(20, rect.top + window.scrollY - Math.min(dropdownHeight, spaceAbove - 20))
+                                  : rect.bottom + window.scrollY;
+
+                                setDropdownPosition({ top, left: rect.left + window.scrollX });
                                 setOpenDropdown(openDropdown === order.id ? null : order.id);
                               }}
                               className={`w-full h-full px-3 py-2 text-xs font-semibold ${statusColors[order.status]} hover:opacity-80 transition flex items-center justify-center gap-1 min-h-[40px]`}
@@ -1702,8 +1729,8 @@ export default function Orders() {
       {activeTab === 'orders' && openDropdown && dropdownPosition && (
         <div
           ref={dropdownRef}
-          className="fixed z-[9999] w-56 bg-white dark:bg-gray-700 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-600 py-1"
-          style={{ top: `${dropdownPosition.top}px`, left: `${dropdownPosition.left}px` }}
+          className="fixed z-[9999] w-56 bg-white dark:bg-gray-700 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-600 py-1 max-h-[400px] overflow-y-auto"
+          style={{ top: `${dropdownPosition.top}px`, left: `${dropdownPosition.left}px`, maxHeight: `${Math.min(400, window.innerHeight - dropdownPosition.top - 20)}px` }}
         >
           {statuses.map((statusOption) => (
             <button
@@ -1726,8 +1753,8 @@ export default function Orders() {
       {activeTab === 'orders' && openPaymentDropdown && paymentDropdownPosition && (
         <div
           ref={paymentDropdownRef}
-          className="fixed z-[9999] w-56 bg-white dark:bg-gray-700 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-600 py-1"
-          style={{ top: `${paymentDropdownPosition.top}px`, left: `${paymentDropdownPosition.left}px` }}
+          className="fixed z-[9999] w-56 bg-white dark:bg-gray-700 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-600 py-1 max-h-[300px] overflow-y-auto"
+          style={{ top: `${paymentDropdownPosition.top}px`, left: `${paymentDropdownPosition.left}px`, maxHeight: `${Math.min(300, window.innerHeight - paymentDropdownPosition.top - 20)}px` }}
         >
           {paymentTypes.map((paymentOption) => (
             <button
