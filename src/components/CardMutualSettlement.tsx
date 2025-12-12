@@ -268,6 +268,32 @@ export default function CardMutualSettlement() {
       return;
     }
 
+    const { data: existingCardTransactions } = await supabase
+      .from('card_transactions')
+      .select('*')
+      .eq('receipt_id', receiptId)
+      .eq('is_reversed', false);
+
+    if (existingCardTransactions && existingCardTransactions.length > 0) {
+      for (const tx of existingCardTransactions) {
+        await supabase
+          .from('card_transactions')
+          .insert({
+            transaction_type: tx.transaction_type === 'charge' ? 'payment' : 'charge',
+            amount: -(tx.amount || 0),
+            description: `Повернення в активні: накладна №${receipt.receipt_number}`,
+            transaction_date: new Date().toISOString().split('T')[0],
+            receipt_id: receiptId,
+            created_by: 'system'
+          });
+
+        await supabase
+          .from('card_transactions')
+          .update({ is_reversed: true })
+          .eq('id', tx.id);
+      }
+    }
+
     alert('Накладну повернуто в активні');
     loadReceipts();
   }

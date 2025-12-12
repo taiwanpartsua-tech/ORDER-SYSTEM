@@ -360,6 +360,24 @@ export default function ReceiptManagement() {
       console.error('Помилка при створенні транзакції:', txError);
     }
 
+    if (cardPartsCost > 0 || cardDeliveryCost > 0) {
+      const cardTotalAmount = cardPartsCost + cardDeliveryCost;
+      const { error: cardTxError } = await supabase
+        .from('card_transactions')
+        .insert({
+          transaction_type: 'charge',
+          amount: cardTotalAmount,
+          description: `Нарахування за накладну №${receipt.receipt_number} (картка)`,
+          transaction_date: new Date().toISOString().split('T')[0],
+          receipt_id: receipt.id,
+          created_by: 'system'
+        });
+
+      if (cardTxError) {
+        console.error('Помилка при створенні картової транзакції:', cardTxError);
+      }
+    }
+
     await supabase.from('supplier_transactions').insert([{
       supplier_id: receipt.supplier_id,
       receipt_id: receipt.id,

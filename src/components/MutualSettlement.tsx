@@ -232,6 +232,36 @@ export default function MutualSettlement() {
       return;
     }
 
+    const { data: existingTransactions } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('receipt_id', receiptId)
+      .eq('is_reversed', false);
+
+    if (existingTransactions && existingTransactions.length > 0) {
+      for (const tx of existingTransactions) {
+        await supabase
+          .from('transactions')
+          .insert({
+            transaction_type: tx.transaction_type === 'debit' ? 'credit' : 'debit',
+            amount_pln: tx.amount_pln || 0,
+            amount_usd: tx.amount_usd || 0,
+            cash_on_delivery_pln: -(tx.cash_on_delivery_pln || 0),
+            transport_cost_usd: -(tx.transport_cost_usd || 0),
+            parts_delivery_pln: -(tx.parts_delivery_pln || 0),
+            description: `Повернення в активні: накладна №${receipt.receipt_number}`,
+            transaction_date: new Date().toISOString().split('T')[0],
+            receipt_id: receiptId,
+            created_by: 'system'
+          });
+
+        await supabase
+          .from('transactions')
+          .update({ is_reversed: true })
+          .eq('id', tx.id);
+      }
+    }
+
     alert('Накладну повернуто в активні');
     loadReceipts();
   }
