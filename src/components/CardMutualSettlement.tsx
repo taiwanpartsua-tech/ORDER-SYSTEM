@@ -284,6 +284,14 @@ export default function CardMutualSettlement() {
               settled_date: null
             })
             .eq('id', tx.receipt_id);
+        } else if (receipt.status === 'sent_for_settlement') {
+          await supabase
+            .from('active_receipts')
+            .update({
+              status: 'approved',
+              settlement_date: null
+            })
+            .eq('id', tx.receipt_id);
 
           const { data: supplier } = await supabase
             .from('suppliers')
@@ -301,6 +309,13 @@ export default function CardMutualSettlement() {
             await supabase
               .from('suppliers')
               .update({
+                balance_pln: Number(supplier.balance_pln) - Number(receipt.total_pln),
+                balance_usd: Number(supplier.balance_usd) - Number(receipt.transport_cost_usd),
+                balance_parts_pln: Number(supplier.balance_parts_pln) - Number(receipt.parts_cost_pln),
+                balance_delivery_pln: Number(supplier.balance_delivery_pln) - Number(receipt.delivery_cost_pln),
+                balance_receipt_pln: Number(supplier.balance_receipt_pln) - Number(receipt.receipt_cost_pln),
+                balance_cash_on_delivery_pln: Number(supplier.balance_cash_on_delivery_pln) - Number(receipt.cash_on_delivery_pln),
+                balance_transport_usd: Number(supplier.balance_transport_usd) - Number(receipt.transport_cost_usd),
                 card_balance: Number(supplier.card_balance) - (totalPartPrice + totalDeliveryCost),
                 card_balance_parts_pln: Number(supplier.card_balance_parts_pln) - totalPartPrice,
                 card_balance_delivery_pln: Number(supplier.card_balance_delivery_pln) - totalDeliveryCost
@@ -310,10 +325,29 @@ export default function CardMutualSettlement() {
         }
 
         await supabase
+          .from('card_transactions')
+          .update({ is_reversed: true, reversed_at: new Date().toISOString() })
+          .eq('receipt_id', tx.receipt_id)
+          .eq('is_reversed', false);
+
+        await supabase
           .from('transactions')
           .update({ is_reversed: true, reversed_at: new Date().toISOString() })
           .eq('receipt_id', tx.receipt_id)
           .eq('is_reversed', false);
+
+        const { data: supplierTx } = await supabase
+          .from('supplier_transactions')
+          .select('*')
+          .eq('receipt_id', tx.receipt_id)
+          .maybeSingle();
+
+        if (supplierTx) {
+          await supabase
+            .from('supplier_transactions')
+            .update({ is_reversed: true, reversed_at: new Date().toISOString() })
+            .eq('id', supplierTx.id);
+        }
       }
     }
 
