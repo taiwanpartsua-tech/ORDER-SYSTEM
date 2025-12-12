@@ -159,7 +159,7 @@ export default function SupplierBalance() {
   }
 
   async function returnFromSettlement(receipt: ActiveReceipt) {
-    const confirmed = confirm('Ви впевнені, що хочете повернути цю прийомку назад? Баланс буде зменшено.');
+    const confirmed = confirm('Ви впевнені, що хочете повернути цю прийомку назад?');
     if (!confirmed) return;
 
     if (!supplier) {
@@ -180,46 +180,6 @@ export default function SupplierBalance() {
       return;
     }
 
-    const { data: receiptOrderLinks3 } = await supabase
-      .from('receipt_orders')
-      .select('order_id')
-      .eq('receipt_id', receipt.id);
-
-    let cardPartsCost3 = 0;
-    let cardDeliveryCost3 = 0;
-
-    if (receiptOrderLinks3 && receiptOrderLinks3.length > 0) {
-      const orderIds3 = receiptOrderLinks3.map(ro => ro.order_id);
-      const { data: ordersData3 } = await supabase
-        .from('orders')
-        .select('*')
-        .in('id', orderIds3);
-
-      if (ordersData3) {
-        ordersData3.forEach(order => {
-          if (order.payment_type === 'оплачено') {
-            cardPartsCost3 += order.part_price || 0;
-            cardDeliveryCost3 += order.delivery_cost || 0;
-          }
-        });
-      }
-    }
-
-    await supabase
-      .from('suppliers')
-      .update({
-        balance_pln: Number(supplier.balance_pln) - Number(receipt.total_pln),
-        balance_usd: Number(supplier.balance_usd) - Number(receipt.transport_cost_usd),
-        balance_parts_pln: Number(supplier.balance_parts_pln) - Number(receipt.parts_cost_pln),
-        balance_delivery_pln: Number(supplier.balance_delivery_pln) - Number(receipt.delivery_cost_pln),
-        balance_receipt_pln: Number(supplier.balance_receipt_pln) - Number(receipt.receipt_cost_pln),
-        balance_cash_on_delivery_pln: Number(supplier.balance_cash_on_delivery_pln) - Number(receipt.cash_on_delivery_pln),
-        balance_transport_usd: Number(supplier.balance_transport_usd) - Number(receipt.transport_cost_usd),
-        card_balance_parts_pln: Number(supplier.card_balance_parts_pln || 0) - Number(cardPartsCost3),
-        card_balance_delivery_pln: Number(supplier.card_balance_delivery_pln || 0) - Number(cardDeliveryCost3)
-      })
-      .eq('id', supplier.id);
-
     await supabase
       .from('transactions')
       .update({ is_reversed: true })
@@ -230,7 +190,12 @@ export default function SupplierBalance() {
       .update({ is_reversed: true })
       .eq('receipt_id', receipt.id);
 
-    alert('Прийомку повернуто назад. Баланс зменшено.');
+    await supabase
+      .from('card_transactions')
+      .update({ is_reversed: true })
+      .eq('receipt_id', receipt.id);
+
+    alert('Прийомку повернуто назад.');
     loadData();
   }
 
