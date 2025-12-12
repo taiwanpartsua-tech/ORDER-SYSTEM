@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase, CardTransaction, ActiveReceipt, Order } from '../lib/supabase';
-import { Plus, TrendingDown, TrendingUp, CheckCircle2, XCircle, Undo2 } from 'lucide-react';
+import { Plus, TrendingDown, TrendingUp, CheckCircle2, XCircle, Undo2, ArrowLeft } from 'lucide-react';
 
 export default function CardMutualSettlement() {
   const [transactions, setTransactions] = useState<CardTransaction[]>([]);
@@ -209,18 +209,16 @@ export default function CardMutualSettlement() {
       totalDeliveryPln += order.delivery_cost || 0;
     });
 
+    const totalAmount = totalPartsPln + totalDeliveryPln;
+
     const { error: txError } = await supabase
       .from('card_transactions')
       .insert({
         transaction_type: 'charge',
-        charge_type: 'debit',
-        amount: totalPartsPln + totalDeliveryPln,
-        parts_amount: totalPartsPln,
-        delivery_amount: totalDeliveryPln,
-        description: `Нарахування за накладну №${receipt.receipt_number}`,
+        amount: totalAmount,
+        description: `Нарахування за накладну №${receipt.receipt_number} (Запчастини: ${totalPartsPln.toFixed(2)} zł, Доставка: ${totalDeliveryPln.toFixed(2)} zł)`,
         transaction_date: new Date().toISOString().split('T')[0],
-        receipt_id: receipt.id,
-        created_by: 'system'
+        receipt_id: receipt.id
       });
 
     if (txError) {
@@ -245,6 +243,32 @@ export default function CardMutualSettlement() {
     alert('Накладну розраховано. Транзакцію додано в історію.');
     loadReceipts();
     loadTransactions();
+  }
+
+  async function returnToActive(receiptId: string) {
+    const receipt = receipts.find(r => r.id === receiptId);
+    if (!receipt) return;
+
+    if (!confirm(`Повернути накладну №${receipt.receipt_number} з розрахунку назад в активні?`)) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('active_receipts')
+      .update({
+        status: 'approved',
+        settlement_date: null
+      })
+      .eq('id', receiptId);
+
+    if (error) {
+      alert('Помилка при поверненні накладної');
+      console.error(error);
+      return;
+    }
+
+    alert('Накладну повернуто в активні');
+    loadReceipts();
   }
 
   async function reverseTransaction(tx: CardTransaction) {
@@ -473,13 +497,23 @@ export default function CardMutualSettlement() {
                       <div className="text-xs text-gray-600 dark:text-gray-300">{receipt.receipt_date}</div>
                       <div className="text-[10px] text-gray-500 dark:text-gray-400">Позицій: {totalPositions}</div>
                     </div>
-                    <button
-                      onClick={() => markAsSettled(receipt.id)}
-                      className="px-2 py-1 bg-green-600 text-white rounded text-[10px] hover:bg-green-700 transition flex items-center gap-0.5"
-                    >
-                      <CheckCircle2 size={12} />
-                      Розрахувати
-                    </button>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => returnToActive(receipt.id)}
+                        className="px-2 py-1 bg-orange-600 text-white rounded text-[10px] hover:bg-orange-700 transition flex items-center gap-0.5"
+                        title="Повернути в активні"
+                      >
+                        <ArrowLeft size={12} />
+                        Повернути
+                      </button>
+                      <button
+                        onClick={() => markAsSettled(receipt.id)}
+                        className="px-2 py-1 bg-green-600 text-white rounded text-[10px] hover:bg-green-700 transition flex items-center gap-0.5"
+                      >
+                        <CheckCircle2 size={12} />
+                        Розрахувати
+                      </button>
+                    </div>
                   </div>
                   <div className="grid grid-cols-3 gap-1 text-xs">
                     <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
