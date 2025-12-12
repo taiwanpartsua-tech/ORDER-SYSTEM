@@ -48,12 +48,6 @@ export default function CardPayments() {
       balance += order.part_price + order.delivery_cost;
     });
 
-    pendingReceipts.forEach(summary => {
-      if (!summary.receipt.settled_date) {
-        balance += summary.totalPartPrice + summary.totalDeliveryCost;
-      }
-    });
-
     setCalculatedBalance(balance);
   }
 
@@ -323,9 +317,9 @@ export default function CardPayments() {
       return;
     }
 
-    const newPartsBalance = Number(supplier.balance_parts_pln || 0) + Number(summary.totalPartPrice);
-    const newDeliveryBalance = Number(supplier.balance_delivery_pln || 0) + Number(summary.totalDeliveryCost);
-    const newTotalPln = Number(supplier.balance_pln || 0) + Number(totalAmount);
+    const newPartsBalance = Number(supplier.balance_parts_pln || 0) - Number(summary.totalPartPrice);
+    const newDeliveryBalance = Number(supplier.balance_delivery_pln || 0) - Number(summary.totalDeliveryCost);
+    const newTotalPln = Number(supplier.balance_pln || 0) - Number(totalAmount);
 
     const { error: supplierError } = await supabase
       .from('suppliers')

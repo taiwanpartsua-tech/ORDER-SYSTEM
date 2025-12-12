@@ -85,6 +85,24 @@ export default function SupplierBalance() {
       return;
     }
 
+    const newPartsBalance = Number(supplier.balance_parts_pln || 0) + Number(receipt.parts_cost_pln);
+    const newDeliveryBalance = Number(supplier.balance_delivery_pln || 0) + Number(receipt.delivery_cost_pln);
+    const newTotalPln = Number(supplier.balance_pln || 0) + Number(partsDeliveryPln);
+
+    const { error: supplierError } = await supabase
+      .from('suppliers')
+      .update({
+        balance_parts_pln: newPartsBalance,
+        balance_delivery_pln: newDeliveryBalance,
+        balance_pln: newTotalPln
+      })
+      .eq('id', supplier.id);
+
+    if (supplierError) {
+      alert('Помилка оновлення балансу');
+      return;
+    }
+
     await supabase.from('transactions').insert([{
       transaction_type: 'debit',
       amount_pln: 0,
@@ -98,13 +116,38 @@ export default function SupplierBalance() {
       created_by: 'system'
     }]);
 
-    alert('Прийомку передано на розрахунок! Створено транзакцію у взаєморозрахунку.');
+    alert('Прийомку передано на розрахунок! Баланс оновлено.');
     loadData();
   }
 
   async function returnFromSettlement(receipt: ActiveReceipt) {
-    const confirmed = confirm('Ви впевнені, що хочете повернути цю прийомку назад? Транзакція буде видалена.');
+    const confirmed = confirm('Ви впевнені, що хочете повернути цю прийомку назад? Баланс буде зменшено.');
     if (!confirmed) return;
+
+    if (!supplier) {
+      alert('Помилка: постачальник не знайдений');
+      return;
+    }
+
+    const partsDeliveryPln = receipt.parts_cost_pln + receipt.delivery_cost_pln;
+
+    const newPartsBalance = Number(supplier.balance_parts_pln || 0) - Number(receipt.parts_cost_pln);
+    const newDeliveryBalance = Number(supplier.balance_delivery_pln || 0) - Number(receipt.delivery_cost_pln);
+    const newTotalPln = Number(supplier.balance_pln || 0) - Number(partsDeliveryPln);
+
+    const { error: supplierError } = await supabase
+      .from('suppliers')
+      .update({
+        balance_parts_pln: newPartsBalance,
+        balance_delivery_pln: newDeliveryBalance,
+        balance_pln: newTotalPln
+      })
+      .eq('id', supplier.id);
+
+    if (supplierError) {
+      alert('Помилка оновлення балансу');
+      return;
+    }
 
     const { error: receiptError } = await supabase
       .from('active_receipts')
@@ -124,7 +167,7 @@ export default function SupplierBalance() {
       .delete()
       .eq('receipt_id', receipt.id);
 
-    alert('Прийомку повернуто назад. Транзакція видалена.');
+    alert('Прийомку повернуто назад. Баланс зменшено.');
     loadData();
   }
 
