@@ -77,6 +77,7 @@ export type Return = {
   discussion_link?: string;
   situation_description?: string;
   manager_id?: string;
+  archived?: boolean;
   created_at: string;
   updated_at?: string;
 };

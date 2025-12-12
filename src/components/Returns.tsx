@@ -9,6 +9,7 @@ export default function Returns() {
   const [isAddingNewRow, setIsAddingNewRow] = useState(false);
   const [editingCell, setEditingCell] = useState<{ returnId: string; field: string } | null>(null);
   const [editValue, setEditValue] = useState<string>('');
+  const [showArchived, setShowArchived] = useState(false);
   const [newRowData, setNewRowData] = useState({
     status: 'повернення',
     substatus: 'В Арта в хелмі',
@@ -30,6 +31,12 @@ export default function Returns() {
     manager_id: ''
   });
 
+  const statuses = [
+    'повернення',
+    'проблемні',
+    'анульовано'
+  ];
+
   const substatuses = [
     'В Арта в хелмі',
     'В Луцьку',
@@ -40,6 +47,12 @@ export default function Returns() {
     'В пачки',
     'В дорозі до Арта'
   ];
+
+  const statusColors: Record<string, string> = {
+    'повернення': 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100',
+    'проблемні': 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100',
+    'анульовано': 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
+  };
 
   const refundStatuses = [
     'оплачено поляком',
@@ -81,7 +94,7 @@ export default function Returns() {
   useEffect(() => {
     loadReturns();
     loadManagers();
-  }, []);
+  }, [showArchived]);
 
   useEffect(() => {
     const totalCost = Number(newRowData.part_price) + Number(newRowData.delivery_cost);
@@ -98,6 +111,7 @@ export default function Returns() {
     const { data, error } = await supabase
       .from('returns')
       .select('*')
+      .eq('archived', showArchived)
       .order('created_at', { ascending: false });
 
     if (!error && data) {
@@ -152,6 +166,9 @@ export default function Returns() {
     if (dataToSubmit.refund_status === '' || dataToSubmit.refund_status === null) {
       dataToSubmit.refund_status = null;
     }
+
+    const shouldArchive = dataToSubmit.status === 'проблемні' || dataToSubmit.status === 'анульовано';
+    dataToSubmit.archived = shouldArchive;
 
     const { error } = await supabase.from('returns').insert([dataToSubmit]);
     if (error) {
@@ -399,6 +416,28 @@ export default function Returns() {
               <Plus size={18} />
               Додати повернення
             </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowArchived(false)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  !showArchived
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                Активні
+              </button>
+              <button
+                onClick={() => setShowArchived(true)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  showArchived
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                Архівні
+              </button>
+            </div>
           </div>
         )}
 
@@ -407,6 +446,7 @@ export default function Returns() {
             <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
               <tr>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase w-10"></th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Статус</th>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Підстатус</th>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ID клієнта</th>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Назва</th>
@@ -422,6 +462,17 @@ export default function Returns() {
                 <>
                   <tr className="bg-green-50 dark:bg-green-900/30">
                     <td className="px-3 py-2"></td>
+                    <td className="px-3 py-2">
+                      <select
+                        value={newRowData.status}
+                        onChange={(e) => setNewRowData({ ...newRowData, status: e.target.value })}
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
+                      >
+                        {statuses.map((status) => (
+                          <option key={status} value={status}>{status}</option>
+                        ))}
+                      </select>
+                    </td>
                     <td className="px-3 py-2">
                       <select
                         value={newRowData.substatus}
@@ -506,7 +557,7 @@ export default function Returns() {
                     </td>
                   </tr>
                   <tr className="bg-green-50 dark:bg-green-900/30">
-                    <td colSpan={9} className="px-3 py-3">
+                    <td colSpan={10} className="px-3 py-3">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                           <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Вартість запчастини (zl)</label>
@@ -637,6 +688,29 @@ export default function Returns() {
                     </td>
                     <td className="p-0 relative">
                       <select
+                        value={returnItem.status}
+                        onChange={async (e) => {
+                          const newStatus = e.target.value;
+                          const shouldArchive = newStatus === 'проблемні' || newStatus === 'анульовано';
+                          await supabase
+                            .from('returns')
+                            .update({
+                              status: newStatus,
+                              archived: shouldArchive,
+                              updated_at: new Date().toISOString()
+                            })
+                            .eq('id', returnItem.id);
+                          loadReturns();
+                        }}
+                        className={`w-full h-full px-3 py-2 text-xs font-semibold border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 ${statusColors[returnItem.status]}`}
+                      >
+                        {statuses.map((status) => (
+                          <option key={status} value={status}>{status}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="p-0 relative">
+                      <select
                         value={returnItem.substatus}
                         onChange={async (e) => {
                           const newSubstatus = e.target.value;
@@ -697,7 +771,7 @@ export default function Returns() {
                   </tr>
                   {expandedRows.has(returnItem.id) && (
                     <tr className="bg-gray-50 dark:bg-gray-800/50">
-                      <td colSpan={9} className="px-3 py-3 border-t border-gray-200 dark:border-gray-700">
+                      <td colSpan={10} className="px-3 py-3 border-t border-gray-200 dark:border-gray-700">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           <div>
                             <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Вартість запчастини (zl)</label>
