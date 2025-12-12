@@ -409,11 +409,11 @@ export default function Orders() {
 
     return (
       <td
-        className={`px-3 py-3 cursor-pointer hover:bg-blue-50 transition min-h-[48px] ${isTitle ? 'max-w-[300px]' : ''} ${className.replace(/text-(sm|xs|base)/g, '')} ${fontSizeClass}`}
+        className={`px-3 py-3 cursor-pointer hover:bg-blue-50 transition min-h-[48px] ${isTitle ? 'min-w-[200px]' : ''} ${className.replace(/text-(sm|xs|base)/g, '')} ${fontSizeClass}`}
         onClick={() => startEditing(orderId, field, value)}
-        title="Клікніть для редагування"
+        title={value}
       >
-        <div className="w-full break-words whitespace-normal">
+        <div className={`w-full ${isTitle ? 'line-clamp-3 break-words' : 'break-words whitespace-normal'}`}>
           {value}
         </div>
       </td>
