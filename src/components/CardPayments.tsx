@@ -201,25 +201,6 @@ export default function CardPayments() {
       return;
     }
 
-    const newPartsBalance = (supplier.balance_parts_pln || 0) - order.part_price;
-    const newDeliveryBalance = (supplier.balance_delivery_pln || 0) - order.delivery_cost;
-    const newTotalPln = (supplier.balance_pln || 0) - totalAmount;
-
-    const { error: supplierError } = await supabase
-      .from('suppliers')
-      .update({
-        balance_parts_pln: newPartsBalance,
-        balance_delivery_pln: newDeliveryBalance,
-        balance_pln: newTotalPln
-      })
-      .eq('id', supplier.id);
-
-    if (supplierError) {
-      alert('Помилка оновлення балансу');
-      console.error(supplierError);
-      return;
-    }
-
     const { error } = await supabase
       .from('orders')
       .update({ verified: true })
@@ -364,25 +345,6 @@ export default function CardPayments() {
       return;
     }
 
-    const newPartsBalance = (supplier.balance_parts_pln || 0) - summary.totalPartPrice;
-    const newDeliveryBalance = (supplier.balance_delivery_pln || 0) - summary.totalDeliveryCost;
-    const newTotalPln = (supplier.balance_pln || 0) - totalAmount;
-
-    const { error: supplierError } = await supabase
-      .from('suppliers')
-      .update({
-        balance_parts_pln: newPartsBalance,
-        balance_delivery_pln: newDeliveryBalance,
-        balance_pln: newTotalPln
-      })
-      .eq('id', supplier.id);
-
-    if (supplierError) {
-      alert('Помилка оновлення балансу');
-      console.error(supplierError);
-      return;
-    }
-
     const { error: receiptError } = await supabase
       .from('active_receipts')
       .update({
@@ -427,23 +389,6 @@ export default function CardPayments() {
         if (orderError) {
           console.error('Помилка оновлення статусу замовлення:', orderError);
         }
-
-        const newPartsBalance = (supplier.balance_parts_pln || 0) + order.part_price;
-        const newDeliveryBalance = (supplier.balance_delivery_pln || 0) + order.delivery_cost;
-        const newTotalPln = (supplier.balance_pln || 0) + (order.part_price + order.delivery_cost);
-
-        const { error: supplierError } = await supabase
-          .from('suppliers')
-          .update({
-            balance_parts_pln: newPartsBalance,
-            balance_delivery_pln: newDeliveryBalance,
-            balance_pln: newTotalPln
-          })
-          .eq('id', supplier.id);
-
-        if (supplierError) {
-          console.error('Помилка оновлення балансу:', supplierError);
-        }
       }
     } else if (tx.receipt_id) {
       const { data: receipt } = await supabase
@@ -452,50 +397,17 @@ export default function CardPayments() {
         .eq('id', tx.receipt_id)
         .maybeSingle();
 
-      if (receipt) {
-        if (receipt.status === 'settled') {
-          const { error: receiptError } = await supabase
-            .from('active_receipts')
-            .update({
-              status: 'sent_for_settlement',
-              settled_date: null
-            })
-            .eq('id', tx.receipt_id);
+      if (receipt && receipt.status === 'settled') {
+        const { error: receiptError } = await supabase
+          .from('active_receipts')
+          .update({
+            status: 'sent_for_settlement',
+            settled_date: null
+          })
+          .eq('id', tx.receipt_id);
 
-          if (receiptError) {
-            console.error('Помилка оновлення статусу накладної:', receiptError);
-          }
-        }
-
-        await supabase
-          .from('transactions')
-          .delete()
-          .eq('receipt_id', tx.receipt_id);
-
-        const { data: supplierTx } = await supabase
-          .from('supplier_transactions')
-          .select('*')
-          .eq('receipt_id', tx.receipt_id)
-          .maybeSingle();
-
-        if (supplierTx) {
-          await supabase
-            .from('suppliers')
-            .update({
-              balance_pln: Number(supplier.balance_pln || 0) - Number(receipt.total_pln),
-              balance_usd: Number(supplier.balance_usd || 0) - Number(receipt.transport_cost_usd),
-              balance_parts_pln: Number(supplier.balance_parts_pln || 0) - Number(receipt.parts_cost_pln),
-              balance_delivery_pln: Number(supplier.balance_delivery_pln || 0) - Number(receipt.delivery_cost_pln),
-              balance_receipt_pln: Number(supplier.balance_receipt_pln || 0) - Number(receipt.receipt_cost_pln),
-              balance_cash_on_delivery_pln: Number(supplier.balance_cash_on_delivery_pln || 0) - Number(receipt.cash_on_delivery_pln),
-              balance_transport_usd: Number(supplier.balance_transport_usd || 0) - Number(receipt.transport_cost_usd)
-            })
-            .eq('id', receipt.supplier_id);
-
-          await supabase
-            .from('supplier_transactions')
-            .delete()
-            .eq('id', supplierTx.id);
+        if (receiptError) {
+          console.error('Помилка оновлення статусу накладної:', receiptError);
         }
       }
     } else {
