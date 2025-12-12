@@ -22,7 +22,7 @@ export default function Orders() {
   const [isAddingNewRow, setIsAddingNewRow] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<'orders' | 'returns'>('orders');
-  const [activeViewTab, setActiveViewTab] = useState<'active' | 'archived'>('active');
+  const [activeViewTab, setActiveViewTab] = useState<'all' | 'archived' | 'returns' | 'problematic' | 'cancelled'>('all');
   const [newRowData, setNewRowData] = useState({
     order_number: '',
     supplier_id: '',
@@ -164,11 +164,9 @@ export default function Orders() {
   }
 
   async function loadOrders() {
-    const isArchived = activeViewTab === 'archived';
     const { data, error } = await supabase
       .from('orders')
       .select('*, supplier:suppliers(*)')
-      .eq('archived', isArchived)
       .order('created_at', { ascending: false });
 
     if (!error && data) {
@@ -229,14 +227,15 @@ export default function Orders() {
   }
 
   async function handleArchive(id: string) {
-    const action = activeViewTab === 'active' ? 'архівувати' : 'розархівувати';
+    const order = orders.find(o => o.id === id);
+    const isArchived = order?.archived || false;
+    const action = isArchived ? 'розархівувати' : 'архівувати';
     if (confirm(`Ви впевнені що хочете ${action} це замовлення?`)) {
-      const isArchiving = activeViewTab === 'active';
       await supabase
         .from('orders')
         .update({
-          archived: isArchiving,
-          archived_at: isArchiving ? new Date().toISOString() : null
+          archived: !isArchived,
+          archived_at: !isArchived ? new Date().toISOString() : null
         })
         .eq('id', id);
       loadOrders();
@@ -773,11 +772,22 @@ export default function Orders() {
   };
 
   const filteredOrders = orders.filter(order => {
-    if (activeTab === 'orders') {
-      return order.status !== 'повернення';
-    } else {
-      return order.status === 'повернення';
+    if (activeTab === 'returns') {
+      return false;
     }
+
+    if (activeViewTab === 'all') {
+      return !order.archived && order.status !== 'повернення' && order.status !== 'проблемні' && order.status !== 'анульовано';
+    } else if (activeViewTab === 'archived') {
+      return order.archived === true;
+    } else if (activeViewTab === 'returns') {
+      return order.status === 'повернення' && !order.archived;
+    } else if (activeViewTab === 'problematic') {
+      return order.status === 'проблемні' && !order.archived;
+    } else if (activeViewTab === 'cancelled') {
+      return order.status === 'анульовано' && !order.archived;
+    }
+    return false;
   });
 
   return (
@@ -794,7 +804,7 @@ export default function Orders() {
                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
               }`}
             >
-              Замовлення ({orders.filter(o => o.status !== 'повернення').length})
+              Замовлення ({orders.length})
             </button>
             <button
               onClick={() => setActiveTab('returns')}
@@ -849,14 +859,14 @@ export default function Orders() {
       {activeTab === 'orders' && (
         <div className="flex gap-2 mb-4 bg-gray-50 dark:bg-gray-800 p-1 rounded-lg w-fit">
           <button
-            onClick={() => setActiveViewTab('active')}
+            onClick={() => setActiveViewTab('all')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-              activeViewTab === 'active'
+              activeViewTab === 'all'
                 ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow dark:shadow-md'
                 : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
             }`}
           >
-            Активні
+            Всі ({orders.filter(o => !o.archived && o.status !== 'повернення' && o.status !== 'проблемні' && o.status !== 'анульовано').length})
           </button>
           <button
             onClick={() => setActiveViewTab('archived')}
@@ -866,7 +876,37 @@ export default function Orders() {
                 : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
             }`}
           >
-            Архів
+            Архів ({orders.filter(o => o.archived === true).length})
+          </button>
+          <button
+            onClick={() => setActiveViewTab('returns')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+              activeViewTab === 'returns'
+                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow dark:shadow-md'
+                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+            }`}
+          >
+            Повернення ({orders.filter(o => o.status === 'повернення' && !o.archived).length})
+          </button>
+          <button
+            onClick={() => setActiveViewTab('problematic')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+              activeViewTab === 'problematic'
+                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow dark:shadow-md'
+                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+            }`}
+          >
+            Проблемні ({orders.filter(o => o.status === 'проблемні' && !o.archived).length})
+          </button>
+          <button
+            onClick={() => setActiveViewTab('cancelled')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+              activeViewTab === 'cancelled'
+                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow dark:shadow-md'
+                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+            }`}
+          >
+            Анульовано ({orders.filter(o => o.status === 'анульовано' && !o.archived).length})
           </button>
         </div>
       )}
@@ -1447,7 +1487,7 @@ export default function Orders() {
                         <Edit size={14} />
                         Ред.
                       </button>
-                      {activeViewTab === 'active' && (
+                      {!order.archived && (
                         <button
                           onClick={() => handleReturn(order)}
                           className="px-3 py-2 bg-orange-100 text-orange-800 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
@@ -1460,10 +1500,10 @@ export default function Orders() {
                       <button
                         onClick={() => handleArchive(order.id)}
                         className="px-3 py-2 bg-gray-100 text-gray-800 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
-                        title={activeViewTab === 'active' ? 'Архівувати' : 'Розархівувати'}
+                        title={order.archived ? 'Розархівувати' : 'Архівувати'}
                       >
                         <Archive size={14} />
-                        {activeViewTab === 'active' ? 'Арх.' : 'Розарх.'}
+                        {order.archived ? 'Розарх.' : 'Арх.'}
                       </button>
                     </div>
                   </td>
@@ -1633,7 +1673,7 @@ export default function Orders() {
                                 <Edit size={14} />
                                 Ред.
                               </button>
-                              {activeViewTab === 'active' && (
+                              {!order.archived && (
                                 <button
                                   onClick={() => handleReturn(order)}
                                   className="px-3 py-2 bg-orange-100 text-orange-800 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
@@ -1646,10 +1686,10 @@ export default function Orders() {
                               <button
                                 onClick={() => handleArchive(order.id)}
                                 className="px-3 py-2 bg-gray-100 text-gray-800 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
-                                title={activeViewTab === 'active' ? 'Архівувати' : 'Розархівувати'}
+                                title={order.archived ? 'Розархівувати' : 'Архівувати'}
                               >
                                 <Archive size={14} />
-                                {activeViewTab === 'active' ? 'Арх.' : 'Розарх.'}
+                                {order.archived ? 'Розарх.' : 'Арх.'}
                               </button>
                             </div>
                           </td>
