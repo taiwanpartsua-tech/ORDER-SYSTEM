@@ -195,6 +195,40 @@ export default function CardMutualSettlement() {
   }
 
   async function markAsSettled(receiptId: string) {
+    const receipt = receipts.find(r => r.id === receiptId);
+    if (!receipt) return;
+
+    const orders = receiptOrders[receiptId] || [];
+    const paidOrders = orders.filter(o => o.verified && o.payment_type === 'оплачено');
+
+    let totalPartsPln = 0;
+    let totalDeliveryPln = 0;
+
+    paidOrders.forEach(order => {
+      totalPartsPln += order.part_price || 0;
+      totalDeliveryPln += order.delivery_cost || 0;
+    });
+
+    const { error: txError } = await supabase
+      .from('card_transactions')
+      .insert({
+        transaction_type: 'charge',
+        charge_type: 'debit',
+        amount: totalPartsPln + totalDeliveryPln,
+        parts_amount: totalPartsPln,
+        delivery_amount: totalDeliveryPln,
+        description: `Нарахування за накладну №${receipt.receipt_number}`,
+        transaction_date: new Date().toISOString().split('T')[0],
+        receipt_id: receipt.id,
+        created_by: 'system'
+      });
+
+    if (txError) {
+      alert('Помилка при створенні транзакції нарахування');
+      console.error(txError);
+      return;
+    }
+
     const { error } = await supabase
       .from('active_receipts')
       .update({
@@ -208,7 +242,7 @@ export default function CardMutualSettlement() {
       return;
     }
 
-    alert('Накладну позначено як розраховано');
+    alert('Накладну розраховано. Транзакцію додано в історію.');
     loadReceipts();
     loadTransactions();
   }
@@ -444,7 +478,7 @@ export default function CardMutualSettlement() {
                       className="px-2 py-1 bg-green-600 text-white rounded text-[10px] hover:bg-green-700 transition flex items-center gap-0.5"
                     >
                       <CheckCircle2 size={12} />
-                      ОК
+                      Розрахувати
                     </button>
                   </div>
                   <div className="grid grid-cols-3 gap-1 text-xs">
@@ -497,35 +531,6 @@ export default function CardMutualSettlement() {
                       <button
                         onClick={async () => {
                           if (confirm(`Повернути накладну №${receipt.receipt_number} назад в "на розрахунку"?\n\nТранзакції будуть видалені.`)) {
-                            const { data: supplier } = await supabase
-                              .from('suppliers')
-                              .select('*')
-                              .eq('id', receipt.supplier_id)
-                              .maybeSingle();
-
-                            if (supplier) {
-                              const orders = receiptOrders[receipt.id] || [];
-                              const paidOrders = orders.filter(o => o.verified && o.payment_type === 'оплачено');
-                              const totalPartPrice = paidOrders.reduce((sum, order) => sum + (order.part_price || 0), 0);
-                              const totalDeliveryCost = paidOrders.reduce((sum, order) => sum + (order.delivery_cost || 0), 0);
-
-                              await supabase
-                                .from('suppliers')
-                                .update({
-                                  balance_pln: Number(supplier.balance_pln) - Number(receipt.total_pln),
-                                  balance_usd: Number(supplier.balance_usd) - Number(receipt.transport_cost_usd),
-                                  balance_parts_pln: Number(supplier.balance_parts_pln) - Number(receipt.parts_cost_pln),
-                                  balance_delivery_pln: Number(supplier.balance_delivery_pln) - Number(receipt.delivery_cost_pln),
-                                  balance_receipt_pln: Number(supplier.balance_receipt_pln) - Number(receipt.receipt_cost_pln),
-                                  balance_cash_on_delivery_pln: Number(supplier.balance_cash_on_delivery_pln) - Number(receipt.cash_on_delivery_pln),
-                                  balance_transport_usd: Number(supplier.balance_transport_usd) - Number(receipt.transport_cost_usd),
-                                  card_balance: Number(supplier.card_balance) - (totalPartPrice + totalDeliveryCost),
-                                  card_balance_parts_pln: Number(supplier.card_balance_parts_pln) - totalPartPrice,
-                                  card_balance_delivery_pln: Number(supplier.card_balance_delivery_pln) - totalDeliveryCost
-                                })
-                                .eq('id', receipt.supplier_id);
-                            }
-
                             await supabase
                               .from('transactions')
                               .delete()

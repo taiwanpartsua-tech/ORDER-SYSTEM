@@ -214,6 +214,33 @@ export default function MutualSettlement() {
   }
 
   async function markAsSettled(receiptId: string) {
+    const receipt = receipts.find(r => r.id === receiptId);
+    if (!receipt) return;
+
+    const receiptCashPln = (receipt.receipt_cost_pln || 0) + (receipt.cash_on_delivery_pln || 0);
+    const transportUsd = receipt.transport_cost_usd || 0;
+
+    const { error: txError } = await supabase
+      .from('transactions')
+      .insert({
+        transaction_type: 'debit',
+        amount_pln: 0,
+        amount_usd: 0,
+        cash_on_delivery_pln: receiptCashPln,
+        transport_cost_usd: transportUsd,
+        parts_delivery_pln: 0,
+        description: `Нарахування за накладну №${receipt.receipt_number}`,
+        transaction_date: new Date().toISOString().split('T')[0],
+        receipt_id: receipt.id,
+        created_by: 'system'
+      });
+
+    if (txError) {
+      alert('Помилка при створенні транзакції нарахування');
+      console.error(txError);
+      return;
+    }
+
     const { error } = await supabase
       .from('active_receipts')
       .update({
@@ -227,7 +254,7 @@ export default function MutualSettlement() {
       return;
     }
 
-    alert('Прийомку позначено як розраховано');
+    alert('Накладну розраховано. Транзакцію додано в історію.');
     loadReceipts();
     loadTransactions();
   }
@@ -496,7 +523,7 @@ export default function MutualSettlement() {
                       className="px-2 py-1 bg-green-600 text-white rounded text-[10px] hover:bg-green-700 transition flex items-center gap-0.5"
                     >
                       <CheckCircle2 size={12} />
-                      ОК
+                      Розрахувати
                     </button>
                   </div>
                   <div className="grid grid-cols-4 gap-1 text-xs">
@@ -547,53 +574,6 @@ export default function MutualSettlement() {
                     <button
                       onClick={async () => {
                         if (confirm(`Повернути накладну №${receipt.receipt_number} назад в "на розрахунку"?\n\nТранзакції будуть видалені.`)) {
-                          const { data: supplier } = await supabase
-                            .from('suppliers')
-                            .select('*')
-                            .eq('id', receipt.supplier_id)
-                            .maybeSingle();
-
-                          if (supplier) {
-                            const { data: orders } = await supabase
-                              .from('receipt_orders')
-                              .select('order_id')
-                              .eq('receipt_id', receipt.id);
-
-                            let totalPartPrice = 0;
-                            let totalDeliveryCost = 0;
-
-                            if (orders && orders.length > 0) {
-                              const orderIds = orders.map(ro => ro.order_id);
-                              const { data: ordersData } = await supabase
-                                .from('orders')
-                                .select('*')
-                                .in('id', orderIds)
-                                .eq('verified', true)
-                                .eq('payment_type', 'оплачено');
-
-                              if (ordersData) {
-                                totalPartPrice = ordersData.reduce((sum, order) => sum + order.part_price, 0);
-                                totalDeliveryCost = ordersData.reduce((sum, order) => sum + order.delivery_cost, 0);
-                              }
-                            }
-
-                            await supabase
-                              .from('suppliers')
-                              .update({
-                                balance_pln: Number(supplier.balance_pln) - Number(receipt.total_pln),
-                                balance_usd: Number(supplier.balance_usd) - Number(receipt.transport_cost_usd),
-                                balance_parts_pln: Number(supplier.balance_parts_pln) - Number(receipt.parts_cost_pln),
-                                balance_delivery_pln: Number(supplier.balance_delivery_pln) - Number(receipt.delivery_cost_pln),
-                                balance_receipt_pln: Number(supplier.balance_receipt_pln) - Number(receipt.receipt_cost_pln),
-                                balance_cash_on_delivery_pln: Number(supplier.balance_cash_on_delivery_pln) - Number(receipt.cash_on_delivery_pln),
-                                balance_transport_usd: Number(supplier.balance_transport_usd) - Number(receipt.transport_cost_usd),
-                                card_balance: Number(supplier.card_balance) - (totalPartPrice + totalDeliveryCost),
-                                card_balance_parts_pln: Number(supplier.card_balance_parts_pln) - totalPartPrice,
-                                card_balance_delivery_pln: Number(supplier.card_balance_delivery_pln) - totalDeliveryCost
-                              })
-                              .eq('id', receipt.supplier_id);
-                          }
-
                           await supabase
                             .from('transactions')
                             .delete()
