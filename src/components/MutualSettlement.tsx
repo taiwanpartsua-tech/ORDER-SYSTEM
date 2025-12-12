@@ -33,6 +33,12 @@ export default function MutualSettlement() {
     loadReceipts();
   }, []);
 
+  useEffect(() => {
+    if (transactions.length >= 0 && receipts.length >= 0) {
+      calculateBalance(transactions);
+    }
+  }, [receipts, transactions]);
+
   async function loadTransactions() {
     const { data } = await supabase
       .from('transactions')
@@ -41,7 +47,6 @@ export default function MutualSettlement() {
 
     if (data) {
       setTransactions(data);
-      calculateBalance(data);
     }
   }
 
@@ -81,8 +86,18 @@ export default function MutualSettlement() {
     let receiptPln = 0;
     let transportUsd = 0;
 
+    const receiptIdsOnSettlement = receipts
+      .filter(r => r.status === 'sent_for_settlement')
+      .map(r => r.id);
+
+    receipts.filter(r => r.status === 'sent_for_settlement').forEach(receipt => {
+      receiptPln += (receipt.receipt_cost_pln || 0) + (receipt.cash_on_delivery_pln || 0);
+      transportUsd += receipt.transport_cost_usd || 0;
+    });
+
     txns.forEach(tx => {
       if (tx.is_reversed) return;
+      if (tx.receipt_id && receiptIdsOnSettlement.includes(tx.receipt_id)) return;
 
       if (tx.transaction_type === 'debit') {
         receiptPln += tx.cash_on_delivery_pln || 0;
