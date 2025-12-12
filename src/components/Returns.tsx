@@ -115,7 +115,24 @@ export default function Returns() {
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      setReturns(data as Return[]);
+      const statusOrder: Record<string, number> = {
+        'повернення': 1,
+        'проблемні': 2,
+        'анульовано': 3
+      };
+
+      const sortedData = (data as Return[]).sort((a, b) => {
+        const statusA = statusOrder[a.status || 'повернення'] || 999;
+        const statusB = statusOrder[b.status || 'повернення'] || 999;
+
+        if (statusA !== statusB) {
+          return statusA - statusB;
+        }
+
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+
+      setReturns(sortedData);
     }
   }
 
