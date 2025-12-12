@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase, Supplier, CardTransaction, Order, ActiveReceipt } from '../lib/supabase';
-import { CreditCard, Plus, Calendar, CheckCircle2, XCircle } from 'lucide-react';
+import { CreditCard, Plus, Calendar, CheckCircle2, XCircle, Undo2 } from 'lucide-react';
 
 interface ReceiptSummary {
   receipt: ActiveReceipt;
@@ -280,6 +280,27 @@ export default function CardPayments() {
     }
 
     alert('Накладну успішно розраховано!');
+    loadData();
+  }
+
+  async function reverseReceipt(summary: ReceiptSummary) {
+    const confirmed = confirm(`Ви впевнені, що хочете сторнувати розрахунок накладної №${summary.receipt.receipt_number}?\n\nНакладна повернеться в статус "На розрахунок".`);
+    if (!confirmed) return;
+
+    const { error: receiptError } = await supabase
+      .from('active_receipts')
+      .update({
+        settled_date: null
+      })
+      .eq('id', summary.receipt.id);
+
+    if (receiptError) {
+      alert('Помилка сторнування накладної');
+      console.error(receiptError);
+      return;
+    }
+
+    alert('Розрахунок накладної успішно сторновано!');
     loadData();
   }
 
@@ -599,7 +620,16 @@ export default function CardPayments() {
                         </div>
                       )}
                     </div>
-                    <CheckCircle2 size={16} className="text-green-600" />
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => reverseReceipt(summary)}
+                        className="p-1 hover:bg-orange-100 rounded transition"
+                        title="Сторнувати розрахунок"
+                      >
+                        <Undo2 size={14} className="text-orange-600" />
+                      </button>
+                      <CheckCircle2 size={16} className="text-green-600" />
+                    </div>
                   </div>
                   <div className="grid grid-cols-3 gap-1 text-xs">
                     <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
