@@ -86,11 +86,7 @@ export default function CardMutualSettlement() {
     let partsPln = 0;
     let deliveryPln = 0;
 
-    const receiptIdsOnSettlement = receipts
-      .filter(r => r.status === 'sent_for_settlement')
-      .map(r => r.id);
-
-    receipts.filter(r => r.status === 'sent_for_settlement').forEach(receipt => {
+    receipts.filter(r => r.status === 'sent_for_settlement' || r.status === 'settled').forEach(receipt => {
       const orders = receiptOrders[receipt.id] || [];
       const paidOrders = orders.filter(o => o.verified && o.payment_type === 'оплачено');
 

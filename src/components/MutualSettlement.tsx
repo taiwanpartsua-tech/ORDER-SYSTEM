@@ -86,11 +86,7 @@ export default function MutualSettlement() {
     let receiptPln = 0;
     let transportUsd = 0;
 
-    const receiptIdsOnSettlement = receipts
-      .filter(r => r.status === 'sent_for_settlement')
-      .map(r => r.id);
-
-    receipts.filter(r => r.status === 'sent_for_settlement').forEach(receipt => {
+    receipts.filter(r => r.status === 'sent_for_settlement' || r.status === 'settled').forEach(receipt => {
       receiptPln += (receipt.receipt_cost_pln || 0) + (receipt.cash_on_delivery_pln || 0);
       transportUsd += receipt.transport_cost_usd || 0;
     });
