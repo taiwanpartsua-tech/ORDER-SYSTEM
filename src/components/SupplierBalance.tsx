@@ -9,6 +9,8 @@ export default function SupplierBalance() {
   const [receiptOrders, setReceiptOrders] = useState<Record<string, Order[]>>({});
   const [isArchiveExpanded, setIsArchiveExpanded] = useState(false);
   const [isPartsBalanceExpanded, setIsPartsBalanceExpanded] = useState(false);
+  const [isSentForSettlementExpanded, setIsSentForSettlementExpanded] = useState(true);
+  const [isNotSentExpanded, setIsNotSentExpanded] = useState(true);
 
   function formatNumber(num: number): string {
     return num % 1 === 0 ? num.toString() : num.toFixed(2);
@@ -39,8 +41,28 @@ export default function SupplierBalance() {
     if (receiptsData) setReceipts(receiptsData);
   }
 
+  const sentForSettlementReceipts = receipts.filter(r => r.status === 'sent_for_settlement');
+  const notSentReceipts = receipts.filter(r => r.status === 'approved');
   const activeReceipts = receipts.filter(r => r.status === 'approved' || r.status === 'sent_for_settlement');
   const archivedReceipts = receipts.filter(r => r.status === 'settled');
+
+  const sentForSettlementTotal = sentForSettlementReceipts.reduce((acc, receipt) => {
+    acc.parts += receipt.parts_cost_pln;
+    acc.delivery += receipt.delivery_cost_pln;
+    acc.receipt += receipt.receipt_cost_pln;
+    acc.cash += receipt.cash_on_delivery_pln;
+    acc.transport += receipt.transport_cost_usd;
+    return acc;
+  }, { parts: 0, delivery: 0, receipt: 0, cash: 0, transport: 0 });
+
+  const notSentTotal = notSentReceipts.reduce((acc, receipt) => {
+    acc.parts += receipt.parts_cost_pln;
+    acc.delivery += receipt.delivery_cost_pln;
+    acc.receipt += receipt.receipt_cost_pln;
+    acc.cash += receipt.cash_on_delivery_pln;
+    acc.transport += receipt.transport_cost_usd;
+    return acc;
+  }, { parts: 0, delivery: 0, receipt: 0, cash: 0, transport: 0 });
 
   const activeTotal = activeReceipts.reduce((acc, receipt) => {
     acc.parts += receipt.parts_cost_pln;
@@ -389,26 +411,113 @@ export default function SupplierBalance() {
           <div className="p-4 border-b bg-blue-50">
             <h3 className="text-lg font-bold text-blue-900">Активні баланси</h3>
           </div>
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
-              <tr>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Документ</th>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Запчастини (zł)</th>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Доставка (zł)</th>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Прійом (zł)</th>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Побране (zł)</th>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Перевезення ($)</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Статус</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Дії</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {activeReceipts.map((receipt) => renderReceiptRow(receipt))}
 
-              {activeReceipts.length > 0 && (
-                <>
+          {activeReceipts.length === 0 && (
+            <div className="p-12 text-center text-gray-500 dark:text-gray-400">
+              <p>Немає активних документів прийому</p>
+            </div>
+          )}
+
+          {sentForSettlementReceipts.length > 0 && (
+            <>
+              <div
+                className="px-4 py-3 bg-amber-50 cursor-pointer hover:bg-amber-100 transition border-b"
+                onClick={() => setIsSentForSettlementExpanded(!isSentForSettlementExpanded)}
+              >
+                <div className="flex items-center gap-2">
+                  {isSentForSettlementExpanded ? (
+                    <ChevronUp size={20} className="text-amber-700" />
+                  ) : (
+                    <ChevronDown size={20} className="text-amber-700" />
+                  )}
+                  <h4 className="text-md font-bold text-amber-900">Передані на розрахунок ({sentForSettlementReceipts.length})</h4>
+                </div>
+              </div>
+              {isSentForSettlementExpanded && (
+                <table className="w-full">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Документ</th>
+                      <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Запчастини (zł)</th>
+                      <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Доставка (zł)</th>
+                      <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Прійом (zł)</th>
+                      <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Побране (zł)</th>
+                      <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Перевезення ($)</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Статус</th>
+                      <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Дії</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {sentForSettlementReceipts.map((receipt) => renderReceiptRow(receipt))}
+                    <tr className="bg-amber-100 font-bold">
+                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">Підсумок</td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(sentForSettlementTotal.parts)}</td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(sentForSettlementTotal.delivery)}</td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(sentForSettlementTotal.receipt)}</td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(sentForSettlementTotal.cash)}</td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(sentForSettlementTotal.transport)}</td>
+                      <td className="px-4 py-3"></td>
+                      <td className="px-4 py-3"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              )}
+            </>
+          )}
+
+          {notSentReceipts.length > 0 && (
+            <>
+              <div
+                className="px-4 py-3 bg-green-50 cursor-pointer hover:bg-green-100 transition border-b"
+                onClick={() => setIsNotSentExpanded(!isNotSentExpanded)}
+              >
+                <div className="flex items-center gap-2">
+                  {isNotSentExpanded ? (
+                    <ChevronUp size={20} className="text-green-700" />
+                  ) : (
+                    <ChevronDown size={20} className="text-green-700" />
+                  )}
+                  <h4 className="text-md font-bold text-green-900">Не передані ({notSentReceipts.length})</h4>
+                </div>
+              </div>
+              {isNotSentExpanded && (
+                <table className="w-full">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Документ</th>
+                      <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Запчастини (zł)</th>
+                      <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Доставка (zł)</th>
+                      <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Прійом (zł)</th>
+                      <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Побране (zł)</th>
+                      <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Перевезення ($)</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Статус</th>
+                      <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-200 border-b">Дії</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {notSentReceipts.map((receipt) => renderReceiptRow(receipt))}
+                    <tr className="bg-green-100 font-bold">
+                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">Підсумок</td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(notSentTotal.parts)}</td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(notSentTotal.delivery)}</td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(notSentTotal.receipt)}</td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(notSentTotal.cash)}</td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(notSentTotal.transport)}</td>
+                      <td className="px-4 py-3"></td>
+                      <td className="px-4 py-3"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              )}
+            </>
+          )}
+
+          {activeReceipts.length > 0 && (
+            <div className="border-t-2 border-gray-300">
+              <table className="w-full">
+                <tbody>
                   <tr className="bg-gray-100 dark:bg-gray-700 font-bold">
-                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">Всього</td>
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">Всього активних</td>
                     <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(activeTotal.parts)}</td>
                     <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(activeTotal.delivery)}</td>
                     <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(activeTotal.receipt)}</td>
@@ -467,14 +576,8 @@ export default function SupplierBalance() {
                       </tr>
                     </>
                   )}
-                </>
-              )}
-            </tbody>
-          </table>
-
-          {activeReceipts.length === 0 && (
-            <div className="p-12 text-center text-gray-500 dark:text-gray-400 dark:text-gray-500">
-              <p>Немає активних документів прийому</p>
+                </tbody>
+              </table>
             </div>
           )}
         </div>
