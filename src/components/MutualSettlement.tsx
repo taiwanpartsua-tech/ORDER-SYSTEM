@@ -213,6 +213,33 @@ export default function MutualSettlement() {
     loadTransactions();
   }
 
+  async function returnToActive(receiptId: string) {
+    const receipt = receipts.find(r => r.id === receiptId);
+    if (!receipt) return;
+
+    if (!confirm(`Повернути накладну №${receipt.receipt_number} з розрахунку назад в активні?`)) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('active_receipts')
+      .update({
+        status: 'approved',
+        settlement_date: null,
+        settled_date: null
+      })
+      .eq('id', receiptId);
+
+    if (error) {
+      alert('Помилка при поверненні накладної');
+      console.error(error);
+      return;
+    }
+
+    alert('Накладну повернуто в активні');
+    loadReceipts();
+  }
+
   async function markAsSettled(receiptId: string) {
     const receipt = receipts.find(r => r.id === receiptId);
     if (!receipt) return;
@@ -516,15 +543,25 @@ export default function MutualSettlement() {
                     <div>
                       <div className="text-sm font-medium">№{receipt.receipt_number}</div>
                       <div className="text-xs text-gray-600 dark:text-gray-300">{receipt.receipt_date}</div>
-                      <div className="text-[10px] text-gray-500 dark:text-gray-400 dark:text-gray-500">Позицій: {totalPositions}</div>
+                      <div className="text-[10px] text-gray-500 dark:text-gray-400">Позицій: {totalPositions}</div>
                     </div>
-                    <button
-                      onClick={() => markAsSettled(receipt.id)}
-                      className="px-2 py-1 bg-green-600 text-white rounded text-[10px] hover:bg-green-700 transition flex items-center gap-0.5"
-                    >
-                      <CheckCircle2 size={12} />
-                      Розрахувати
-                    </button>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => returnToActive(receipt.id)}
+                        className="px-2 py-1 bg-orange-600 text-white rounded text-[10px] hover:bg-orange-700 transition flex items-center gap-0.5"
+                        title="Повернути в активні"
+                      >
+                        <Undo2 size={12} />
+                        Повернути
+                      </button>
+                      <button
+                        onClick={() => markAsSettled(receipt.id)}
+                        className="px-2 py-1 bg-green-600 text-white rounded text-[10px] hover:bg-green-700 transition flex items-center gap-0.5"
+                      >
+                        <CheckCircle2 size={12} />
+                        Розрахувати
+                      </button>
+                    </div>
                   </div>
                   <div className="grid grid-cols-4 gap-1 text-xs">
                     <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
