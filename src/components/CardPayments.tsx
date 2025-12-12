@@ -174,6 +174,52 @@ export default function CardPayments() {
   }
 
   async function markOrderAsPaid(orderId: string) {
+    if (!supplier) {
+      alert('Помилка: постачальник не знайдений');
+      return;
+    }
+
+    const order = pendingCardOrders.find(o => o.id === orderId);
+    if (!order) {
+      alert('Помилка: замовлення не знайдене');
+      return;
+    }
+
+    const totalAmount = order.part_price + order.delivery_cost;
+
+    const { error: transactionError } = await supabase.from('card_transactions').insert([{
+      transaction_type: 'payment',
+      amount: totalAmount,
+      description: `Оплата замовлення №${order.order_number}`,
+      transaction_date: new Date().toISOString().split('T')[0],
+      order_id: orderId
+    }]);
+
+    if (transactionError) {
+      alert('Помилка створення транзакції');
+      console.error(transactionError);
+      return;
+    }
+
+    const newPartsBalance = (supplier.balance_parts_pln || 0) - order.part_price;
+    const newDeliveryBalance = (supplier.balance_delivery_pln || 0) - order.delivery_cost;
+    const newTotalPln = (supplier.balance_pln || 0) - totalAmount;
+
+    const { error: supplierError } = await supabase
+      .from('suppliers')
+      .update({
+        balance_parts_pln: newPartsBalance,
+        balance_delivery_pln: newDeliveryBalance,
+        balance_pln: newTotalPln
+      })
+      .eq('id', supplier.id);
+
+    if (supplierError) {
+      alert('Помилка оновлення балансу');
+      console.error(supplierError);
+      return;
+    }
+
     const { error } = await supabase
       .from('orders')
       .update({ verified: true })
@@ -363,7 +409,41 @@ export default function CardPayments() {
       return;
     }
 
-    if (tx.receipt_id) {
+    if (tx.order_id) {
+      const { data: order } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', tx.order_id)
+        .maybeSingle();
+
+      if (order) {
+        const { error: orderError } = await supabase
+          .from('orders')
+          .update({ verified: false })
+          .eq('id', tx.order_id);
+
+        if (orderError) {
+          console.error('Помилка оновлення статусу замовлення:', orderError);
+        }
+
+        const newPartsBalance = (supplier.balance_parts_pln || 0) + order.part_price;
+        const newDeliveryBalance = (supplier.balance_delivery_pln || 0) + order.delivery_cost;
+        const newTotalPln = (supplier.balance_pln || 0) + (order.part_price + order.delivery_cost);
+
+        const { error: supplierError } = await supabase
+          .from('suppliers')
+          .update({
+            balance_parts_pln: newPartsBalance,
+            balance_delivery_pln: newDeliveryBalance,
+            balance_pln: newTotalPln
+          })
+          .eq('id', supplier.id);
+
+        if (supplierError) {
+          console.error('Помилка оновлення балансу:', supplierError);
+        }
+      }
+    } else if (tx.receipt_id) {
       const { data: receipt } = await supabase
         .from('active_receipts')
         .select('*')

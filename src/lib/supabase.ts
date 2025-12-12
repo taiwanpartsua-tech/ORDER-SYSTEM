@@ -159,5 +159,6 @@ export type CardTransaction = {
   description: string;
   transaction_date: string;
   receipt_id?: string;
+  order_id?: string;
   created_at: string;
 };
