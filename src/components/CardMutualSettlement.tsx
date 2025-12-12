@@ -196,51 +196,6 @@ export default function CardMutualSettlement() {
   }
 
   async function markAsSettled(receiptId: string) {
-    const receipt = receipts.find(r => r.id === receiptId);
-    if (!receipt) return;
-
-    const orders = receiptOrders[receiptId] || [];
-    const paidOrders = orders.filter(o => o.verified && o.payment_type === 'оплачено');
-
-    const totalPartPrice = paidOrders.reduce((sum, order) => sum + (order.part_price || 0), 0);
-    const totalDeliveryCost = paidOrders.reduce((sum, order) => sum + (order.delivery_cost || 0), 0);
-    const totalAmount = totalPartPrice + totalDeliveryCost;
-
-    const { error: transactionError } = await supabase
-      .from('card_transactions')
-      .insert({
-        transaction_type: 'charge',
-        amount: totalAmount,
-        charge_type: 'receipt',
-        description: `Нарахування за накладною №${receipt.receipt_number}`,
-        transaction_date: new Date().toISOString().split('T')[0],
-        receipt_id: receiptId,
-        is_reversed: false
-      });
-
-    if (transactionError) {
-      alert('Помилка створення транзакції');
-      console.error(transactionError);
-      return;
-    }
-
-    const { data: supplier } = await supabase
-      .from('suppliers')
-      .select('*')
-      .eq('id', receipt.supplier_id)
-      .maybeSingle();
-
-    if (supplier) {
-      await supabase
-        .from('suppliers')
-        .update({
-          card_balance: Number(supplier.card_balance) + totalAmount,
-          card_balance_parts_pln: Number(supplier.card_balance_parts_pln) + totalPartPrice,
-          card_balance_delivery_pln: Number(supplier.card_balance_delivery_pln) + totalDeliveryCost
-        })
-        .eq('id', supplier.id);
-    }
-
     const { error } = await supabase
       .from('active_receipts')
       .update({
