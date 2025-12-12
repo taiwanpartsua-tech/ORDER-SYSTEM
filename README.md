@@ -4,7 +4,7 @@ ARTTRANS
 
 ## Налаштування для Netlify
 
-**ВАЖЛИВО:** Якщо ви бачите помилку "Failed to fetch", див. [NETLIFY_SETUP.md](./NETLIFY_SETUP.md) для налаштування змінних середовища.
+**ВАЖЛИВО:** Якщо на production сайт показує білий екран або помилку "Failed to fetch", потрібно налаштувати змінні середовища. Детальні інструкції в [NETLIFY_SETUP.md](./NETLIFY_SETUP.md).
 
 ## Запуск локально
 

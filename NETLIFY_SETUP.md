@@ -1,7 +1,7 @@
 # Налаштування Netlify для Supabase
 
 ## Проблема
-Якщо ви бачите помилку "TypeError: Failed to fetch", це означає що змінні середовища не налаштовані.
+Якщо на production сайт показує **білий екран** або помилку "TypeError: Failed to fetch", це означає що змінні середовища не налаштовані в Netlify.
 
 ## Локальна розробка
 
@@ -18,17 +18,17 @@
 
 ### Змінна 1:
 - **Key:** `VITE_SUPABASE_URL`
-- **Value:** `https://wjlerozqitvmtaqjgalo.supabase.co`
+- **Value:** `https://nzycllwwkizjbpxpozzq.supabase.co`
 
 ### Змінна 2:
 - **Key:** `VITE_SUPABASE_ANON_KEY`
-- **Value:** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqbGVyb3pxaXR2bXRhcWpnYWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0NDUxMDksImV4cCI6MjA4MTAyMTEwOX0.uuqBhkGU72VjF-TvQ98PQVV0Q8v_6Cm6zV3hkYdtXMU`
+- **Value:** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im56eWNsbHd3a2l6amJweHBvenpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1MzU2MTksImV4cCI6MjA4MTExMTYxOX0.Zgk3-PyJhvZEIn3EszSD1mAl_HD-i6Go9qwCl7IrxvM`
 
 4. **Важливо:** Після додавання змінних, натисніть кнопку **"Redeploy"** або зробіть новий commit, щоб перебудувати сайт з новими змінними.
 
 5. Після перебудови відкрийте консоль браузера (F12) і перезавантажте сторінку. Ви повинні побачити:
    ```
-   Supabase Config: { url: "https://wjlerozqitv...", key: "eyJhbGciOiJIUzI1NiIs...", ... }
+   Supabase Config: { url: "https://nzycllwwkizj...", key: "eyJhbGciOiJIUzI1NiIs...", ... }
    ```
 
 6. Якщо все налаштовано правильно, функція додавання замовлення буде працювати.
