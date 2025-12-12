@@ -751,19 +751,32 @@ export default function CardPayments() {
             </h3>
             <div className="space-y-1.5 max-h-32 overflow-y-auto">
               {pendingReceipts.filter(s => s.receipt.settled_date).map(summary => (
-                <div key={summary.receipt.id} className="flex justify-between items-center p-1.5 bg-green-50 rounded border border-green-200">
-                  <div>
-                    <div className="font-medium text-xs">№{summary.receipt.receipt_number}</div>
-                    <div className="text-[10px] text-gray-600 dark:text-gray-300">
-                      {formatNumber(summary.totalPartPrice + summary.totalDeliveryCost)} zł
+                <div key={summary.receipt.id} className="p-2 bg-green-50 rounded border border-green-200">
+                  <div className="flex justify-between items-start mb-1.5">
+                    <div>
+                      <div className="text-sm font-medium">№{summary.receipt.receipt_number}</div>
+                      {summary.receipt.settled_date && (
+                        <div className="text-xs text-gray-600 dark:text-gray-300">
+                          {new Date(summary.receipt.settled_date).toLocaleDateString('uk-UA')}
+                        </div>
+                      )}
                     </div>
-                    {summary.receipt.settled_date && (
-                      <div className="text-[10px] text-gray-500 dark:text-gray-400">
-                        {new Date(summary.receipt.settled_date).toLocaleDateString('uk-UA')}
-                      </div>
-                    )}
+                    <CheckCircle2 size={16} className="text-green-600" />
                   </div>
-                  <CheckCircle2 size={16} className="text-green-600" />
+                  <div className="grid grid-cols-3 gap-1 text-xs">
+                    <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
+                      <div className="text-gray-500 dark:text-gray-400 text-[10px]">Запчастини</div>
+                      <div className="font-semibold text-blue-700">{formatNumber(summary.totalPartPrice)} zł</div>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
+                      <div className="text-gray-500 dark:text-gray-400 text-[10px]">Доставка</div>
+                      <div className="font-semibold text-blue-700">{formatNumber(summary.totalDeliveryCost)} zł</div>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
+                      <div className="text-gray-500 dark:text-gray-400 text-[10px]">Всього</div>
+                      <div className="font-bold text-green-700">{formatNumber(summary.totalPartPrice + summary.totalDeliveryCost)} zł</div>
+                    </div>
+                  </div>
                 </div>
               ))}
               {pendingReceipts.filter(s => s.receipt.settled_date).length === 0 && (
