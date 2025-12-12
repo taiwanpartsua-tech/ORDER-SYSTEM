@@ -280,8 +280,8 @@ export default function CardMutualSettlement() {
           .from('card_transactions')
           .insert({
             transaction_type: tx.transaction_type === 'charge' ? 'payment' : 'charge',
-            amount: -(tx.amount || 0),
-            description: `Повернення в активні: накладна №${receipt.receipt_number}`,
+            amount: tx.amount || 0,
+            description: `Сторно: повернення в активні накладна №${receipt.receipt_number}`,
             transaction_date: new Date().toISOString().split('T')[0],
             receipt_id: receiptId,
             created_by: 'system'
