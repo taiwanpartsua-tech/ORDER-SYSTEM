@@ -13,7 +13,6 @@ export default function CardPayments() {
   const [transactions, setTransactions] = useState<CardTransaction[]>([]);
   const [pendingCardOrders, setPendingCardOrders] = useState<Order[]>([]);
   const [pendingReceipts, setPendingReceipts] = useState<ReceiptSummary[]>([]);
-  const [settledReceipts, setSettledReceipts] = useState<ReceiptSummary[]>([]);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
@@ -50,7 +49,9 @@ export default function CardPayments() {
     });
 
     pendingReceipts.forEach(summary => {
-      balance += summary.totalPartPrice + summary.totalDeliveryCost;
+      if (!summary.receipt.settled_date) {
+        balance += summary.totalPartPrice + summary.totalDeliveryCost;
+      }
     });
 
     setCalculatedBalance(balance);
@@ -128,48 +129,6 @@ export default function CardPayments() {
       setPendingReceipts(receiptSummaries);
     } else {
       setPendingReceipts([]);
-    }
-
-    const { data: settledReceiptsData } = await supabase
-      .from('active_receipts')
-      .select('*')
-      .eq('status', 'settled')
-      .order('settled_date', { ascending: false });
-
-    if (settledReceiptsData && settledReceiptsData.length > 0) {
-      const receiptSummaries: ReceiptSummary[] = [];
-
-      for (const receipt of settledReceiptsData) {
-        const { data: receiptOrderLinks } = await supabase
-          .from('receipt_orders')
-          .select('order_id')
-          .eq('receipt_id', receipt.id);
-
-        if (receiptOrderLinks && receiptOrderLinks.length > 0) {
-          const orderIds = receiptOrderLinks.map(ro => ro.order_id);
-          const { data: ordersData } = await supabase
-            .from('orders')
-            .select('*')
-            .in('id', orderIds)
-            .eq('verified', true)
-            .eq('payment_type', 'оплачено');
-
-          if (ordersData && ordersData.length > 0) {
-            const totalPartPrice = ordersData.reduce((sum, order) => sum + order.part_price, 0);
-            const totalDeliveryCost = ordersData.reduce((sum, order) => sum + order.delivery_cost, 0);
-
-            receiptSummaries.push({
-              receipt,
-              totalPartPrice,
-              totalDeliveryCost
-            });
-          }
-        }
-      }
-
-      setSettledReceipts(receiptSummaries);
-    } else {
-      setSettledReceipts([]);
     }
   }
 
@@ -386,7 +345,6 @@ export default function CardPayments() {
     const { error: receiptError } = await supabase
       .from('active_receipts')
       .update({
-        status: 'settled',
         settled_date: new Date().toISOString()
       })
       .eq('id', summary.receipt.id);
@@ -452,11 +410,10 @@ export default function CardPayments() {
         .eq('id', tx.receipt_id)
         .maybeSingle();
 
-      if (receipt && receipt.status === 'settled') {
+      if (receipt && receipt.settled_date) {
         const { error: receiptError } = await supabase
           .from('active_receipts')
           .update({
-            status: 'sent_for_settlement',
             settled_date: null
           })
           .eq('id', tx.receipt_id);
@@ -715,9 +672,8 @@ export default function CardPayments() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-2.5">
-            <h3 className="text-sm font-semibold text-amber-700 mb-2">На розрахунку ({pendingCardOrders.length + pendingReceipts.length})</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-2.5">
+          <h3 className="text-sm font-semibold text-amber-700 mb-2">На розрахунку ({pendingCardOrders.length + pendingReceipts.length})</h3>
             <div className="space-y-1.5 max-h-32 overflow-y-auto">
               {pendingCardOrders.map(order => (
                 <div key={order.id} className="p-2 bg-amber-50 rounded border border-amber-200">
@@ -753,69 +709,64 @@ export default function CardPayments() {
                   </div>
                 </div>
               ))}
-              {pendingReceipts.map(summary => (
-                <div key={summary.receipt.id} className="p-2 bg-amber-50 rounded border border-amber-200">
-                  <div className="flex justify-between items-start mb-1.5">
-                    <div>
-                      <div className="text-sm font-medium">№{summary.receipt.receipt_number}</div>
-                      <div className="text-xs text-gray-600 dark:text-gray-300">
-                        {summary.receipt.settlement_date ? new Date(summary.receipt.settlement_date).toLocaleDateString('uk-UA') : ''}
+              {pendingReceipts.map(summary => {
+                const isConfirmed = !!summary.receipt.settled_date;
+                return (
+                  <div
+                    key={summary.receipt.id}
+                    className={`p-2 rounded border ${
+                      isConfirmed
+                        ? 'bg-green-50 border-green-300'
+                        : 'bg-amber-50 border-amber-200'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-1.5">
+                      <div>
+                        <div className="text-sm font-medium flex items-center gap-1">
+                          №{summary.receipt.receipt_number}
+                          {isConfirmed && (
+                            <span className="text-[10px] bg-green-600 text-white px-1.5 py-0.5 rounded">
+                              Підтверджено
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-600 dark:text-gray-300">
+                          {summary.receipt.settlement_date ? new Date(summary.receipt.settlement_date).toLocaleDateString('uk-UA') : ''}
+                        </div>
+                      </div>
+                      {!isConfirmed && (
+                        <button
+                          onClick={() => settleReceipt(summary)}
+                          className="px-2 py-1 bg-green-600 text-white rounded text-[10px] hover:bg-green-700 transition flex items-center gap-0.5"
+                        >
+                          <CheckCircle2 size={12} />
+                          ОК
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-3 gap-1 text-xs">
+                      <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
+                        <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-[10px]">Запчастини</div>
+                        <div className="font-semibold text-blue-700">{formatNumber(summary.totalPartPrice)} zł</div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
+                        <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-[10px]">Доставка</div>
+                        <div className="font-semibold text-blue-700">{formatNumber(summary.totalDeliveryCost)} zł</div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
+                        <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-[10px]">Всього</div>
+                        <div className={`font-bold ${isConfirmed ? 'text-green-700' : 'text-amber-700'}`}>
+                          {formatNumber(summary.totalPartPrice + summary.totalDeliveryCost)} zł
+                        </div>
                       </div>
                     </div>
-                    <button
-                      onClick={() => settleReceipt(summary)}
-                      className="px-2 py-1 bg-green-600 text-white rounded text-[10px] hover:bg-green-700 transition flex items-center gap-0.5"
-                    >
-                      <CheckCircle2 size={12} />
-                      ОК
-                    </button>
                   </div>
-                  <div className="grid grid-cols-3 gap-1 text-xs">
-                    <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
-                      <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-[10px]">Запчастини</div>
-                      <div className="font-semibold text-blue-700">{formatNumber(summary.totalPartPrice)} zł</div>
-                    </div>
-                    <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
-                      <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-[10px]">Доставка</div>
-                      <div className="font-semibold text-blue-700">{formatNumber(summary.totalDeliveryCost)} zł</div>
-                    </div>
-                    <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
-                      <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-[10px]">Всього</div>
-                      <div className="font-bold text-amber-700">{formatNumber(summary.totalPartPrice + summary.totalDeliveryCost)} zł</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               {pendingCardOrders.length === 0 && pendingReceipts.length === 0 && (
                 <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 text-center py-3">Немає замовлень</p>
               )}
             </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-2.5">
-            <h3 className="text-sm font-semibold text-green-700 mb-2">Розраховано ({settledReceipts.length})</h3>
-            <div className="space-y-1.5 max-h-32 overflow-y-auto">
-              {settledReceipts.map(summary => (
-                <div key={summary.receipt.id} className="flex justify-between items-center p-1.5 bg-green-50 rounded border border-green-200">
-                  <div>
-                    <div className="font-medium text-xs">№{summary.receipt.receipt_number}</div>
-                    <div className="text-[10px] text-gray-600 dark:text-gray-300">
-                      {formatNumber(summary.totalPartPrice + summary.totalDeliveryCost)} zł
-                    </div>
-                    {summary.receipt.settled_date && (
-                      <div className="text-[10px] text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                        {new Date(summary.receipt.settled_date).toLocaleDateString('uk-UA')}
-                      </div>
-                    )}
-                  </div>
-                  <CheckCircle2 size={16} className="text-green-600" />
-                </div>
-              ))}
-              {settledReceipts.length === 0 && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 text-center py-3">Немає накладних</p>
-              )}
-            </div>
-          </div>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
