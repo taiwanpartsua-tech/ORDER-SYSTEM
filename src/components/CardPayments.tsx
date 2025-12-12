@@ -272,6 +272,17 @@ export default function CardPayments() {
       return;
     }
 
+    if (supplier) {
+      await supabase
+        .from('suppliers')
+        .update({
+          card_balance: Number(supplier.card_balance) + totalAmount,
+          card_balance_parts_pln: Number(supplier.card_balance_parts_pln) + summary.totalPartPrice,
+          card_balance_delivery_pln: Number(supplier.card_balance_delivery_pln) + summary.totalDeliveryCost
+        })
+        .eq('id', supplier.id);
+    }
+
     const { error: receiptError } = await supabase
       .from('active_receipts')
       .update({
@@ -325,6 +336,18 @@ export default function CardPayments() {
       alert('Помилка сторнування транзакції');
       console.error(transactionError);
       return;
+    }
+
+    if (supplier) {
+      const totalAmount = summary.totalPartPrice + summary.totalDeliveryCost;
+      await supabase
+        .from('suppliers')
+        .update({
+          card_balance: Number(supplier.card_balance) - totalAmount,
+          card_balance_parts_pln: Number(supplier.card_balance_parts_pln) - summary.totalPartPrice,
+          card_balance_delivery_pln: Number(supplier.card_balance_delivery_pln) - summary.totalDeliveryCost
+        })
+        .eq('id', supplier.id);
     }
 
     await supabase
@@ -682,13 +705,58 @@ export default function CardPayments() {
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={async () => {
+                          if (confirm(`Повернути накладну №${summary.receipt.receipt_number} назад в "на розрахунку"?\n\nТранзакція буде видалена.`)) {
+                            const { data: transaction } = await supabase
+                              .from('card_transactions')
+                              .select('*')
+                              .eq('receipt_id', summary.receipt.id)
+                              .eq('transaction_type', 'charge')
+                              .eq('is_reversed', false)
+                              .maybeSingle();
+
+                            if (transaction) {
+                              await supabase
+                                .from('card_transactions')
+                                .delete()
+                                .eq('id', transaction.id);
+
+                              if (supplier) {
+                                const totalAmount = summary.totalPartPrice + summary.totalDeliveryCost;
+                                await supabase
+                                  .from('suppliers')
+                                  .update({
+                                    card_balance: Number(supplier.card_balance) - totalAmount,
+                                    card_balance_parts_pln: Number(supplier.card_balance_parts_pln) - summary.totalPartPrice,
+                                    card_balance_delivery_pln: Number(supplier.card_balance_delivery_pln) - summary.totalDeliveryCost
+                                  })
+                                  .eq('id', supplier.id);
+                              }
+                            }
+
+                            await supabase
+                              .from('active_receipts')
+                              .update({
+                                status: 'sent_for_settlement',
+                                settled_date: null
+                              })
+                              .eq('id', summary.receipt.id);
+                            loadData();
+                          }
+                        }}
+                        className="p-0.5 hover:bg-blue-100 rounded transition"
+                        title="Повернути в на розрахунку"
+                      >
+                        <Undo2 size={12} className="text-blue-600" />
+                      </button>
                       <button
                         onClick={() => reverseReceipt(summary)}
-                        className="p-1 hover:bg-orange-100 rounded transition"
+                        className="p-0.5 hover:bg-orange-100 rounded transition"
                         title="Сторнувати розрахунок"
                       >
-                        <Undo2 size={14} className="text-orange-600" />
+                        <XCircle size={12} className="text-orange-600" />
                       </button>
                       <CheckCircle2 size={16} className="text-green-600" />
                     </div>

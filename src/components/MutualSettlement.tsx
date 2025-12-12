@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase, Transaction, ActiveReceipt, Order } from '../lib/supabase';
-import { Plus, TrendingDown, TrendingUp, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, TrendingDown, TrendingUp, CheckCircle2, XCircle, Undo2 } from 'lucide-react';
 
 export default function MutualSettlement() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -552,19 +552,101 @@ export default function MutualSettlement() {
           <h3 className="text-sm font-semibold text-green-700 mb-2">Розраховано ({settledReceipts.length})</h3>
           <div className="space-y-1.5 max-h-32 overflow-y-auto">
             {settledReceipts.map(receipt => (
-              <div key={receipt.id} className="flex justify-between items-center p-1.5 bg-green-50 rounded border border-green-200">
-                <div>
-                  <div className="font-medium text-xs">№{receipt.receipt_number}</div>
-                  <div className="text-[10px] text-gray-600 dark:text-gray-300">
-                    {formatNumber((receipt.receipt_cost_pln || 0) + (receipt.cash_on_delivery_pln || 0))} zł | {formatNumber(receipt.transport_cost_usd)} $
-                  </div>
-                  {receipt.settled_date && (
-                    <div className="text-[10px] text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                      {new Date(receipt.settled_date).toLocaleDateString('uk-UA')}
+              <div key={receipt.id} className="p-1.5 bg-green-50 rounded border border-green-200">
+                <div className="flex justify-between items-start mb-1">
+                  <div>
+                    <div className="font-medium text-xs">№{receipt.receipt_number}</div>
+                    <div className="text-[10px] text-gray-600 dark:text-gray-300">
+                      {formatNumber((receipt.receipt_cost_pln || 0) + (receipt.cash_on_delivery_pln || 0))} zł | {formatNumber(receipt.transport_cost_usd)} $
                     </div>
-                  )}
+                    {receipt.settled_date && (
+                      <div className="text-[10px] text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                        {new Date(receipt.settled_date).toLocaleDateString('uk-UA')}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={async () => {
+                        if (confirm(`Повернути накладну №${receipt.receipt_number} назад в "на розрахунку"?\n\nТранзакції будуть видалені.`)) {
+                          const { data: supplier } = await supabase
+                            .from('suppliers')
+                            .select('*')
+                            .eq('id', receipt.supplier_id)
+                            .maybeSingle();
+
+                          if (supplier) {
+                            const { data: orders } = await supabase
+                              .from('receipt_orders')
+                              .select('order_id')
+                              .eq('receipt_id', receipt.id);
+
+                            let totalPartPrice = 0;
+                            let totalDeliveryCost = 0;
+
+                            if (orders && orders.length > 0) {
+                              const orderIds = orders.map(ro => ro.order_id);
+                              const { data: ordersData } = await supabase
+                                .from('orders')
+                                .select('*')
+                                .in('id', orderIds)
+                                .eq('verified', true)
+                                .eq('payment_type', 'оплачено');
+
+                              if (ordersData) {
+                                totalPartPrice = ordersData.reduce((sum, order) => sum + order.part_price, 0);
+                                totalDeliveryCost = ordersData.reduce((sum, order) => sum + order.delivery_cost, 0);
+                              }
+                            }
+
+                            await supabase
+                              .from('suppliers')
+                              .update({
+                                balance_pln: Number(supplier.balance_pln) - Number(receipt.total_pln),
+                                balance_usd: Number(supplier.balance_usd) - Number(receipt.transport_cost_usd),
+                                balance_parts_pln: Number(supplier.balance_parts_pln) - Number(receipt.parts_cost_pln),
+                                balance_delivery_pln: Number(supplier.balance_delivery_pln) - Number(receipt.delivery_cost_pln),
+                                balance_receipt_pln: Number(supplier.balance_receipt_pln) - Number(receipt.receipt_cost_pln),
+                                balance_cash_on_delivery_pln: Number(supplier.balance_cash_on_delivery_pln) - Number(receipt.cash_on_delivery_pln),
+                                balance_transport_usd: Number(supplier.balance_transport_usd) - Number(receipt.transport_cost_usd),
+                                card_balance: Number(supplier.card_balance) - (totalPartPrice + totalDeliveryCost),
+                                card_balance_parts_pln: Number(supplier.card_balance_parts_pln) - totalPartPrice,
+                                card_balance_delivery_pln: Number(supplier.card_balance_delivery_pln) - totalDeliveryCost
+                              })
+                              .eq('id', receipt.supplier_id);
+                          }
+
+                          await supabase
+                            .from('transactions')
+                            .delete()
+                            .eq('receipt_id', receipt.id)
+                            .eq('is_reversed', false);
+
+                          await supabase
+                            .from('card_transactions')
+                            .delete()
+                            .eq('receipt_id', receipt.id)
+                            .eq('is_reversed', false);
+
+                          await supabase
+                            .from('active_receipts')
+                            .update({
+                              status: 'sent_for_settlement',
+                              settled_date: null
+                            })
+                            .eq('id', receipt.id);
+                          loadReceipts();
+                          loadTransactions();
+                        }
+                      }}
+                      className="p-0.5 hover:bg-orange-100 rounded transition"
+                      title="Повернути в на розрахунку"
+                    >
+                      <Undo2 size={12} className="text-orange-600" />
+                    </button>
+                    <CheckCircle2 size={16} className="text-green-600" />
+                  </div>
                 </div>
-                <CheckCircle2 size={16} className="text-green-600" />
               </div>
             ))}
             {settledReceipts.length === 0 && (
