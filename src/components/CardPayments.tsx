@@ -24,6 +24,8 @@ export default function CardPayments() {
   const [chargeDate, setChargeDate] = useState(new Date().toISOString().split('T')[0]);
   const [chargeDescription, setChargeDescription] = useState('');
 
+  const [calculatedBalance, setCalculatedBalance] = useState(0);
+
   function formatNumber(num: number): string {
     return num % 1 === 0 ? num.toString() : num.toFixed(2);
   }
@@ -31,6 +33,28 @@ export default function CardPayments() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (supplier) {
+      calculateBalance();
+    }
+  }, [supplier, pendingCardOrders, pendingReceipts]);
+
+  function calculateBalance() {
+    if (!supplier) return;
+
+    let balance = (supplier.balance_parts_pln || 0) + (supplier.balance_delivery_pln || 0);
+
+    pendingCardOrders.forEach(order => {
+      balance += order.part_price + order.delivery_cost;
+    });
+
+    pendingReceipts.forEach(summary => {
+      balance += summary.totalPartPrice + summary.totalDeliveryCost;
+    });
+
+    setCalculatedBalance(balance);
+  }
 
   async function loadData() {
     const { data: supplierData } = await supabase
@@ -176,11 +200,9 @@ export default function CardPayments() {
       return;
     }
 
-    const partsDeliveryBalance = (supplier.balance_parts_pln || 0) + (supplier.balance_delivery_pln || 0);
-
-    if (amount > partsDeliveryBalance) {
+    if (amount > calculatedBalance) {
       const confirmed = confirm(
-        `Сума оплати (${formatNumber(amount)} zł) перевищує баланс (${formatNumber(partsDeliveryBalance)} zł). Продовжити?`
+        `Сума оплати (${formatNumber(amount)} zł) перевищує баланс (${formatNumber(calculatedBalance)} zł). Продовжити?`
       );
       if (!confirmed) return;
     }
@@ -429,10 +451,6 @@ export default function CardPayments() {
     loadData();
   }
 
-  const partsDeliveryBalance = supplier
-    ? supplier.balance_parts_pln + supplier.balance_delivery_pln
-    : 0;
-
   return (
     <div className="h-full flex flex-col p-4 max-w-[98%] mx-auto">
       <div className="flex-1 overflow-auto space-y-6">
@@ -452,7 +470,7 @@ export default function CardPayments() {
               <div className="flex items-baseline justify-between">
                 <div>
                   <div className="text-sm opacity-90 mb-2">Баланс до оплати</div>
-                  <div className="text-5xl font-bold">{formatNumber(partsDeliveryBalance)} zł</div>
+                  <div className="text-5xl font-bold">{formatNumber(calculatedBalance)} zł</div>
                   <div className="text-sm opacity-90 mt-4 space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-white dark:bg-gray-800 rounded-full"></span>
