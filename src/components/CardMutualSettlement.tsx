@@ -677,6 +677,31 @@ export default function CardMutualSettlement() {
               </tr>
             ))}
           </tbody>
+          {transactions.length > 0 && (
+            <tfoot className="bg-gray-100 dark:bg-gray-700 sticky bottom-0">
+              <tr className="border-t-2 border-gray-300 dark:border-gray-600">
+                <td colSpan={3} className="px-3 py-2 text-xs font-bold text-gray-700 dark:text-gray-200">
+                  Підсумок:
+                </td>
+                <td className="px-3 py-2 text-xs text-right font-bold">
+                  {(() => {
+                    const total = transactions
+                      .filter(tx => !tx.is_reversed)
+                      .reduce((sum, tx) => {
+                        const amount = tx.amount || 0;
+                        return sum + (tx.transaction_type === 'charge' ? amount : -amount);
+                      }, 0);
+                    return (
+                      <span className={total > 0 ? 'text-red-600' : total < 0 ? 'text-green-600' : 'text-gray-700 dark:text-gray-200'}>
+                        {formatNumber(total)} zł
+                      </span>
+                    );
+                  })()}
+                </td>
+                <td className="px-3 py-2"></td>
+              </tr>
+            </tfoot>
+          )}
         </table>
 
         {transactions.length === 0 && (

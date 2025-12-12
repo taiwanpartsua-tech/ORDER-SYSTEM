@@ -727,6 +727,46 @@ export default function MutualSettlement() {
               </tr>
             ))}
           </tbody>
+          {transactions.length > 0 && (
+            <tfoot className="bg-gray-100 dark:bg-gray-700 sticky bottom-0">
+              <tr className="border-t-2 border-gray-300 dark:border-gray-600">
+                <td colSpan={3} className="px-3 py-2 text-xs font-bold text-gray-700 dark:text-gray-200">
+                  Підсумок:
+                </td>
+                <td className="px-3 py-2 text-xs text-right font-bold">
+                  {(() => {
+                    const totalPln = transactions
+                      .filter(tx => !tx.is_reversed)
+                      .reduce((sum, tx) => {
+                        const amount = tx.cash_on_delivery_pln || 0;
+                        return sum + (tx.transaction_type === 'debit' ? amount : -amount);
+                      }, 0);
+                    return (
+                      <span className={totalPln > 0 ? 'text-red-600' : totalPln < 0 ? 'text-green-600' : 'text-gray-700 dark:text-gray-200'}>
+                        {formatNumber(totalPln)} zł
+                      </span>
+                    );
+                  })()}
+                </td>
+                <td className="px-3 py-2 text-xs text-right font-bold">
+                  {(() => {
+                    const totalUsd = transactions
+                      .filter(tx => !tx.is_reversed)
+                      .reduce((sum, tx) => {
+                        const amount = tx.transport_cost_usd || 0;
+                        return sum + (tx.transaction_type === 'debit' ? amount : -amount);
+                      }, 0);
+                    return (
+                      <span className={totalUsd > 0 ? 'text-red-600' : totalUsd < 0 ? 'text-green-600' : 'text-gray-700 dark:text-gray-200'}>
+                        {formatNumber(totalUsd)} $
+                      </span>
+                    );
+                  })()}
+                </td>
+                <td className="px-3 py-2"></td>
+              </tr>
+            </tfoot>
+          )}
         </table>
 
         {transactions.length === 0 && (
