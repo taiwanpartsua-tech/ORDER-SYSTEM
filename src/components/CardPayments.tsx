@@ -44,8 +44,8 @@ export default function CardPayments() {
 
     let balance = 0;
 
-    const settledReceiptIds = pendingReceipts
-      .filter(r => r.receipt.settled_date)
+    const receiptIdsWithoutSettled = pendingReceipts
+      .filter(r => !r.receipt.settled_date)
       .map(r => r.receipt.id);
 
     pendingReceipts.forEach(summary => {
@@ -56,7 +56,7 @@ export default function CardPayments() {
 
     transactions.forEach(tx => {
       if (tx.is_reversed) return;
-      if (tx.receipt_id && settledReceiptIds.includes(tx.receipt_id)) return;
+      if (tx.receipt_id && receiptIdsWithoutSettled.includes(tx.receipt_id)) return;
 
       if (tx.transaction_type === 'charge') {
         balance += tx.amount;
@@ -168,8 +168,8 @@ export default function CardPayments() {
       return;
     }
 
+    await loadData();
     alert('Замовлення успішно підтверджено!');
-    loadData();
   }
 
   async function handlePayment() {
@@ -209,8 +209,8 @@ export default function CardPayments() {
     setPaymentDescription('');
     setPaymentDate(new Date().toISOString().split('T')[0]);
     setShowPaymentForm(false);
+    await loadData();
     alert('Оплату успішно проведено!');
-    loadData();
   }
 
   async function handleCharge() {
@@ -248,8 +248,8 @@ export default function CardPayments() {
     setChargeDescription('');
     setChargeDate(new Date().toISOString().split('T')[0]);
     setShowChargeForm(false);
+    await loadData();
     alert('Нарахування успішно проведено!');
-    loadData();
   }
 
   async function settleReceipt(summary: ReceiptSummary) {
@@ -285,8 +285,8 @@ export default function CardPayments() {
       return;
     }
 
+    await loadData();
     alert('Накладну успішно розраховано!');
-    loadData();
   }
 
   async function reverseReceipt(summary: ReceiptSummary) {
@@ -339,8 +339,8 @@ export default function CardPayments() {
       return;
     }
 
+    await loadData();
     alert('Розрахунок накладної успішно сторновано. Транзакція залишається в історії.');
-    loadData();
   }
 
   async function reverseTransaction(tx: CardTransaction) {
@@ -384,8 +384,8 @@ export default function CardPayments() {
       return;
     }
 
+    await loadData();
     alert('Операцію успішно сторновано. Транзакція залишається в історії.');
-    loadData();
   }
 
   return (
