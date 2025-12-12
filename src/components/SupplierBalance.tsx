@@ -70,7 +70,8 @@ export default function SupplierBalance() {
       .from('active_receipts')
       .update({
         status: 'sent_for_settlement',
-        settlement_date: new Date().toISOString()
+        settlement_date: new Date().toISOString(),
+        settled_date: null
       })
       .eq('id', receipt.id);
 

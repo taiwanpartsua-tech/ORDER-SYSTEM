@@ -215,10 +215,14 @@ export default function CardMutualSettlement() {
       .from('card_transactions')
       .insert({
         transaction_type: 'charge',
+        charge_type: 'debit',
         amount: totalAmount,
+        parts_amount: totalPartsPln,
+        delivery_amount: totalDeliveryPln,
         description: `Нарахування за накладну №${receipt.receipt_number} (Запчастини: ${totalPartsPln.toFixed(2)} zł, Доставка: ${totalDeliveryPln.toFixed(2)} zł)`,
         transaction_date: new Date().toISOString().split('T')[0],
-        receipt_id: receipt.id
+        receipt_id: receipt.id,
+        created_by: 'system'
       });
 
     if (txError) {
@@ -257,7 +261,8 @@ export default function CardMutualSettlement() {
       .from('active_receipts')
       .update({
         status: 'approved',
-        settlement_date: null
+        settlement_date: null,
+        settled_date: null
       })
       .eq('id', receiptId);
 

@@ -156,11 +156,15 @@ export type Transaction = {
 export type CardTransaction = {
   id: string;
   transaction_type: 'payment' | 'refund' | 'charge';
+  charge_type?: 'debit' | 'credit';
   amount: number;
+  parts_amount?: number;
+  delivery_amount?: number;
   description: string;
   transaction_date: string;
   receipt_id?: string;
   order_id?: string;
   is_reversed?: boolean;
+  created_by?: string;
   created_at: string;
 };
