@@ -672,8 +672,11 @@ export default function CardPayments() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-2.5">
-          <h3 className="text-sm font-semibold text-amber-700 mb-2">На розрахунку ({pendingCardOrders.length + pendingReceipts.length})</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-2.5">
+            <h3 className="text-sm font-semibold text-amber-700 mb-2">
+              На розрахунку ({pendingCardOrders.filter(o => !o.verified).length + pendingReceipts.filter(s => !s.receipt.settled_date).length})
+            </h3>
             <div className="space-y-1.5 max-h-32 overflow-y-auto">
               {pendingCardOrders.map(order => (
                 <div key={order.id} className="p-2 bg-amber-50 rounded border border-amber-200">
@@ -682,7 +685,7 @@ export default function CardPayments() {
                       <div className="text-sm font-medium">№{order.order_number}</div>
                       <div className="text-xs text-gray-600 dark:text-gray-300">{order.order_date}</div>
                       {order.title && (
-                        <div className="text-[10px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{order.title}</div>
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400">{order.title}</div>
                       )}
                     </div>
                     <button
@@ -695,78 +698,85 @@ export default function CardPayments() {
                   </div>
                   <div className="grid grid-cols-3 gap-1 text-xs">
                     <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
-                      <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-[10px]">Запчастини</div>
+                      <div className="text-gray-500 dark:text-gray-400 text-[10px]">Запчастини</div>
                       <div className="font-semibold text-blue-700">{formatNumber(order.part_price)} zł</div>
                     </div>
                     <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
-                      <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-[10px]">Доставка</div>
+                      <div className="text-gray-500 dark:text-gray-400 text-[10px]">Доставка</div>
                       <div className="font-semibold text-blue-700">{formatNumber(order.delivery_cost)} zł</div>
                     </div>
                     <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
-                      <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-[10px]">Всього</div>
+                      <div className="text-gray-500 dark:text-gray-400 text-[10px]">Всього</div>
                       <div className="font-bold text-amber-700">{formatNumber(order.total_cost)} zł</div>
                     </div>
                   </div>
                 </div>
               ))}
-              {pendingReceipts.map(summary => {
-                const isConfirmed = !!summary.receipt.settled_date;
-                return (
-                  <div
-                    key={summary.receipt.id}
-                    className={`p-2 rounded border ${
-                      isConfirmed
-                        ? 'bg-green-50 border-green-300'
-                        : 'bg-amber-50 border-amber-200'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-1.5">
-                      <div>
-                        <div className="text-sm font-medium flex items-center gap-1">
-                          №{summary.receipt.receipt_number}
-                          {isConfirmed && (
-                            <span className="text-[10px] bg-green-600 text-white px-1.5 py-0.5 rounded">
-                              Підтверджено
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-300">
-                          {summary.receipt.settlement_date ? new Date(summary.receipt.settlement_date).toLocaleDateString('uk-UA') : ''}
-                        </div>
+              {pendingReceipts.filter(s => !s.receipt.settled_date).map(summary => (
+                <div key={summary.receipt.id} className="p-2 bg-amber-50 rounded border border-amber-200">
+                  <div className="flex justify-between items-start mb-1.5">
+                    <div>
+                      <div className="text-sm font-medium">№{summary.receipt.receipt_number}</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-300">
+                        {summary.receipt.settlement_date ? new Date(summary.receipt.settlement_date).toLocaleDateString('uk-UA') : ''}
                       </div>
-                      {!isConfirmed && (
-                        <button
-                          onClick={() => settleReceipt(summary)}
-                          className="px-2 py-1 bg-green-600 text-white rounded text-[10px] hover:bg-green-700 transition flex items-center gap-0.5"
-                        >
-                          <CheckCircle2 size={12} />
-                          ОК
-                        </button>
-                      )}
                     </div>
-                    <div className="grid grid-cols-3 gap-1 text-xs">
-                      <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
-                        <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-[10px]">Запчастини</div>
-                        <div className="font-semibold text-blue-700">{formatNumber(summary.totalPartPrice)} zł</div>
-                      </div>
-                      <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
-                        <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-[10px]">Доставка</div>
-                        <div className="font-semibold text-blue-700">{formatNumber(summary.totalDeliveryCost)} zł</div>
-                      </div>
-                      <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
-                        <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-[10px]">Всього</div>
-                        <div className={`font-bold ${isConfirmed ? 'text-green-700' : 'text-amber-700'}`}>
-                          {formatNumber(summary.totalPartPrice + summary.totalDeliveryCost)} zł
-                        </div>
-                      </div>
+                    <button
+                      onClick={() => settleReceipt(summary)}
+                      className="px-2 py-1 bg-green-600 text-white rounded text-[10px] hover:bg-green-700 transition flex items-center gap-0.5"
+                    >
+                      <CheckCircle2 size={12} />
+                      ОК
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1 text-xs">
+                    <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
+                      <div className="text-gray-500 dark:text-gray-400 text-[10px]">Запчастини</div>
+                      <div className="font-semibold text-blue-700">{formatNumber(summary.totalPartPrice)} zł</div>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
+                      <div className="text-gray-500 dark:text-gray-400 text-[10px]">Доставка</div>
+                      <div className="font-semibold text-blue-700">{formatNumber(summary.totalDeliveryCost)} zł</div>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-1.5 rounded">
+                      <div className="text-gray-500 dark:text-gray-400 text-[10px]">Всього</div>
+                      <div className="font-bold text-amber-700">{formatNumber(summary.totalPartPrice + summary.totalDeliveryCost)} zł</div>
                     </div>
                   </div>
-                );
-              })}
-              {pendingCardOrders.length === 0 && pendingReceipts.length === 0 && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 text-center py-3">Немає замовлень</p>
+                </div>
+              ))}
+              {pendingCardOrders.length === 0 && pendingReceipts.filter(s => !s.receipt.settled_date).length === 0 && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-3">Немає замовлень</p>
               )}
             </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-2.5">
+            <h3 className="text-sm font-semibold text-green-700 mb-2">
+              Розраховано ({pendingReceipts.filter(s => s.receipt.settled_date).length})
+            </h3>
+            <div className="space-y-1.5 max-h-32 overflow-y-auto">
+              {pendingReceipts.filter(s => s.receipt.settled_date).map(summary => (
+                <div key={summary.receipt.id} className="flex justify-between items-center p-1.5 bg-green-50 rounded border border-green-200">
+                  <div>
+                    <div className="font-medium text-xs">№{summary.receipt.receipt_number}</div>
+                    <div className="text-[10px] text-gray-600 dark:text-gray-300">
+                      {formatNumber(summary.totalPartPrice + summary.totalDeliveryCost)} zł
+                    </div>
+                    {summary.receipt.settled_date && (
+                      <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                        {new Date(summary.receipt.settled_date).toLocaleDateString('uk-UA')}
+                      </div>
+                    )}
+                  </div>
+                  <CheckCircle2 size={16} className="text-green-600" />
+                </div>
+              ))}
+              {pendingReceipts.filter(s => s.receipt.settled_date).length === 0 && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-3">Немає накладних</p>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
