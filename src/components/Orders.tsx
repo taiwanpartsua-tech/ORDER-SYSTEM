@@ -378,7 +378,9 @@ export default function Orders() {
 
   function getFontSizeClass(value: string) {
     const length = value?.toString().length || 0;
-    if (length > 20) return 'text-[10px]';
+    if (length > 50) return 'text-[10px] leading-tight';
+    if (length > 35) return 'text-[11px] leading-tight';
+    if (length > 25) return 'text-xs leading-snug';
     if (length > 15) return 'text-xs';
     return 'text-sm';
   }
@@ -403,14 +405,15 @@ export default function Orders() {
     }
 
     const fontSizeClass = getFontSizeClass(value);
+    const isTitle = field === 'title';
 
     return (
       <td
-        className={`px-3 py-3 cursor-pointer hover:bg-blue-50 transition min-h-[48px] ${className.replace(/text-(sm|xs|base)/g, '')} ${fontSizeClass}`}
+        className={`px-3 py-3 cursor-pointer hover:bg-blue-50 transition min-h-[48px] ${isTitle ? 'max-w-[300px]' : ''} ${className.replace(/text-(sm|xs|base)/g, '')} ${fontSizeClass}`}
         onClick={() => startEditing(orderId, field, value)}
         title="Клікніть для редагування"
       >
-        <div className="w-full break-all">
+        <div className="w-full break-words whitespace-normal">
           {value}
         </div>
       </td>
@@ -489,7 +492,7 @@ export default function Orders() {
         onClick={() => startEditing(orderId, 'order_date', dateValue)}
         title="Клікніть для редагування дати"
       >
-        <div className="w-full break-all">
+        <div className="w-full break-words whitespace-normal">
           {formatDate(dateValue)}
         </div>
       </td>
