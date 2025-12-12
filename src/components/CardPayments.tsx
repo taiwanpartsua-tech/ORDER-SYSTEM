@@ -236,7 +236,7 @@ export default function CardPayments() {
     }
 
     const { error: transactionError } = await supabase.from('card_transactions').insert([{
-      transaction_type: 'payment',
+      transaction_type: 'refund',
       amount: amount,
       description: chargeDescription || 'Нарахування по картці',
       transaction_date: chargeDate
