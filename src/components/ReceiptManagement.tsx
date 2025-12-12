@@ -288,6 +288,17 @@ export default function ReceiptManagement() {
   }
 
   async function confirmReceipt(receipt: Receipt) {
+    const { data: supplierData } = await supabase
+      .from('suppliers')
+      .select('*')
+      .eq('id', receipt.supplier_id)
+      .single();
+
+    if (!supplierData) {
+      alert('Помилка: постачальник не знайдений');
+      return;
+    }
+
     const { error: receiptError } = await supabase
       .from('active_receipts')
       .update({
@@ -300,6 +311,54 @@ export default function ReceiptManagement() {
       alert('Помилка переведення на розрахунок');
       return;
     }
+
+    const receiptCashPln = (receipt.receipt_cost_pln || 0) + (receipt.cash_on_delivery_pln || 0);
+    const transportUsd = receipt.transport_cost_usd || 0;
+
+    const { error: txError } = await supabase
+      .from('transactions')
+      .insert({
+        transaction_type: 'debit',
+        amount_pln: 0,
+        amount_usd: 0,
+        cash_on_delivery_pln: receiptCashPln,
+        transport_cost_usd: transportUsd,
+        parts_delivery_pln: (receipt.parts_cost_pln || 0) + (receipt.delivery_cost_pln || 0),
+        description: `Нарахування за накладну №${receipt.receipt_number}`,
+        transaction_date: new Date().toISOString().split('T')[0],
+        receipt_id: receipt.id,
+        created_by: 'system'
+      });
+
+    if (txError) {
+      console.error('Помилка при створенні транзакції:', txError);
+    }
+
+    await supabase.from('supplier_transactions').insert([{
+      supplier_id: receipt.supplier_id,
+      receipt_id: receipt.id,
+      amount_pln: receipt.total_pln,
+      amount_usd: receipt.transport_cost_usd,
+      parts_cost_pln: receipt.parts_cost_pln,
+      delivery_cost_pln: receipt.delivery_cost_pln,
+      receipt_cost_pln: receipt.receipt_cost_pln,
+      cash_on_delivery_pln: receipt.cash_on_delivery_pln,
+      transport_cost_usd: receipt.transport_cost_usd,
+      notes: `Прийомка ${receipt.receipt_number}`
+    }]);
+
+    await supabase
+      .from('suppliers')
+      .update({
+        balance_pln: Number(supplierData.balance_pln) + Number(receipt.total_pln),
+        balance_usd: Number(supplierData.balance_usd) + Number(receipt.transport_cost_usd),
+        balance_parts_pln: Number(supplierData.balance_parts_pln) + Number(receipt.parts_cost_pln),
+        balance_delivery_pln: Number(supplierData.balance_delivery_pln) + Number(receipt.delivery_cost_pln),
+        balance_receipt_pln: Number(supplierData.balance_receipt_pln) + Number(receipt.receipt_cost_pln),
+        balance_cash_on_delivery_pln: Number(supplierData.balance_cash_on_delivery_pln) + Number(receipt.cash_on_delivery_pln),
+        balance_transport_usd: Number(supplierData.balance_transport_usd) + Number(receipt.transport_cost_usd)
+      })
+      .eq('id', receipt.supplier_id);
 
     alert('Прийомку передано на розрахунок!');
     loadReceipts();
