@@ -37,15 +37,34 @@ export default function CardPayments() {
     if (supplier) {
       calculateBalance();
     }
-  }, [supplier, pendingCardOrders, pendingReceipts]);
+  }, [supplier, pendingCardOrders, pendingReceipts, transactions]);
 
   function calculateBalance() {
     if (!supplier) return;
 
-    let balance = (supplier.card_balance_parts_pln || 0) + (supplier.card_balance_delivery_pln || 0);
+    let balance = 0;
 
-    pendingCardOrders.forEach(order => {
-      balance += order.part_price + order.delivery_cost;
+    const settledReceiptIds = pendingReceipts
+      .filter(r => r.receipt.settled_date)
+      .map(r => r.receipt.id);
+
+    pendingReceipts.forEach(summary => {
+      if (!summary.receipt.settled_date) {
+        balance += summary.totalPartPrice + summary.totalDeliveryCost;
+      }
+    });
+
+    transactions.forEach(tx => {
+      if (tx.is_reversed) return;
+      if (tx.receipt_id && settledReceiptIds.includes(tx.receipt_id)) return;
+
+      if (tx.transaction_type === 'charge') {
+        balance += tx.amount;
+      } else if (tx.transaction_type === 'payment') {
+        balance -= tx.amount;
+      } else if (tx.transaction_type === 'refund') {
+        balance += tx.amount;
+      }
     });
 
     setCalculatedBalance(balance);
@@ -172,33 +191,17 @@ export default function CardPayments() {
       if (!confirmed) return;
     }
 
-    const { error: transactionError } = await supabase.from('card_transactions').insert([{
+    const { error } = await supabase.from('card_transactions').insert([{
       transaction_type: 'payment',
       amount: amount,
       description: paymentDescription || 'Оплата карткою',
-      transaction_date: paymentDate
+      transaction_date: paymentDate,
+      is_reversed: false
     }]);
 
-    if (transactionError) {
+    if (error) {
       alert('Помилка створення транзакції');
-      console.error(transactionError);
-      return;
-    }
-
-    const newCardPartsBalance = (supplier.card_balance_parts_pln || 0) - amount;
-    const newTotalPln = (supplier.balance_pln || 0) - amount;
-
-    const { error: supplierError } = await supabase
-      .from('suppliers')
-      .update({
-        card_balance_parts_pln: newCardPartsBalance,
-        balance_pln: newTotalPln
-      })
-      .eq('id', supplier.id);
-
-    if (supplierError) {
-      alert('Помилка оновлення балансу');
-      console.error(supplierError);
+      console.error(error);
       return;
     }
 
@@ -222,33 +225,22 @@ export default function CardPayments() {
       return;
     }
 
-    const { error: transactionError } = await supabase.from('card_transactions').insert([{
-      transaction_type: 'refund',
-      amount: amount,
-      description: chargeDescription || 'Нарахування по картці',
-      transaction_date: chargeDate
-    }]);
-
-    if (transactionError) {
-      alert('Помилка створення транзакції');
-      console.error(transactionError);
+    if (!chargeDescription.trim()) {
+      alert('Вкажіть причину нарахування');
       return;
     }
 
-    const newCardPartsBalance = (supplier.card_balance_parts_pln || 0) + amount;
-    const newTotalPln = (supplier.balance_pln || 0) + amount;
+    const { error } = await supabase.from('card_transactions').insert([{
+      transaction_type: 'charge',
+      amount: amount,
+      description: chargeDescription,
+      transaction_date: chargeDate,
+      is_reversed: false
+    }]);
 
-    const { error: supplierError } = await supabase
-      .from('suppliers')
-      .update({
-        card_balance_parts_pln: newCardPartsBalance,
-        balance_pln: newTotalPln
-      })
-      .eq('id', supplier.id);
-
-    if (supplierError) {
-      alert('Помилка оновлення балансу');
-      console.error(supplierError);
+    if (error) {
+      alert('Помилка створення транзакції');
+      console.error(error);
       return;
     }
 
@@ -261,11 +253,6 @@ export default function CardPayments() {
   }
 
   async function settleReceipt(summary: ReceiptSummary) {
-    if (!supplier) {
-      alert('Помилка: постачальник не знайдений');
-      return;
-    }
-
     const totalAmount = summary.totalPartPrice + summary.totalDeliveryCost;
 
     const { error: transactionError } = await supabase
@@ -298,30 +285,13 @@ export default function CardPayments() {
       return;
     }
 
-    const newBalance = (supplier.card_balance || 0) + totalAmount;
-    const { error: supplierError } = await supabase
-      .from('suppliers')
-      .update({ card_balance: newBalance })
-      .eq('id', supplier.id);
-
-    if (supplierError) {
-      alert('Помилка оновлення балансу');
-      console.error(supplierError);
-      return;
-    }
-
     alert('Накладну успішно розраховано!');
     loadData();
   }
 
   async function reverseReceipt(summary: ReceiptSummary) {
-    const confirmed = confirm(`Ви впевнені, що хочете сторнувати розрахунок накладної №${summary.receipt.receipt_number}?\n\nНакладна повернеться в статус "На розрахунок".`);
+    const confirmed = confirm(`Ви впевнені, що хочете сторнувати розрахунок накладної №${summary.receipt.receipt_number}?\n\nТранзакція залишиться в історії з позначкою "сторновано".`);
     if (!confirmed) return;
-
-    if (!supplier) {
-      alert('Помилка: постачальник не знайдений');
-      return;
-    }
 
     const { data: transaction, error: findError } = await supabase
       .from('card_transactions')
@@ -369,33 +339,38 @@ export default function CardPayments() {
       return;
     }
 
-    const newBalance = (supplier.card_balance || 0) - transaction.amount;
-    const { error: supplierError } = await supabase
-      .from('suppliers')
-      .update({ card_balance: newBalance })
-      .eq('id', supplier.id);
-
-    if (supplierError) {
-      alert('Помилка оновлення балансу');
-      console.error(supplierError);
-      return;
-    }
-
-    alert('Розрахунок накладної успішно сторновано!');
+    alert('Розрахунок накладної успішно сторновано. Транзакція залишається в історії.');
     loadData();
   }
 
   async function reverseTransaction(tx: CardTransaction) {
-    const typeText = tx.transaction_type === 'payment' ? 'оплату' : tx.transaction_type === 'charge' ? 'нарахування' : 'повернення';
-    const confirmed = confirm(`Ви впевнені, що хочете сторнувати цю операцію (${typeText})?\n\nОпис: ${tx.description}\nСума: ${formatNumber(tx.amount)} zł`);
-    if (!confirmed) return;
-
-    if (!supplier) {
-      alert('Помилка: постачальник не знайдений');
+    if (tx.is_reversed) {
+      alert('Ця транзакція вже сторнована');
       return;
     }
 
-    const { error: transactionError } = await supabase
+    const typeText = tx.transaction_type === 'payment' ? 'оплату' : tx.transaction_type === 'charge' ? 'нарахування' : 'повернення';
+    const confirmed = confirm(`Ви впевнені, що хочете сторнувати цю операцію (${typeText})?\n\nОпис: ${tx.description}\nСума: ${formatNumber(tx.amount)} zł\n\nТранзакція залишиться в історії з позначкою "сторновано".`);
+    if (!confirmed) return;
+
+    if (tx.receipt_id) {
+      const { data: receipt } = await supabase
+        .from('active_receipts')
+        .select('*')
+        .eq('id', tx.receipt_id)
+        .maybeSingle();
+
+      if (receipt && receipt.settled_date) {
+        await supabase
+          .from('active_receipts')
+          .update({
+            settled_date: null
+          })
+          .eq('id', tx.receipt_id);
+      }
+    }
+
+    const { error } = await supabase
       .from('card_transactions')
       .update({
         is_reversed: true,
@@ -403,27 +378,13 @@ export default function CardPayments() {
       })
       .eq('id', tx.id);
 
-    if (transactionError) {
+    if (error) {
       alert('Помилка сторнування транзакції');
-      console.error(transactionError);
+      console.error(error);
       return;
     }
 
-    const amountChange = tx.transaction_type === 'payment' ? tx.amount : -tx.amount;
-    const newBalance = (supplier.card_balance || 0) + amountChange;
-
-    const { error: supplierError } = await supabase
-      .from('suppliers')
-      .update({ card_balance: newBalance })
-      .eq('id', supplier.id);
-
-    if (supplierError) {
-      alert('Помилка оновлення балансу');
-      console.error(supplierError);
-      return;
-    }
-
-    alert('Операцію успішно сторновано');
+    alert('Операцію успішно сторновано. Транзакція залишається в історії.');
     loadData();
   }
 
