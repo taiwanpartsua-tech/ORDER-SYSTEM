@@ -169,7 +169,6 @@ export default function CardMutualSettlement() {
     const transactionData: any = {
       transaction_type: 'charge',
       amount: amount,
-      charge_type: 'manual',
       description: chargeData.description,
       transaction_date: chargeData.date,
       is_reversed: false
@@ -284,25 +283,6 @@ export default function CardMutualSettlement() {
           .update({ is_reversed: true, reversed_at: new Date().toISOString() })
           .eq('receipt_id', tx.receipt_id)
           .eq('is_reversed', false);
-
-        await supabase
-          .from('transactions')
-          .update({ is_reversed: true, reversed_at: new Date().toISOString() })
-          .eq('receipt_id', tx.receipt_id)
-          .eq('is_reversed', false);
-
-        const { data: supplierTx } = await supabase
-          .from('supplier_transactions')
-          .select('*')
-          .eq('receipt_id', tx.receipt_id)
-          .maybeSingle();
-
-        if (supplierTx) {
-          await supabase
-            .from('supplier_transactions')
-            .update({ is_reversed: true, reversed_at: new Date().toISOString() })
-            .eq('id', supplierTx.id);
-        }
       }
     }
 
