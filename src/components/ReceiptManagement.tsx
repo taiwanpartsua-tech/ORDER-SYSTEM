@@ -322,7 +322,10 @@ export default function ReceiptManagement() {
       const orderIds = receiptOrders.map((ro: any) => ro.order_id);
       const { error: statusError } = await supabase
         .from('orders')
-        .update({ status: 'прийнято' })
+        .update({
+          status: 'прийнято',
+          archived: true
+        })
         .in('id', orderIds);
 
       if (statusError) {
@@ -339,7 +342,7 @@ export default function ReceiptManagement() {
       .eq('id', receiptId);
 
     if (!error) {
-      alert('Прийомку затверджено, замовлення переміщено в прийняті');
+      alert('Прийомку затверджено, замовлення переміщено в прийняті та архів');
       loadReceipts();
     }
   }
