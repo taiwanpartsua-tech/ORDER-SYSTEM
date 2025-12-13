@@ -450,6 +450,22 @@ export default function ReceiptManagement() {
       console.log('Починаємо додавання замовлення:', { receiptId, orderId });
       console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
 
+      const { data: receiptData } = await supabase
+        .from('active_receipts')
+        .select('status')
+        .eq('id', receiptId)
+        .single();
+
+      if (!receiptData) {
+        alert('Прийомку не знайдено');
+        return;
+      }
+
+      if (receiptData.status === 'sent_for_settlement' || receiptData.status === 'settled') {
+        alert('Неможливо додати замовлення до прийомки, яка вже на розрахунку');
+        return;
+      }
+
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .select('*')
@@ -521,6 +537,17 @@ export default function ReceiptManagement() {
 
   async function removeOrderFromReceipt(receiptId: string, orderId: string) {
     try {
+      const { data: receiptData } = await supabase
+        .from('active_receipts')
+        .select('status')
+        .eq('id', receiptId)
+        .single();
+
+      if (!receiptData) {
+        alert('Прийомку не знайдено');
+        return;
+      }
+
       const { data: orderData } = await supabase
         .from('orders')
         .select('previous_status, status')
@@ -532,10 +559,29 @@ export default function ReceiptManagement() {
         return;
       }
 
+      const { data: otherReceipts } = await supabase
+        .from('receipt_orders')
+        .select('receipt_id, active_receipts(status)')
+        .eq('order_id', orderId)
+        .neq('receipt_id', receiptId);
+
+      const hasOtherActiveReceipts = otherReceipts?.some((ro: any) =>
+        ro.active_receipts?.status === 'draft' || ro.active_receipts?.status === 'approved'
+      );
+
+      let newStatus = orderData.status;
+      if (receiptData.status === 'sent_for_settlement' || receiptData.status === 'settled') {
+        if (!hasOtherActiveReceipts) {
+          newStatus = 'на звірці';
+        }
+      } else {
+        newStatus = orderData.previous_status || orderData.status;
+      }
+
       await supabase
         .from('orders')
         .update({
-          status: orderData.previous_status || orderData.status,
+          status: newStatus,
           previous_status: null
         })
         .eq('id', orderId);

@@ -303,7 +303,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
             received_pln: order.editableReceipt,
             cash_on_delivery: order.editableCash,
             transport_cost_usd: order.editableTransport,
-            status: order.previous_status || order.status,
+            status: 'в активному прийомі',
             previous_status: null,
             active_receipt_group: null
           })
