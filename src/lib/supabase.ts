@@ -33,6 +33,7 @@ export type Order = {
   supplier_id: string;
   status: string;
   previous_status?: string;
+  active_receipt_group?: 'cash_on_delivery' | 'paid' | null;
   order_date: string;
   notes: string;
   title: string;

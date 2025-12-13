@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase, Order, Supplier } from '../lib/supabase';
-import { ChevronRight, Send, X, AlertCircle, RotateCcw } from 'lucide-react';
+import { ChevronRight, Send, X, AlertCircle } from 'lucide-react';
 
 type OrderWithSupplier = Order & { supplier: Supplier };
 
@@ -27,8 +27,6 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
   const [cashOnDeliveryReceiptNumber, setCashOnDeliveryReceiptNumber] = useState<string>('');
   const [paidReceiptNumber, setPaidReceiptNumber] = useState<string>('');
 
-  const [showRestorePrompt, setShowRestorePrompt] = useState<boolean>(false);
-
   function generateReceiptNumber(group: PaymentGroup): string {
     const now = new Date();
     const year = now.getFullYear();
@@ -45,159 +43,51 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
     return num % 1 === 0 ? num.toString() : num.toFixed(2);
   }
 
-  function saveDraft() {
-    const draft = {
-      cashOnDeliveryOrders,
-      paidOrders,
-      cashOnDeliveryReceiptNumber,
-      paidReceiptNumber,
-      timestamp: new Date().toISOString()
-    };
-    localStorage.setItem('activeReceiptDraft', JSON.stringify(draft));
-  }
+  async function loadActiveReceiptOrders() {
+    const { data } = await supabase
+      .from('orders')
+      .select('*, supplier:suppliers(*)')
+      .eq('status', 'в активному прийомі')
+      .not('active_receipt_group', 'is', null);
 
-  function clearDraft() {
-    localStorage.removeItem('activeReceiptDraft');
-  }
+    if (data && data.length > 0) {
+      const cashOrders: EditableOrder[] = [];
+      const paidOrders: EditableOrder[] = [];
 
-  async function restoreDraft() {
-    const savedDraft = localStorage.getItem('activeReceiptDraft');
-    console.log('Відновлення чернетки, savedDraft:', savedDraft);
+      for (const order of data as OrderWithSupplier[]) {
+        const editableOrder: EditableOrder = {
+          ...order,
+          editableParts: order.part_price || 0,
+          editableDelivery: order.delivery_cost || 0,
+          editableReceipt: order.received_pln || 0,
+          editableCash: order.cash_on_delivery || 0,
+          editableTransport: order.transport_cost_usd || 0,
+          editableWeight: order.weight_kg || 0
+        };
 
-    if (!savedDraft) {
-      setShowRestorePrompt(false);
-      return;
-    }
-
-    try {
-      const draft = JSON.parse(savedDraft);
-      console.log('Розпарсена чернетка:', draft);
-
-      const draftCashOrders = draft.cashOnDeliveryOrders || [];
-      const draftPaidOrders = draft.paidOrders || [];
-      console.log('Cash orders:', draftCashOrders.length, 'Paid orders:', draftPaidOrders.length);
-
-      const allDraftOrderIds = [
-        ...draftCashOrders.map((o: EditableOrder) => o.id),
-        ...draftPaidOrders.map((o: EditableOrder) => o.id)
-      ];
-      console.log('Order IDs для відновлення:', allDraftOrderIds);
-
-      if (allDraftOrderIds.length === 0) {
-        console.log('Немає замовлень для відновлення');
-        clearDraft();
-        setShowRestorePrompt(false);
-        return;
+        if (order.active_receipt_group === 'cash_on_delivery') {
+          cashOrders.push(editableOrder);
+        } else if (order.active_receipt_group === 'paid') {
+          paidOrders.push(editableOrder);
+        }
       }
 
-      const { data: currentOrders, error: fetchError } = await supabase
-        .from('orders')
-        .select('*, supplier:suppliers(*)')
-        .in('id', allDraftOrderIds);
-
-      console.log('Завантажені замовлення з БД:', currentOrders, 'помилка:', fetchError);
-
-      if (fetchError) {
-        console.error('Помилка завантаження замовлень:', fetchError);
-        alert('Помилка завантаження замовлень: ' + fetchError.message);
-        return;
+      if (cashOrders.length > 0) {
+        setCashOnDeliveryOrders(cashOrders);
+        setCashOnDeliveryReceiptNumber(generateReceiptNumber('cash_on_delivery'));
       }
 
-      if (!currentOrders || currentOrders.length === 0) {
-        alert('Замовлення з чернетки більше не доступні');
-        clearDraft();
-        setShowRestorePrompt(false);
-        return;
-      }
-
-      const restoredCashOrders = draftCashOrders
-        .map((draftOrder: EditableOrder) => {
-          const currentOrder = currentOrders.find(o => o.id === draftOrder.id);
-          if (!currentOrder) return null;
-          return {
-            ...currentOrder,
-            editableParts: draftOrder.editableParts || currentOrder.parts,
-            editableDelivery: draftOrder.editableDelivery || currentOrder.delivery,
-            editableReceipt: draftOrder.editableReceipt || currentOrder.receipt,
-            editableCash: draftOrder.editableCash || currentOrder.cash_on_delivery,
-            editableTransport: draftOrder.editableTransport || currentOrder.transport,
-            editableWeight: draftOrder.editableWeight || currentOrder.weight
-          };
-        })
-        .filter(Boolean) as EditableOrder[];
-
-      const restoredPaidOrders = draftPaidOrders
-        .map((draftOrder: EditableOrder) => {
-          const currentOrder = currentOrders.find(o => o.id === draftOrder.id);
-          if (!currentOrder) return null;
-          return {
-            ...currentOrder,
-            editableParts: draftOrder.editableParts || currentOrder.parts,
-            editableDelivery: draftOrder.editableDelivery || currentOrder.delivery,
-            editableReceipt: draftOrder.editableReceipt || currentOrder.receipt,
-            editableCash: draftOrder.editableCash || currentOrder.cash_on_delivery,
-            editableTransport: draftOrder.editableTransport || currentOrder.transport,
-            editableWeight: draftOrder.editableWeight || currentOrder.weight
-          };
-        })
-        .filter(Boolean) as EditableOrder[];
-
-      console.log('Відновлені cash orders:', restoredCashOrders);
-      console.log('Відновлені paid orders:', restoredPaidOrders);
-      console.log('Receipt numbers:', draft.cashOnDeliveryReceiptNumber, draft.paidReceiptNumber);
-
-      setCashOnDeliveryOrders(restoredCashOrders);
-      setPaidOrders(restoredPaidOrders);
-      setCashOnDeliveryReceiptNumber(draft.cashOnDeliveryReceiptNumber || '');
-      setPaidReceiptNumber(draft.paidReceiptNumber || '');
-
-      const restoredOrderIds = currentOrders.map(o => o.id);
-      setAvailableOrders(prev => prev.filter(order => !restoredOrderIds.includes(order.id)));
-
-      console.log('Чернетка успішно відновлена');
-      setShowRestorePrompt(false);
-    } catch (error) {
-      console.error('Помилка відновлення чернетки:', error);
-      alert('Помилка відновлення чернетки: ' + (error instanceof Error ? error.message : 'Невідома помилка'));
-      clearDraft();
-      setShowRestorePrompt(false);
-    }
-  }
-
-  function discardDraft() {
-    setShowRestorePrompt(false);
-  }
-
-  function hasDraft(): boolean {
-    const savedDraft = localStorage.getItem('activeReceiptDraft');
-    if (savedDraft) {
-      try {
-        const draft = JSON.parse(savedDraft);
-        return (draft.cashOnDeliveryOrders?.length > 0 || draft.paidOrders?.length > 0);
-      } catch {
-        return false;
+      if (paidOrders.length > 0) {
+        setPaidOrders(paidOrders);
+        setPaidReceiptNumber(generateReceiptNumber('paid'));
       }
     }
-    return false;
   }
 
   useEffect(() => {
     loadAvailableOrders();
-
-    const savedDraft = localStorage.getItem('activeReceiptDraft');
-    if (savedDraft) {
-      setShowRestorePrompt(true);
-    }
+    loadActiveReceiptOrders();
   }, []);
-
-  useEffect(() => {
-    if (cashOnDeliveryOrders.length > 0 || paidOrders.length > 0 ||
-        cashOnDeliveryReceiptNumber || paidReceiptNumber) {
-      saveDraft();
-    } else {
-      clearDraft();
-    }
-  }, [cashOnDeliveryOrders, paidOrders, cashOnDeliveryReceiptNumber, paidReceiptNumber]);
 
   async function loadAvailableOrders() {
     const { data } = await supabase
@@ -237,7 +127,8 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
       .from('orders')
       .update({
         previous_status: order.status,
-        status: 'в активному прийомі'
+        status: 'в активному прийомі',
+        active_receipt_group: group
       })
       .eq('id', order.id);
 
@@ -267,7 +158,8 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
       .from('orders')
       .update({
         status: order.previous_status || order.status,
-        previous_status: null
+        previous_status: null,
+        active_receipt_group: null
       })
       .eq('id', order.id);
 
@@ -298,12 +190,8 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
 
   async function handleSaveReceipt(group: PaymentGroup) {
     try {
-      console.log('handleSaveReceipt викликано для групи:', group);
       const orders = group === 'cash_on_delivery' ? cashOnDeliveryOrders : paidOrders;
       const receiptNumber = group === 'cash_on_delivery' ? cashOnDeliveryReceiptNumber : paidReceiptNumber;
-
-      console.log('Замовлень:', orders.length);
-      console.log('Номер прійомки:', receiptNumber);
 
       if (orders.length === 0) {
         alert('Додайте замовлення до прійомки');
@@ -318,7 +206,6 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
       let supplier = orders[0].supplier;
 
       if (!supplier) {
-        console.log('Постачальник не завантажений, перезавантажуємо замовлення...');
         const { data: orderData } = await supabase
           .from('orders')
           .select('*, supplier:suppliers(*)')
@@ -328,11 +215,11 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
         if (orderData && orderData.supplier) {
           supplier = orderData.supplier;
         } else {
-          console.error('Не вдалося завантажити постачальника для замовлення:', orders[0]);
           alert('Помилка: замовлення не має інформації про постачальника. Спробуйте перезавантажити сторінку.');
           return;
         }
       }
+
       const receiptDate = new Date().toISOString().split('T')[0];
 
       const totals = orders.reduce((acc, order) => {
@@ -352,12 +239,6 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
 
       const total_pln = totals.parts_cost_pln + totals.delivery_cost_pln +
                         totals.receipt_cost_pln + totals.cash_on_delivery_pln;
-
-      console.log('Створення прійомки з даними:', {
-        receipt_number: receiptNumber,
-        supplier_id: supplier.id,
-        totals
-      });
 
       const { data: receipt, error } = await supabase
         .from('active_receipts')
@@ -382,8 +263,6 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
         alert('Помилка створення прійомки: ' + (error?.message || 'невідома помилка'));
         return;
       }
-
-      console.log('Прійомка створена:', receipt);
 
       const receiptOrdersData = orders.map(order => ({
         receipt_id: receipt.id,
@@ -423,7 +302,10 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
             delivery_cost: order.editableDelivery,
             received_pln: order.editableReceipt,
             cash_on_delivery: order.editableCash,
-            transport_cost_usd: order.editableTransport
+            transport_cost_usd: order.editableTransport,
+            status: order.previous_status || order.status,
+            previous_status: null,
+            active_receipt_group: null
           })
           .eq('id', order.id);
       }
@@ -436,7 +318,6 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
         setPaidReceiptNumber('');
       }
 
-      clearDraft();
       loadAvailableOrders();
 
       alert('Прійомку передано постачальнику на звірку.');
@@ -472,58 +353,10 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
 
   return (
     <div className="h-full flex flex-col p-4 max-w-[98%] mx-auto relative">
-      {showRestorePrompt && (
-        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 max-w-md">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">
-              Знайдено збережену чернетку
-            </h3>
-            <p className="text-gray-600 dark:text-gray-300 mb-6">
-              Виявлено незавершену прийомку. Бажаєте відновити дані?
-            </p>
-            <div className="flex gap-3 justify-between">
-              <button
-                onClick={() => {
-                  clearDraft();
-                  setShowRestorePrompt(false);
-                }}
-                className="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition"
-              >
-                Видалити чернетку
-              </button>
-              <div className="flex gap-3">
-                <button
-                  onClick={discardDraft}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-                >
-                  Пізніше
-                </button>
-                <button
-                  onClick={restoreDraft}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                >
-                  Відновити
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="grid gap-4 flex-1 overflow-hidden min-h-0" style={{ gridTemplateColumns: '380px 1fr' }}>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow flex flex-col overflow-hidden">
           <div className="p-4 border-b flex-shrink-0 flex justify-between items-center">
             <h3 className="font-semibold text-gray-800 dark:text-gray-100">Доступні замовлення ({availableOrders.length})</h3>
-            {hasDraft() && cashOnDeliveryOrders.length === 0 && paidOrders.length === 0 && (
-              <button
-                onClick={restoreDraft}
-                className="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                title="Відновити збережену чернетку"
-              >
-                <RotateCcw size={16} />
-                Відновити чернетку
-              </button>
-            )}
           </div>
           <div className="flex-1 overflow-y-auto">
             {availableCashOnDeliveryOrders.length > 0 && (
