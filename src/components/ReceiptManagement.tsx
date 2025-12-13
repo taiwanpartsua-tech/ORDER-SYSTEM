@@ -273,6 +273,63 @@ export default function ReceiptManagement() {
   async function sendToSupplier(receiptId: string) {
     await saveChanges(receiptId);
 
+    const { data: receipt } = await supabase
+      .from('active_receipts')
+      .select('receipt_number')
+      .eq('id', receiptId)
+      .single();
+
+    if (!receipt) {
+      alert('Помилка: прийомку не знайдено');
+      return;
+    }
+
+    const { data: receiptOrders } = await supabase
+      .from('receipt_orders')
+      .select('order_id, orders(*)')
+      .eq('receipt_id', receiptId);
+
+    if (receiptOrders && receiptOrders.length > 0) {
+      const acceptedOrdersData = receiptOrders
+        .filter((ro: any) => ro.orders)
+        .map((ro: any) => ({
+          order_id: ro.order_id,
+          receipt_id: receiptId,
+          receipt_number: receipt.receipt_number,
+          order_number: ro.orders.order_number,
+          tracking_number: ro.orders.tracking_number,
+          supplier_id: ro.orders.supplier_id,
+          weight_kg: ro.orders.weight_kg,
+          part_price: ro.orders.part_price,
+          delivery_cost: ro.orders.delivery_cost,
+          received_pln: ro.orders.received_pln,
+          cash_on_delivery: ro.orders.cash_on_delivery,
+          transport_cost_usd: ro.orders.transport_cost_usd,
+          payment_type: ro.orders.payment_type,
+          accepted_at: new Date().toISOString()
+        }));
+
+      const { error: acceptedError } = await supabase
+        .from('accepted_orders')
+        .insert(acceptedOrdersData);
+
+      if (acceptedError) {
+        console.error('Помилка створення прийнятих замовлень:', acceptedError);
+        alert('Помилка при збереженні прийнятих замовлень');
+        return;
+      }
+
+      const orderIds = receiptOrders.map((ro: any) => ro.order_id);
+      const { error: statusError } = await supabase
+        .from('orders')
+        .update({ status: 'прийнято' })
+        .in('id', orderIds);
+
+      if (statusError) {
+        console.error('Помилка оновлення статусу замовлень:', statusError);
+      }
+    }
+
     const { error } = await supabase
       .from('active_receipts')
       .update({
@@ -282,7 +339,7 @@ export default function ReceiptManagement() {
       .eq('id', receiptId);
 
     if (!error) {
-      alert('Прийомку затверджено');
+      alert('Прийомку затверджено, замовлення переміщено в прийняті');
       loadReceipts();
     }
   }

@@ -3,8 +3,25 @@ import { supabase, Order, Supplier } from '../lib/supabase';
 import { Plus, CreditCard as Edit, Archive, X, ExternalLink, ChevronDown, Layers, ChevronUp, Check, RotateCcw } from 'lucide-react';
 import Returns from './Returns';
 
+type AcceptedOrder = {
+  id: string;
+  receipt_number: string;
+  order_number: string | null;
+  tracking_number: string | null;
+  weight_kg: number;
+  part_price: number;
+  delivery_cost: number;
+  received_pln: number;
+  cash_on_delivery: number;
+  transport_cost_usd: number;
+  payment_type: string | null;
+  accepted_at: string;
+  supplier?: Supplier;
+};
+
 export default function Orders() {
   const [orders, setOrders] = useState<(Order & { supplier: Supplier })[]>([]);
+  const [acceptedOrders, setAcceptedOrders] = useState<AcceptedOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [returnsCount, setReturnsCount] = useState<number>(0);
   const [artTransId, setArtTransId] = useState<string>('');
@@ -72,6 +89,7 @@ export default function Orders() {
 
   useEffect(() => {
     loadOrders();
+    loadAcceptedOrders();
     loadSuppliers();
     loadArtTransId();
     loadReturnsCount();
@@ -171,6 +189,17 @@ export default function Orders() {
 
     if (!error && data) {
       setOrders(data as any);
+    }
+  }
+
+  async function loadAcceptedOrders() {
+    const { data, error } = await supabase
+      .from('accepted_orders')
+      .select('*, supplier:suppliers(name)')
+      .order('accepted_at', { ascending: false });
+
+    if (!error && data) {
+      setAcceptedOrders(data as any);
     }
   }
 
@@ -698,6 +727,7 @@ export default function Orders() {
     'на броні': 'bg-purple-100 text-purple-800',
     'очікується': 'bg-yellow-100 text-yellow-800',
     'прийнято сьогодні': 'bg-green-100 text-green-800',
+    'прийнято': 'bg-green-200 text-green-900',
     'на складі': 'bg-teal-100 text-teal-800',
     'в дорозі': 'bg-orange-100 text-orange-800',
     'в вигрузці': 'bg-cyan-100 text-cyan-800',
@@ -730,6 +760,7 @@ export default function Orders() {
     'на броні': 'На броні',
     'очікується': 'Очікується',
     'прийнято сьогодні': 'Прийнято сьогодні',
+    'прийнято': 'Прийнято',
     'на складі': 'На складі',
     'в дорозі': 'В дорозі',
     'в вигрузці': 'В вигрузці',
@@ -746,6 +777,7 @@ export default function Orders() {
     'на броні',
     'очікується',
     'прийнято сьогодні',
+    'прийнято',
     'на складі',
     'в дорозі',
     'в вигрузці',
@@ -1732,6 +1764,50 @@ export default function Orders() {
           </div>
         </div>
       ) : null}
+
+      {activeTab === 'orders' && acceptedOrders.length > 0 && (
+        <div className="mt-8 bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+          <h3 className="text-xl font-bold mb-4 text-green-800 dark:text-green-300">Прийняті замовлення</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-green-100 dark:bg-green-800/30">
+                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">№ Док</th>
+                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">№ Замовлення</th>
+                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">ТТН</th>
+                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">Поставник</th>
+                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-right text-xs font-semibold text-green-900 dark:text-green-200">Вага (кг)</th>
+                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-right text-xs font-semibold text-green-900 dark:text-green-200">Запчастини</th>
+                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-right text-xs font-semibold text-green-900 dark:text-green-200">Доставка</th>
+                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-right text-xs font-semibold text-green-900 dark:text-green-200">Отримали PLN</th>
+                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-right text-xs font-semibold text-green-900 dark:text-green-200">Наложка</th>
+                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-right text-xs font-semibold text-green-900 dark:text-green-200">Транспорт USD</th>
+                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">Тип оплати</th>
+                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">Дата прийому</th>
+                </tr>
+              </thead>
+              <tbody>
+                {acceptedOrders.map((order) => (
+                  <tr key={order.id} className="hover:bg-green-100 dark:hover:bg-green-800/20 transition">
+                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100 font-semibold">{order.receipt_number}</td>
+                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{order.order_number || '-'}</td>
+                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{order.tracking_number || '-'}</td>
+                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{order.supplier?.name || '-'}</td>
+                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100 text-right">{order.weight_kg.toFixed(2)}</td>
+                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100 text-right">{order.part_price.toFixed(2)}</td>
+                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100 text-right">{order.delivery_cost.toFixed(2)}</td>
+                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100 text-right">{order.received_pln.toFixed(2)}</td>
+                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100 text-right">{order.cash_on_delivery.toFixed(2)}</td>
+                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100 text-right">{order.transport_cost_usd.toFixed(2)}</td>
+                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{order.payment_type || '-'}</td>
+                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{new Date(order.accepted_at).toLocaleDateString('uk-UA')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {activeTab === 'returns' && <Returns />}
 
