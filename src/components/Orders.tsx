@@ -64,9 +64,9 @@ export default function Orders() {
     payment_type: 'не обрано',
     cash_on_delivery: 0,
     client_id: '',
-    received_pln: 0,
+    received_pln: 15,
     transport_cost_usd: 0,
-    weight_kg: 0,
+    weight_kg: 1,
     verified: false
   });
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -89,9 +89,9 @@ export default function Orders() {
     payment_type: 'не обрано',
     cash_on_delivery: 0,
     client_id: '',
-    received_pln: 0,
+    received_pln: 15,
     transport_cost_usd: 0,
-    weight_kg: 0,
+    weight_kg: 1,
     verified: false
   });
 
@@ -699,9 +699,9 @@ export default function Orders() {
       payment_type: 'не обрано',
       cash_on_delivery: 0,
       client_id: '',
-      received_pln: 0,
+      received_pln: 15,
       transport_cost_usd: 0,
-      weight_kg: 0,
+      weight_kg: 1,
       verified: false
     });
   }
@@ -724,9 +724,9 @@ export default function Orders() {
       payment_type: 'не обрано',
       cash_on_delivery: 0,
       client_id: '',
-      received_pln: 0,
+      received_pln: 15,
       transport_cost_usd: 0,
-      weight_kg: 0,
+      weight_kg: 1,
       verified: false
     });
   }
