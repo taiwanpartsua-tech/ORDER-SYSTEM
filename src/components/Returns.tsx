@@ -28,7 +28,7 @@ export default function Returns() {
     cash_on_delivery: 0,
     order_date: new Date().toISOString().split('T')[0],
     return_tracking_to_supplier: '',
-    refund_status: null as string | null,
+    refund_status: '',
     discussion_link: '',
     situation_description: '',
     manager_id: ''
@@ -142,7 +142,7 @@ export default function Returns() {
       cash_on_delivery: 0,
       order_date: new Date().toISOString().split('T')[0],
       return_tracking_to_supplier: '',
-      refund_status: null as string | null,
+      refund_status: '',
       discussion_link: '',
       situation_description: '',
       manager_id: ''
