@@ -62,6 +62,8 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
 
   async function restoreDraft() {
     const savedDraft = localStorage.getItem('activeReceiptDraft');
+    console.log('Відновлення чернетки, savedDraft:', savedDraft);
+
     if (!savedDraft) {
       setShowRestorePrompt(false);
       return;
@@ -69,15 +71,20 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
 
     try {
       const draft = JSON.parse(savedDraft);
+      console.log('Розпарсена чернетка:', draft);
+
       const draftCashOrders = draft.cashOnDeliveryOrders || [];
       const draftPaidOrders = draft.paidOrders || [];
+      console.log('Cash orders:', draftCashOrders.length, 'Paid orders:', draftPaidOrders.length);
 
       const allDraftOrderIds = [
         ...draftCashOrders.map((o: EditableOrder) => o.id),
         ...draftPaidOrders.map((o: EditableOrder) => o.id)
       ];
+      console.log('Order IDs для відновлення:', allDraftOrderIds);
 
       if (allDraftOrderIds.length === 0) {
+        console.log('Немає замовлень для відновлення');
         clearDraft();
         setShowRestorePrompt(false);
         return;
@@ -87,6 +94,8 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
         .from('orders')
         .select('*, supplier:suppliers(*)')
         .in('id', allDraftOrderIds);
+
+      console.log('Завантажені замовлення з БД:', currentOrders, 'помилка:', fetchError);
 
       if (fetchError) {
         console.error('Помилка завантаження замовлень:', fetchError);
@@ -133,6 +142,10 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
         })
         .filter(Boolean) as EditableOrder[];
 
+      console.log('Відновлені cash orders:', restoredCashOrders);
+      console.log('Відновлені paid orders:', restoredPaidOrders);
+      console.log('Receipt numbers:', draft.cashOnDeliveryReceiptNumber, draft.paidReceiptNumber);
+
       setCashOnDeliveryOrders(restoredCashOrders);
       setPaidOrders(restoredPaidOrders);
       setCashOnDeliveryReceiptNumber(draft.cashOnDeliveryReceiptNumber || '');
@@ -141,6 +154,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
       const restoredOrderIds = currentOrders.map(o => o.id);
       setAvailableOrders(prev => prev.filter(order => !restoredOrderIds.includes(order.id)));
 
+      console.log('Чернетка успішно відновлена');
       setShowRestorePrompt(false);
     } catch (error) {
       console.error('Помилка відновлення чернетки:', error);
