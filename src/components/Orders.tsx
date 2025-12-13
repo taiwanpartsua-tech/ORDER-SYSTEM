@@ -51,6 +51,7 @@ export default function Orders() {
   const [isAcceptConfirmOpen, setIsAcceptConfirmOpen] = useState(false);
   const [acceptingOrderId, setAcceptingOrderId] = useState<string | null>(null);
   const [acceptExplanation, setAcceptExplanation] = useState('');
+  const [isAcceptedOrdersModalOpen, setIsAcceptedOrdersModalOpen] = useState(false);
   const [newRowData, setNewRowData] = useState({
     order_number: '',
     supplier_id: '',
@@ -1962,74 +1963,14 @@ export default function Orders() {
       ) : null}
 
       {activeTab === 'orders' && acceptedOrders.length > 0 && (
-        <div className="mt-8 bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
-          <h3 className="text-xl font-bold mb-4 text-green-800 dark:text-green-300">Прийняті замовлення</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-green-100 dark:bg-green-800/30">
-                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">№ Док</th>
-                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">Статус</th>
-                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">Назва</th>
-                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">ID Клієнта</th>
-                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">№ Запчастини</th>
-                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">Посилання</th>
-                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">ТТН</th>
-                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-right text-xs font-semibold text-green-900 dark:text-green-200">Вага (кг)</th>
-                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-right text-xs font-semibold text-green-900 dark:text-green-200">Запчастини</th>
-                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-right text-xs font-semibold text-green-900 dark:text-green-200">Доставка</th>
-                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-right text-xs font-semibold text-green-900 dark:text-green-200">Отримали PLN</th>
-                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-right text-xs font-semibold text-green-900 dark:text-green-200">Наложка</th>
-                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-right text-xs font-semibold text-green-900 dark:text-green-200">Транспорт USD</th>
-                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">Тип оплати</th>
-                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">Дата прийому</th>
-                </tr>
-              </thead>
-              <tbody>
-                {acceptedOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-green-100 dark:hover:bg-green-800/20 transition">
-                    <td
-                      className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100 font-semibold cursor-help"
-                      title={order.explanation || 'Немає пояснення'}
-                    >
-                      {order.receipt_number}
-                    </td>
-                    <td
-                      className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs cursor-pointer hover:bg-green-200 dark:hover:bg-green-700/30 transition"
-                      onClick={(e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        setAcceptedDropdownPosition({ top: rect.bottom, left: rect.left });
-                        setOpenAcceptedDropdown(order.id);
-                      }}
-                    >
-                      <span className={`inline-block px-2 py-1 rounded-full ${statusColors[order.status || 'в роботі на сьогодні']} dark:opacity-90`}>
-                        {statusLabels[order.status || 'в роботі на сьогодні']}
-                      </span>
-                    </td>
-                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{order.title || '-'}</td>
-                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{order.client_id || '-'}</td>
-                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{order.part_number || '-'}</td>
-                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">
-                      {order.link ? (
-                        <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
-                          Посилання
-                        </a>
-                      ) : '-'}
-                    </td>
-                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{order.tracking_number || '-'}</td>
-                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100 text-right">{order.weight_kg.toFixed(2)}</td>
-                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100 text-right">{order.part_price.toFixed(2)}</td>
-                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100 text-right">{order.delivery_cost.toFixed(2)}</td>
-                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100 text-right">{order.received_pln.toFixed(2)}</td>
-                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100 text-right">{order.cash_on_delivery.toFixed(2)}</td>
-                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100 text-right">{order.transport_cost_usd.toFixed(2)}</td>
-                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{order.payment_type || '-'}</td>
-                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{new Date(order.accepted_at).toLocaleDateString('uk-UA')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="mt-4 flex justify-center">
+          <button
+            onClick={() => setIsAcceptedOrdersModalOpen(true)}
+            className="bg-green-600 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 transition font-medium shadow-lg"
+          >
+            <Layers size={20} />
+            Переглянути прийняті замовлення ({acceptedOrders.length})
+          </button>
         </div>
       )}
 
@@ -2136,6 +2077,88 @@ export default function Orders() {
               >
                 Скасувати
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAcceptedOrdersModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000] p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg w-full h-full max-w-[98%] max-h-[98vh] shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-2xl font-bold text-green-800 dark:text-green-300">Прийняті замовлення ({acceptedOrders.length})</h3>
+              <button
+                onClick={() => setIsAcceptedOrdersModalOpen(false)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+              >
+                <X size={24} className="text-gray-600 dark:text-gray-400" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-6">
+              <table className="w-full border-collapse">
+                <thead className="bg-green-100 dark:bg-green-800/30 sticky top-0 z-10">
+                  <tr>
+                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-left text-sm font-semibold text-green-900 dark:text-green-200">№ Док</th>
+                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-left text-sm font-semibold text-green-900 dark:text-green-200">Статус</th>
+                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-left text-sm font-semibold text-green-900 dark:text-green-200">Назва</th>
+                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-left text-sm font-semibold text-green-900 dark:text-green-200">ID Клієнта</th>
+                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-left text-sm font-semibold text-green-900 dark:text-green-200">№ Запчастини</th>
+                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-left text-sm font-semibold text-green-900 dark:text-green-200">Посилання</th>
+                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-left text-sm font-semibold text-green-900 dark:text-green-200">ТТН</th>
+                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-right text-sm font-semibold text-green-900 dark:text-green-200">Вага (кг)</th>
+                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-right text-sm font-semibold text-green-900 dark:text-green-200">Запчастини</th>
+                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-right text-sm font-semibold text-green-900 dark:text-green-200">Доставка</th>
+                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-right text-sm font-semibold text-green-900 dark:text-green-200">Отримали PLN</th>
+                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-right text-sm font-semibold text-green-900 dark:text-green-200">Наложка</th>
+                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-right text-sm font-semibold text-green-900 dark:text-green-200">Транспорт USD</th>
+                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-left text-sm font-semibold text-green-900 dark:text-green-200">Тип оплати</th>
+                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-left text-sm font-semibold text-green-900 dark:text-green-200">Дата прийому</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {acceptedOrders.map((order) => (
+                    <tr key={order.id} className="hover:bg-green-100 dark:hover:bg-green-800/20 transition">
+                      <td
+                        className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100 font-semibold cursor-help"
+                        title={order.explanation || 'Немає пояснення'}
+                      >
+                        {order.receipt_number}
+                      </td>
+                      <td
+                        className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm cursor-pointer hover:bg-green-200 dark:hover:bg-green-700/30 transition"
+                        onClick={(e) => {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setAcceptedDropdownPosition({ top: rect.bottom, left: rect.left });
+                          setOpenAcceptedDropdown(order.id);
+                        }}
+                      >
+                        <span className={`inline-block px-2 py-1 rounded-full ${statusColors[order.status || 'в роботі на сьогодні']} dark:opacity-90`}>
+                          {statusLabels[order.status || 'в роботі на сьогодні']}
+                        </span>
+                      </td>
+                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100">{order.title || '-'}</td>
+                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100">{order.client_id || '-'}</td>
+                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100">{order.part_number || '-'}</td>
+                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100">
+                        {order.link ? (
+                          <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
+                            Посилання
+                          </a>
+                        ) : '-'}
+                      </td>
+                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100">{order.tracking_number || '-'}</td>
+                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100 text-right">{order.weight_kg.toFixed(2)}</td>
+                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100 text-right">{order.part_price.toFixed(2)}</td>
+                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100 text-right">{order.delivery_cost.toFixed(2)}</td>
+                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100 text-right">{order.received_pln.toFixed(2)}</td>
+                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100 text-right">{order.cash_on_delivery.toFixed(2)}</td>
+                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100 text-right">{order.transport_cost_usd.toFixed(2)}</td>
+                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100">{order.payment_type || '-'}</td>
+                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100">{new Date(order.accepted_at).toLocaleDateString('uk-UA')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
