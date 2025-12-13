@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase, Return, Manager } from '../lib/supabase';
 import { Plus, Trash2, ExternalLink, ChevronDown, ChevronUp, Check, X, Edit, RotateCcw } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import { paymentTypeColors, substatusColors, refundStatusColors, formatEmptyValue } from '../utils/themeColors';
 
 export default function Returns() {
   const { showSuccess, showError, confirm } = useToast();
@@ -51,9 +52,9 @@ export default function Returns() {
   ];
 
   const statusColors: Record<string, string> = {
-    'повернення': 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100',
-    'проблемні': 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100',
-    'анульовано': 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
+    'повернення': 'bg-amber-50 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200',
+    'проблемні': 'bg-red-50 text-red-800 dark:bg-red-900/50 dark:text-red-200',
+    'анульовано': 'bg-gray-50 text-gray-800 dark:bg-gray-700/50 dark:text-gray-300'
   };
 
   const refundStatuses = [
@@ -64,33 +65,10 @@ export default function Returns() {
 
   const paymentTypes = ['оплачено', 'побранє', 'самовивіз pl'];
 
-  const paymentTypeColors: Record<string, string> = {
-    'оплачено': 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100',
-    'побранє': 'bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-100',
-    'самовивіз pl': 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
-  };
-
   const paymentTypeLabels: Record<string, string> = {
     'оплачено': 'Оплачено',
     'побранє': 'Побранє',
     'самовивіз pl': 'Самовивіз PL'
-  };
-
-  const substatusColors: Record<string, string> = {
-    'В Арта в хелмі': 'bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100',
-    'В Луцьку': 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100',
-    'В клієнта': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100',
-    'В нас на складі': 'bg-teal-100 text-teal-800 dark:bg-teal-800 dark:text-teal-100',
-    'В дорозі до поляка': 'bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-100',
-    'В дорозі до Пачки': 'bg-cyan-100 text-cyan-800 dark:bg-cyan-800 dark:text-cyan-100',
-    'В пачки': 'bg-lime-100 text-lime-800 dark:bg-lime-800 dark:text-lime-100',
-    'В дорозі до Арта': 'bg-pink-100 text-pink-800 dark:bg-pink-800 dark:text-pink-100'
-  };
-
-  const refundStatusColors: Record<string, string> = {
-    'оплачено поляком': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100',
-    'надіслано реквізити для повернення': 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100',
-    'кошти повернено': 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
   };
 
   useEffect(() => {
@@ -309,7 +287,7 @@ export default function Returns() {
 
     if (isEditing) {
       return (
-        <td className="px-3 py-2">
+        <td className="px-3 py-2 bg-white dark:bg-gray-800">
           <input
             type="text"
             value={editValue}
@@ -317,20 +295,22 @@ export default function Returns() {
             onBlur={saveEdit}
             onKeyDown={handleKeyDown}
             autoFocus
-            className="w-full px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 dark:border-blue-400 dark:focus:ring-blue-400 text-sm"
+            className="w-full px-2 py-1 border border-blue-500 dark:border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           />
         </td>
       );
     }
 
+    const displayValue = formatEmptyValue(value);
+
     return (
       <td
-        className={`px-3 py-2 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/30 transition ${className} text-sm`}
+        className={`px-3 py-2 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition ${className} text-sm bg-white dark:bg-gray-800`}
         onClick={() => startEditing(returnId, field, value)}
         title="Клікніть для редагування"
       >
-        <div className="w-full break-all">
-          {value}
+        <div className="w-full break-all text-gray-900 dark:text-gray-100">
+          {displayValue}
         </div>
       </td>
     );
@@ -341,7 +321,7 @@ export default function Returns() {
 
     if (isEditing) {
       return (
-        <td className="px-3 py-2 text-center">
+        <td className="px-3 py-2 text-center bg-white dark:bg-gray-800">
           <input
             type="text"
             value={editValue}
@@ -349,7 +329,7 @@ export default function Returns() {
             onBlur={saveEdit}
             onKeyDown={handleKeyDown}
             autoFocus
-            className="w-full px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 dark:border-blue-400 dark:focus:ring-blue-400 text-sm"
+            className="w-full px-2 py-1 border border-blue-500 dark:border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             placeholder="https://"
           />
         </td>
@@ -358,7 +338,7 @@ export default function Returns() {
 
     return (
       <td
-        className="px-3 py-2 text-center cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/30 transition"
+        className="px-3 py-2 text-center cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition bg-white dark:bg-gray-800"
         onClick={() => startEditing(returnId, 'link', link)}
         title="Клікніть для редагування посилання"
       >
@@ -373,7 +353,7 @@ export default function Returns() {
             <ExternalLink size={16} />
           </a>
         ) : (
-          <span className="text-gray-300 dark:text-gray-600">
+          <span className="text-gray-400 dark:text-gray-600">
             <ExternalLink size={16} />
           </span>
         )}

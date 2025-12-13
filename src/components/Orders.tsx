@@ -3,6 +3,7 @@ import { supabase, Order, Supplier } from '../lib/supabase';
 import { Plus, CreditCard as Edit, Archive, X, ExternalLink, ChevronDown, Layers, ChevronUp, Check, RotateCcw, Printer, Download } from 'lucide-react';
 import Returns from './Returns';
 import { useToast } from '../contexts/ToastContext';
+import { statusColors, paymentTypeColors, verifiedColors, formatEmptyValue } from '../utils/themeColors';
 
 type AcceptedOrder = {
   id: string;
@@ -580,7 +581,7 @@ export default function Orders() {
 
     if (isEditing && !isAccepted) {
       return (
-        <td className="px-3 py-3 min-h-[48px]">
+        <td className="px-3 py-3 min-h-[48px] bg-white dark:bg-gray-800">
           <input
             ref={inputRef}
             type="text"
@@ -588,7 +589,7 @@ export default function Orders() {
             onChange={(e) => setEditValue(e.target.value)}
             onBlur={saveInlineEdit}
             onKeyDown={handleKeyDown}
-            className="w-full px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full px-2 py-1 border border-blue-500 dark:border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           />
         </td>
       );
@@ -596,15 +597,16 @@ export default function Orders() {
 
     const fontSizeClass = getFontSizeClass(value);
     const isTitle = field === 'title';
+    const displayValue = formatEmptyValue(value);
 
     return (
       <td
-        className={`px-3 py-3 ${!isAccepted ? 'cursor-pointer hover:bg-blue-50' : ''} transition min-h-[48px] ${isTitle ? 'min-w-[200px]' : ''} ${className.replace(/text-(sm|xs|base)/g, '')} ${fontSizeClass}`}
+        className={`px-3 py-3 ${!isAccepted ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} transition min-h-[48px] ${isTitle ? 'min-w-[200px]' : ''} ${className.replace(/text-(sm|xs|base)/g, '')} ${fontSizeClass} bg-white dark:bg-gray-800`}
         onClick={() => !isAccepted && startEditing(orderId, field, value)}
-        title={value}
+        title={displayValue}
       >
-        <div className={`w-full ${isTitle ? 'line-clamp-3 break-words' : 'break-words whitespace-normal'}`}>
-          {value}
+        <div className={`w-full ${isTitle ? 'line-clamp-3 break-words' : 'break-words whitespace-normal'} text-gray-900 dark:text-gray-100`}>
+          {displayValue}
         </div>
       </td>
     );
@@ -633,9 +635,11 @@ export default function Orders() {
     const isOrderAccepted = order.status === 'прийнято';
     const fontSizeClass = getFontSizeClass(trackingValue);
 
+    const displayValue = formatEmptyValue(trackingValue);
+
     return (
       <td
-        className={`px-3 py-3 ${!isAccepted && !isOrderAccepted ? 'cursor-pointer hover:bg-blue-50' : isOrderAccepted ? 'cursor-pointer hover:bg-green-50 hover:text-blue-600 hover:underline' : ''} transition min-h-[48px] text-gray-600 text-center ${fontSizeClass}`}
+        className={`px-3 py-3 ${!isAccepted && !isOrderAccepted ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : isOrderAccepted ? 'cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-blue-600 dark:hover:text-blue-400 hover:underline' : ''} transition min-h-[48px] text-gray-900 dark:text-gray-100 text-center ${fontSizeClass} bg-white dark:bg-gray-800`}
         onClick={() => {
           if (!isAccepted && !isOrderAccepted) {
             startEditing(orderId, 'tracking_pl', trackingValue);
@@ -643,10 +647,10 @@ export default function Orders() {
             openReceiptByOrderId(orderId);
           }
         }}
-        title={isOrderAccepted ? 'Натисніть, щоб відкрити документ прийому' : trackingValue}
+        title={isOrderAccepted ? 'Натисніть, щоб відкрити документ прийому' : displayValue}
       >
         <div className="w-full break-words whitespace-normal">
-          {trackingValue}
+          {displayValue}
         </div>
       </td>
     );
@@ -674,7 +678,7 @@ export default function Orders() {
 
     return (
       <td
-        className={`px-3 py-3 text-center ${!isAccepted ? 'cursor-pointer hover:bg-blue-50' : ''} transition min-h-[48px]`}
+        className={`px-3 py-3 text-center ${!isAccepted ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} transition min-h-[48px] bg-white dark:bg-gray-800`}
         onClick={() => !isAccepted && startEditing(orderId, 'link', link)}
         title={isAccepted ? '' : "Клікніть для редагування посилання"}
       >
@@ -683,13 +687,13 @@ export default function Orders() {
             href={link}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-600 hover:text-blue-800 inline-block"
+            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 inline-block"
             onClick={(e) => e.stopPropagation()}
           >
             <ExternalLink size={16} />
           </a>
         ) : (
-          <span className="text-gray-300">
+          <span className="text-gray-400 dark:text-gray-600">
             <ExternalLink size={16} />
           </span>
         )}
@@ -718,14 +722,16 @@ export default function Orders() {
 
     const fontSizeClass = getFontSizeClass(formatDate(dateValue));
 
+    const displayValue = formatEmptyValue(formatDate(dateValue));
+
     return (
       <td
-        className={`px-3 py-3 ${!isAccepted ? 'cursor-pointer hover:bg-blue-50' : ''} transition min-h-[48px] ${className.replace(/text-(sm|xs|base)/g, '')} ${fontSizeClass}`}
+        className={`px-3 py-3 ${!isAccepted ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} transition min-h-[48px] ${className.replace(/text-(sm|xs|base)/g, '')} ${fontSizeClass} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100`}
         onClick={() => !isAccepted && startEditing(orderId, 'order_date', dateValue)}
         title={isAccepted ? '' : "Клікніть для редагування дати"}
       >
         <div className="w-full break-words whitespace-normal">
-          {formatDate(dateValue)}
+          {displayValue}
         </div>
       </td>
     );
@@ -953,30 +959,6 @@ export default function Orders() {
     setSelectedOrders(new Set());
   }
 
-  const statusColors: Record<string, string> = {
-    'в роботі на сьогодні': 'bg-blue-100 text-blue-800',
-    'на броні': 'bg-purple-100 text-purple-800',
-    'очікується': 'bg-yellow-100 text-yellow-800',
-    'прийнято сьогодні': 'bg-green-100 text-green-800',
-    'прийнято': 'bg-green-200 text-green-900',
-    'на складі': 'bg-teal-100 text-teal-800',
-    'в дорозі': 'bg-orange-100 text-orange-800',
-    'в вигрузці': 'bg-cyan-100 text-cyan-800',
-    'готово до відправки': 'bg-lime-100 text-lime-800',
-    'в активному прийомі': 'bg-indigo-100 text-indigo-800',
-    'на звірці': 'bg-violet-100 text-violet-800',
-    'повернення': 'bg-amber-100 text-amber-800',
-    'проблемні': 'bg-red-100 text-red-800',
-    'анульовано': 'bg-gray-100 text-gray-800'
-  };
-
-  const paymentTypeColors: Record<string, string> = {
-    'не обрано': 'bg-gray-100 text-gray-800',
-    'оплачено': 'bg-green-100 text-green-800',
-    'побранє': 'bg-orange-100 text-orange-800',
-    'самовивіз pl': 'bg-blue-100 text-blue-800',
-    'оплачено по перерахунку': 'bg-teal-100 text-teal-800'
-  };
 
   const paymentTypeLabels: Record<string, string> = {
     'не обрано': 'Не обрано',
@@ -1044,11 +1026,6 @@ export default function Orders() {
       'not_verified': filteredOrders.filter(order => !order.verified)
     };
     return grouped;
-  };
-
-  const verifiedColors: Record<string, string> = {
-    'verified': 'bg-green-100 text-green-800',
-    'not_verified': 'bg-gray-100 text-gray-800'
   };
 
   const verifiedLabels: Record<string, string> = {
@@ -1807,24 +1784,24 @@ export default function Orders() {
                   {renderEditableCell(order.id, 'title', order.title, 'text-gray-900 text-center', isAccepted)}
                   {renderLinkCell(order.id, order.link || '', isAccepted)}
                   {renderTrackingCell(order.id, order, isAccepted)}
-                  {renderEditableCell(order.id, 'part_price', `${formatNumber(order.part_price)} zl`, 'text-gray-900 font-medium text-center', isAccepted)}
-                  {renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-gray-900 text-center', isAccepted)}
-                  <td className="px-3 py-3 text-center text-gray-900 font-bold bg-gray-50 dark:bg-gray-600 min-h-[48px]">
+                  {renderEditableCell(order.id, 'part_price', `${formatNumber(order.part_price)} zl`, 'text-center font-medium', isAccepted)}
+                  {renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-center', isAccepted)}
+                  <td className="px-3 py-3 text-center text-gray-900 dark:text-gray-100 font-medium bg-white dark:bg-gray-800 min-h-[48px]">
                     {formatNumber(order.total_cost)} zl
                   </td>
-                  {renderEditableCell(order.id, 'part_number', order.part_number || '', 'text-gray-600 text-center', isAccepted)}
+                  {renderEditableCell(order.id, 'part_number', order.part_number || '', 'text-center', isAccepted)}
                   {renderPaymentTypeCell(order.id, order.payment_type || 'оплачено', isAccepted)}
-                  {renderEditableCell(order.id, 'cash_on_delivery', `${formatNumber(order.cash_on_delivery)} zl`, 'text-gray-900 text-center', isAccepted)}
-                  {renderDateCell(order.id, order.order_date, 'text-gray-600 text-center', isAccepted)}
-                  {renderEditableCell(order.id, 'received_pln', `${formatNumber(order.received_pln)} zl`, 'text-gray-900 text-center', isAccepted)}
-                  {renderEditableCell(order.id, 'transport_cost_usd', `${formatNumber(order.transport_cost_usd)} $`, 'text-gray-900 text-center', isAccepted)}
-                  {renderEditableCell(order.id, 'weight_kg', `${formatNumber(order.weight_kg)} кг`, 'text-gray-900 text-center', isAccepted)}
+                  {renderEditableCell(order.id, 'cash_on_delivery', `${formatNumber(order.cash_on_delivery)} zl`, 'text-center', isAccepted)}
+                  {renderDateCell(order.id, order.order_date, 'text-center', isAccepted)}
+                  {renderEditableCell(order.id, 'received_pln', `${formatNumber(order.received_pln)} zl`, 'text-center', isAccepted)}
+                  {renderEditableCell(order.id, 'transport_cost_usd', `${formatNumber(order.transport_cost_usd)} $`, 'text-center', isAccepted)}
+                  {renderEditableCell(order.id, 'weight_kg', `${formatNumber(order.weight_kg)} кг`, 'text-center', isAccepted)}
                   <td className="px-3 py-3 min-h-[48px]">
                     <div className="flex gap-2 justify-center">
                       {!isAccepted && (
                         <button
                           onClick={() => openEditModal(order)}
-                          className="px-3 py-2 bg-blue-100 text-blue-800 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
+                          className="px-3 py-2 bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-200 rounded text-xs font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/70 transition flex items-center gap-1"
                         >
                           <Edit size={14} />
                           Ред.
@@ -1833,7 +1810,7 @@ export default function Orders() {
                       {!order.archived && !isAccepted && (
                         <button
                           onClick={() => handleReturn(order)}
-                          className="px-3 py-2 bg-orange-100 text-orange-800 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
+                          className="px-3 py-2 bg-orange-50 text-orange-700 dark:bg-orange-900/50 dark:text-orange-200 rounded text-xs font-semibold hover:bg-orange-100 dark:hover:bg-orange-900/70 transition flex items-center gap-1"
                           title="Створити повернення"
                         >
                           <RotateCcw size={14} />
@@ -1843,7 +1820,7 @@ export default function Orders() {
                       {!isAccepted && (
                         <button
                           onClick={() => handleArchive(order.id)}
-                          className="px-3 py-2 bg-gray-100 text-gray-800 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
+                          className="px-3 py-2 bg-gray-50 text-gray-700 dark:bg-gray-700/50 dark:text-gray-300 rounded text-xs font-semibold hover:bg-gray-100 dark:hover:bg-gray-700/70 transition flex items-center gap-1"
                           title={order.archived ? 'Розархівувати' : 'Архівувати'}
                         >
                           <Archive size={14} />
