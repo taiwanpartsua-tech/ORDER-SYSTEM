@@ -5,7 +5,7 @@ import { useToast } from '../contexts/ToastContext';
 import { paymentTypeColors, substatusColors, refundStatusColors, formatEmptyValue } from '../utils/themeColors';
 
 export default function Returns() {
-  const { showSuccess, showError, confirm } = useToast();
+  const { showSuccess, showError, confirm, showWarning } = useToast();
   const [returns, setReturns] = useState<Return[]>([]);
   const [managers, setManagers] = useState<Manager[]>([]);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -151,6 +151,36 @@ export default function Returns() {
 
   async function saveNewRow() {
     const dataToSubmit: any = { ...newRowData };
+
+    if (!dataToSubmit.title || dataToSubmit.title.trim() === '') {
+      showWarning('Назва є обов\'язковим полем!');
+      return;
+    }
+
+    if (!dataToSubmit.link || dataToSubmit.link.trim() === '') {
+      showWarning('Посилання є обов\'язковим полем!');
+      return;
+    }
+
+    if (!dataToSubmit.part_price || dataToSubmit.part_price <= 0) {
+      showWarning('Вартість запчастини є обов\'язковим полем і повинна бути більше 0!');
+      return;
+    }
+
+    if (!dataToSubmit.part_number || dataToSubmit.part_number.trim() === '') {
+      showWarning('Номер запчастини є обов\'язковим полем!');
+      return;
+    }
+
+    if (!dataToSubmit.payment_type || dataToSubmit.payment_type === 'не обрано') {
+      showWarning('Необхідно обрати тип оплати!');
+      return;
+    }
+
+    if (dataToSubmit.payment_type === 'оплачено' && dataToSubmit.cash_on_delivery > 0) {
+      showWarning('Якщо оплата "Оплачено", наложка повинна дорівнювати 0!');
+      return;
+    }
 
     if (dataToSubmit.client_id === '') {
       delete dataToSubmit.client_id;
@@ -452,7 +482,7 @@ export default function Returns() {
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Підстатус</th>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ID клієнта</th>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Назва</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Посилання</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"><ExternalLink size={16} className="inline-block" /></th>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Трекінг PL</th>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">№ запчастини</th>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Дата</th>
@@ -500,8 +530,8 @@ export default function Returns() {
                         type="text"
                         value={newRowData.title}
                         onChange={(e) => setNewRowData({ ...newRowData, title: e.target.value })}
-                        placeholder="Назва"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
+                        placeholder="Назва *"
+                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
                       />
                     </td>
                     <td className="px-3 py-2">
@@ -509,8 +539,8 @@ export default function Returns() {
                         type="text"
                         value={newRowData.link}
                         onChange={(e) => setNewRowData({ ...newRowData, link: e.target.value })}
-                        placeholder="https://"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
+                        placeholder="Посилання *"
+                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
                       />
                     </td>
                     <td className="px-3 py-2">
@@ -527,8 +557,8 @@ export default function Returns() {
                         type="text"
                         value={newRowData.part_number}
                         onChange={(e) => setNewRowData({ ...newRowData, part_number: e.target.value })}
-                        placeholder="№"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
+                        placeholder="№ *"
+                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
                       />
                     </td>
                     <td className="px-3 py-2">
@@ -562,14 +592,14 @@ export default function Returns() {
                     <td colSpan={10} className="px-3 py-3">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Вартість запчастини (zl)</label>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Вартість запчастини (zl) *</label>
                           <input
                             type="number"
                             step="0.01"
                             value={newRowData.part_price}
                             onChange={(e) => setNewRowData({ ...newRowData, part_price: Number(e.target.value) })}
                             placeholder="0"
-                            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
+                            className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
                           />
                         </div>
                         <div>
