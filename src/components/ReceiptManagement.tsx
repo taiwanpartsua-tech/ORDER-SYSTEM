@@ -64,11 +64,16 @@ type AvailableOrder = {
   order_number: string;
   client_id: string;
   title: string;
+  tracking_pl?: string;
+  part_number?: string;
   payment_type: string;
   order_date: string;
   part_price: number;
   delivery_cost: number;
   total_cost: number;
+  received_pln?: number;
+  cash_on_delivery?: number;
+  transport_cost_usd?: number;
 };
 
 export default function ReceiptManagement() {
@@ -77,6 +82,7 @@ export default function ReceiptManagement() {
   const [orders, setOrders] = useState<{ [receiptId: string]: EditableOrder[] }>({});
   const [showAddOrders, setShowAddOrders] = useState<string | null>(null);
   const [availableOrders, setAvailableOrders] = useState<AvailableOrder[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     loadReceipts();
@@ -156,7 +162,7 @@ export default function ReceiptManagement() {
 
     let query = supabase
       .from('orders')
-      .select('id, order_number, client_id, title, link, tracking_pl, payment_type, order_date, part_price, delivery_cost, total_cost, received_pln, cash_on_delivery, transport_cost_usd')
+      .select('id, order_number, client_id, title, link, tracking_pl, part_number, payment_type, order_date, part_price, delivery_cost, total_cost, received_pln, cash_on_delivery, transport_cost_usd')
       .eq('supplier_id', receipt.supplier_id)
       .not('status', 'in', '("проблемні","анульовано","повернення")');
 
@@ -676,6 +682,17 @@ export default function ReceiptManagement() {
     return new Intl.NumberFormat('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
   }
 
+  const filteredAvailableOrders = availableOrders.filter(order => {
+    if (!searchTerm.trim()) return true;
+    const searchLower = searchTerm.toLowerCase().trim();
+    return (
+      (order.client_id && order.client_id.toLowerCase().includes(searchLower)) ||
+      (order.title && order.title.toLowerCase().includes(searchLower)) ||
+      (order.tracking_pl && order.tracking_pl.toLowerCase().includes(searchLower)) ||
+      (order.part_number && order.part_number.toLowerCase().includes(searchLower))
+    );
+  });
+
   const draftReceipts = receipts.filter(r => r.status === 'draft');
   const approvedReceipts = receipts.filter(r => r.status === 'approved');
 
@@ -702,8 +719,13 @@ export default function ReceiptManagement() {
               <div className="flex gap-2">
                 <button
                   onClick={() => {
-                    setShowAddOrders(showAddOrders === receipt.id ? null : receipt.id);
-                    if (showAddOrders !== receipt.id) loadAvailableOrders(receipt.id);
+                    const isOpening = showAddOrders !== receipt.id;
+                    setShowAddOrders(isOpening ? receipt.id : null);
+                    if (isOpening) {
+                      loadAvailableOrders(receipt.id);
+                    } else {
+                      setSearchTerm('');
+                    }
                   }}
                   className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition flex items-center gap-1"
                 >
@@ -730,8 +752,17 @@ export default function ReceiptManagement() {
           {showAddOrders === receipt.id && (
             <div className="p-4 bg-blue-50 border-b">
               <h4 className="font-medium mb-2">Доступні замовлення для додавання:</h4>
+              <div className="mb-3">
+                <input
+                  type="text"
+                  placeholder="Пошук за ID клієнта, назвою, трекінгом або номером запчастини..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                />
+              </div>
               <div className="overflow-x-auto max-h-96 overflow-y-auto">
-                {availableOrders.length > 0 ? (
+                {filteredAvailableOrders.length > 0 ? (
                   <table className="w-full text-xs bg-white dark:bg-gray-800 rounded table-fixed">
                     <thead className="bg-gray-100 dark:bg-gray-700 sticky top-0">
                       <tr>
@@ -746,7 +777,7 @@ export default function ReceiptManagement() {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {availableOrders.map(order => (
+                      {filteredAvailableOrders.map(order => (
                         <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
                           <td className="px-2 py-2 truncate">{order.title || '-'}</td>
                           <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.part_price)}</td>
@@ -914,8 +945,17 @@ export default function ReceiptManagement() {
           {showAddOrders === receipt.id && (
             <div className="p-4 bg-blue-50 border-b">
               <h4 className="font-medium mb-2">Доступні замовлення для додавання:</h4>
+              <div className="mb-3">
+                <input
+                  type="text"
+                  placeholder="Пошук за ID клієнта, назвою, трекінгом або номером запчастини..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                />
+              </div>
               <div className="overflow-x-auto max-h-96 overflow-y-auto">
-                {availableOrders.length > 0 ? (
+                {filteredAvailableOrders.length > 0 ? (
                   <table className="w-full text-xs bg-white dark:bg-gray-800 rounded table-fixed">
                     <thead className="bg-gray-100 dark:bg-gray-700 sticky top-0">
                       <tr>
@@ -930,7 +970,7 @@ export default function ReceiptManagement() {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {availableOrders.map(order => (
+                      {filteredAvailableOrders.map(order => (
                         <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
                           <td className="px-2 py-2 truncate">{order.title || '-'}</td>
                           <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.part_price)}</td>
