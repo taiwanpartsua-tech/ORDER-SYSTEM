@@ -16,6 +16,7 @@ type AcceptedOrder = {
   transport_cost_usd: number;
   payment_type: string | null;
   accepted_at: string;
+  status?: string;
   title?: string | null;
   client_id?: string | null;
   part_number?: string | null;
@@ -34,8 +35,10 @@ export default function Orders() {
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [openPaymentDropdown, setOpenPaymentDropdown] = useState<string | null>(null);
+  const [openAcceptedDropdown, setOpenAcceptedDropdown] = useState<string | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   const [paymentDropdownPosition, setPaymentDropdownPosition] = useState<{ top: number; left: number } | null>(null);
+  const [acceptedDropdownPosition, setAcceptedDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   const [isGrouped, setIsGrouped] = useState(false);
   const [groupBy, setGroupBy] = useState<'status' | 'payment' | 'verified'>('status');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -71,6 +74,7 @@ export default function Orders() {
   });
   const dropdownRef = useRef<HTMLDivElement>(null);
   const paymentDropdownRef = useRef<HTMLDivElement>(null);
+  const acceptedDropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const selectRef = useRef<HTMLSelectElement>(null);
   const [formData, setFormData] = useState({
@@ -130,6 +134,9 @@ export default function Orders() {
       }
       if (paymentDropdownRef.current && !paymentDropdownRef.current.contains(event.target as Node)) {
         setOpenPaymentDropdown(null);
+      }
+      if (acceptedDropdownRef.current && !acceptedDropdownRef.current.contains(event.target as Node)) {
+        setOpenAcceptedDropdown(null);
       }
     }
 
@@ -203,7 +210,7 @@ export default function Orders() {
   async function loadAcceptedOrders() {
     const { data, error } = await supabase
       .from('accepted_orders')
-      .select('*, supplier:suppliers(name)')
+      .select('*')
       .order('accepted_at', { ascending: false });
 
     if (!error && data) {
@@ -363,6 +370,18 @@ export default function Orders() {
     if (!error) {
       loadOrders();
       setOpenDropdown(null);
+    }
+  }
+
+  async function handleAcceptedStatusChange(acceptedOrderId: string, newStatus: string) {
+    const { error } = await supabase
+      .from('accepted_orders')
+      .update({ status: newStatus })
+      .eq('id', acceptedOrderId);
+
+    if (!error) {
+      loadAcceptedOrders();
+      setOpenAcceptedDropdown(null);
     }
   }
 
@@ -1950,6 +1969,7 @@ export default function Orders() {
               <thead>
                 <tr className="bg-green-100 dark:bg-green-800/30">
                   <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">№ Док</th>
+                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">Статус</th>
                   <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">Назва</th>
                   <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">ID Клієнта</th>
                   <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">№ Запчастини</th>
@@ -1973,6 +1993,18 @@ export default function Orders() {
                       title={order.explanation || 'Немає пояснення'}
                     >
                       {order.receipt_number}
+                    </td>
+                    <td
+                      className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs cursor-pointer hover:bg-green-200 dark:hover:bg-green-700/30 transition"
+                      onClick={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setAcceptedDropdownPosition({ top: rect.bottom, left: rect.left });
+                        setOpenAcceptedDropdown(order.id);
+                      }}
+                    >
+                      <span className={`inline-block px-2 py-1 rounded-full ${statusColors[order.status || 'в роботі на сьогодні']} dark:opacity-90`}>
+                        {statusLabels[order.status || 'в роботі на сьогодні']}
+                      </span>
                     </td>
                     <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{order.title || '-'}</td>
                     <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{order.client_id || '-'}</td>
@@ -2046,6 +2078,30 @@ export default function Orders() {
             >
               <span className={`inline-block w-3 h-3 rounded-full mr-2 ${paymentTypeColors[paymentOption].split(' ')[0]} dark:opacity-80`}></span>
               {paymentTypeLabels[paymentOption]}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {activeTab === 'orders' && openAcceptedDropdown && acceptedDropdownPosition && (
+        <div
+          ref={acceptedDropdownRef}
+          className="fixed z-[9999] w-56 bg-white dark:bg-gray-700 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-600 py-1 max-h-[400px] overflow-y-auto"
+          style={{ top: `${acceptedDropdownPosition.top}px`, left: `${acceptedDropdownPosition.left}px`, maxHeight: `${Math.min(400, window.innerHeight - acceptedDropdownPosition.top - 20)}px` }}
+        >
+          {statuses.map((statusOption) => (
+            <button
+              key={statusOption}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAcceptedStatusChange(openAcceptedDropdown, statusOption);
+              }}
+              className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition text-gray-900 dark:text-gray-100 ${
+                acceptedOrders.find(o => o.id === openAcceptedDropdown)?.status === statusOption ? 'bg-gray-100 dark:bg-gray-600 font-semibold' : ''
+              }`}
+            >
+              <span className={`inline-block w-3 h-3 rounded-full mr-2 ${statusColors[statusOption].split(' ')[0]} dark:opacity-80`}></span>
+              {statusLabels[statusOption]}
             </button>
           ))}
         </div>
