@@ -93,7 +93,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
     const { data } = await supabase
       .from('orders')
       .select('*, supplier:suppliers(*)')
-      .not('status', 'in', '(повернення,проблемні,анульовано,"в активному прийомі")')
+      .not('status', 'in', '(повернення,проблемні,анульовано,"в активному прийомі",прийнято)')
       .order('created_at', { ascending: false });
 
     if (data) {
