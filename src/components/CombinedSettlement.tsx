@@ -751,32 +751,32 @@ export default function CombinedSettlement() {
       </div>
 
       <div className="grid grid-cols-3 gap-3 mb-3">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-lg p-3 border border-blue-200 dark:border-blue-700">
-          <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">Прийом і побраня (PLN)</div>
-          <div className={`text-xl font-bold ${balanceReceiptPln > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-green-600 dark:text-green-400'}`}>
+        <div className="bg-gradient-to-br from-blue-500 to-blue-700 dark:from-blue-600 dark:to-blue-800 rounded-lg p-3 border border-blue-400 dark:border-blue-500 shadow-lg">
+          <div className="text-xs font-medium text-blue-100 dark:text-blue-200 mb-1">Прийом і побраня (PLN)</div>
+          <div className={`text-xl font-bold ${balanceReceiptPln > 0 ? 'text-rose-200 dark:text-rose-300' : 'text-green-200 dark:text-green-300'}`}>
             {formatNumber(balanceReceiptPln)} zł
           </div>
-          <div className="text-[10px] text-blue-600 dark:text-blue-400 mt-0.5">
+          <div className="text-[10px] text-blue-100 dark:text-blue-200 mt-0.5">
             {balanceReceiptPln > 0 ? 'до сплати' : 'закрито'}
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 rounded-lg p-3 border border-green-200 dark:border-green-700">
-          <div className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">Перевезення (USD)</div>
-          <div className={`text-xl font-bold ${balanceTransportUsd > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-green-600 dark:text-green-400'}`}>
+        <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 dark:from-emerald-600 dark:to-emerald-800 rounded-lg p-3 border border-emerald-400 dark:border-emerald-500 shadow-lg">
+          <div className="text-xs font-medium text-emerald-100 dark:text-emerald-200 mb-1">Перевезення (USD)</div>
+          <div className={`text-xl font-bold ${balanceTransportUsd > 0 ? 'text-rose-200 dark:text-rose-300' : 'text-green-200 dark:text-green-300'}`}>
             {formatNumber(balanceTransportUsd)} $
           </div>
-          <div className="text-[10px] text-green-600 dark:text-green-400 mt-0.5">
+          <div className="text-[10px] text-emerald-100 dark:text-emerald-200 mt-0.5">
             {balanceTransportUsd > 0 ? 'до сплати' : 'закрито'}
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-900/30 dark:to-yellow-900/30 rounded-lg p-3 border border-orange-200 dark:border-orange-700">
-          <div className="text-xs font-medium bg-gradient-to-r from-orange-600 to-yellow-600 dark:from-orange-400 dark:to-yellow-400 bg-clip-text text-transparent mb-1 font-semibold">Картковий баланс (PLN)</div>
-          <div className={`text-xl font-bold ${balanceCardPln > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-green-600 dark:text-green-400'}`}>
+        <div className="bg-gradient-to-br from-amber-500 to-orange-600 dark:from-amber-600 dark:to-orange-700 rounded-lg p-3 border border-amber-400 dark:border-orange-500 shadow-lg">
+          <div className="text-xs font-medium text-white dark:text-amber-100 mb-1 font-semibold">Картковий баланс (PLN)</div>
+          <div className={`text-xl font-bold ${balanceCardPln > 0 ? 'text-rose-200 dark:text-rose-300' : 'text-green-200 dark:text-green-300'}`}>
             {formatNumber(balanceCardPln)} zł
           </div>
-          <div className="text-[10px] text-orange-600 dark:text-orange-400 mt-0.5">
+          <div className="text-[10px] text-white dark:text-amber-100 mt-0.5">
             {balanceCardPln > 0 ? 'до сплати' : 'закрито'}
           </div>
         </div>
