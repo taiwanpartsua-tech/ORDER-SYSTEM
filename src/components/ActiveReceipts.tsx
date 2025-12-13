@@ -23,6 +23,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
   const [availableOrders, setAvailableOrders] = useState<OrderWithSupplier[]>([]);
   const [cashOnDeliveryOrders, setCashOnDeliveryOrders] = useState<EditableOrder[]>([]);
   const [paidOrders, setPaidOrders] = useState<EditableOrder[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [cashOnDeliveryReceiptNumber, setCashOnDeliveryReceiptNumber] = useState<string>('');
   const [paidReceiptNumber, setPaidReceiptNumber] = useState<string>('');
@@ -109,8 +110,41 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
     return 'paid';
   }
 
-  const availableCashOnDeliveryOrders = availableOrders.filter(order => getOrderGroup(order) === 'cash_on_delivery');
-  const availablePaidOrders = availableOrders.filter(order => getOrderGroup(order) === 'paid');
+  const filteredAvailableOrders = availableOrders.filter(order => {
+    if (!searchTerm.trim()) return true;
+    const searchLower = searchTerm.toLowerCase().trim();
+    return (
+      (order.client_id && order.client_id.toLowerCase().includes(searchLower)) ||
+      (order.title && order.title.toLowerCase().includes(searchLower)) ||
+      (order.tracking_pl && order.tracking_pl.toLowerCase().includes(searchLower)) ||
+      (order.part_number && order.part_number.toLowerCase().includes(searchLower))
+    );
+  });
+
+  const availableCashOnDeliveryOrders = filteredAvailableOrders.filter(order => getOrderGroup(order) === 'cash_on_delivery');
+  const availablePaidOrders = filteredAvailableOrders.filter(order => getOrderGroup(order) === 'paid');
+
+  const filteredCashOnDeliveryOrders = cashOnDeliveryOrders.filter(order => {
+    if (!searchTerm.trim()) return true;
+    const searchLower = searchTerm.toLowerCase().trim();
+    return (
+      (order.client_id && order.client_id.toLowerCase().includes(searchLower)) ||
+      (order.title && order.title.toLowerCase().includes(searchLower)) ||
+      (order.tracking_pl && order.tracking_pl.toLowerCase().includes(searchLower)) ||
+      (order.part_number && order.part_number.toLowerCase().includes(searchLower))
+    );
+  });
+
+  const filteredPaidOrders = paidOrders.filter(order => {
+    if (!searchTerm.trim()) return true;
+    const searchLower = searchTerm.toLowerCase().trim();
+    return (
+      (order.client_id && order.client_id.toLowerCase().includes(searchLower)) ||
+      (order.title && order.title.toLowerCase().includes(searchLower)) ||
+      (order.tracking_pl && order.tracking_pl.toLowerCase().includes(searchLower)) ||
+      (order.part_number && order.part_number.toLowerCase().includes(searchLower))
+    );
+  });
 
   async function moveToActiveReceipt(order: OrderWithSupplier, group: PaymentGroup) {
     const editableOrder: EditableOrder = {
@@ -353,6 +387,15 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
 
   return (
     <div className="h-full flex flex-col p-4 max-w-[98%] mx-auto relative">
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Пошук за ID клієнта, назвою, трекінгом або номером запчастини..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+        />
+      </div>
       <div className="grid gap-4 flex-1 overflow-hidden min-h-0" style={{ gridTemplateColumns: '380px 1fr' }}>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow flex flex-col overflow-hidden">
           <div className="p-4 border-b flex-shrink-0 flex justify-between items-center">
@@ -477,7 +520,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {cashOnDeliveryOrders.map((order) => (
+                    {filteredCashOnDeliveryOrders.map((order) => (
                       <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
                         <td className="px-2 py-2 text-gray-600 dark:text-gray-300 max-w-[150px] truncate">{order.title || '-'}</td>
                         <td className="px-2 py-2">
@@ -593,7 +636,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {paidOrders.map((order) => (
+                    {filteredPaidOrders.map((order) => (
                       <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
                         <td className="px-2 py-2 text-gray-600 dark:text-gray-300 max-w-[150px] truncate">{order.title || '-'}</td>
                         <td className="px-2 py-2">

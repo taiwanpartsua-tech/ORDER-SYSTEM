@@ -55,6 +55,7 @@ export default function Orders() {
   const [isAcceptedOrdersModalOpen, setIsAcceptedOrdersModalOpen] = useState(false);
   const [selectedReceiptNumber, setSelectedReceiptNumber] = useState<string | null>(null);
   const [receiptDetails, setReceiptDetails] = useState<AcceptedOrder[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [newRowData, setNewRowData] = useState({
     order_number: '',
     supplier_id: '',
@@ -1062,16 +1063,28 @@ export default function Orders() {
       return false;
     }
 
+    let matchesView = false;
     if (activeViewTab === 'active') {
-      return !order.archived && order.status !== 'анульовано' && order.status !== 'прийнято';
+      matchesView = !order.archived && order.status !== 'анульовано' && order.status !== 'прийнято';
     } else if (activeViewTab === 'cancelled') {
-      return order.status === 'анульовано';
+      matchesView = order.status === 'анульовано';
     } else if (activeViewTab === 'archived') {
-      return order.archived === true;
+      matchesView = order.archived === true;
     } else if (activeViewTab === 'accepted') {
-      return order.status === 'прийнято';
+      matchesView = order.status === 'прийнято';
     }
-    return false;
+
+    if (!matchesView) return false;
+
+    if (!searchTerm.trim()) return true;
+
+    const searchLower = searchTerm.toLowerCase().trim();
+    return (
+      (order.client_id && order.client_id.toLowerCase().includes(searchLower)) ||
+      (order.title && order.title.toLowerCase().includes(searchLower)) ||
+      (order.tracking_pl && order.tracking_pl.toLowerCase().includes(searchLower)) ||
+      (order.part_number && order.part_number.toLowerCase().includes(searchLower))
+    );
   });
 
   return (
@@ -1141,48 +1154,59 @@ export default function Orders() {
       </div>
 
       {activeTab === 'orders' && (
-        <div className="flex gap-2 mb-4 bg-gray-50 dark:bg-gray-800 p-1 rounded-lg w-fit">
-          <button
-            onClick={() => setActiveViewTab('active')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-              activeViewTab === 'active'
-                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow dark:shadow-md'
-                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
-            }`}
-          >
-            Активні ({orders.filter(o => !o.archived && o.status !== 'анульовано' && o.status !== 'прийнято').length})
-          </button>
-          <button
-            onClick={() => setActiveViewTab('accepted')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-              activeViewTab === 'accepted'
-                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow dark:shadow-md'
-                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
-            }`}
-          >
-            Прийняті ({orders.filter(o => o.status === 'прийнято').length})
-          </button>
-          <button
-            onClick={() => setActiveViewTab('cancelled')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-              activeViewTab === 'cancelled'
-                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow dark:shadow-md'
-                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
-            }`}
-          >
-            Анульовані ({orders.filter(o => o.status === 'анульовано').length})
-          </button>
-          <button
-            onClick={() => setActiveViewTab('archived')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-              activeViewTab === 'archived'
-                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow dark:shadow-md'
-                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
-            }`}
-          >
-            Архів ({orders.filter(o => o.archived === true).length})
-          </button>
-        </div>
+        <>
+          <div className="flex gap-2 mb-4 bg-gray-50 dark:bg-gray-800 p-1 rounded-lg w-fit">
+            <button
+              onClick={() => setActiveViewTab('active')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+                activeViewTab === 'active'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow dark:shadow-md'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+              }`}
+            >
+              Активні ({orders.filter(o => !o.archived && o.status !== 'анульовано' && o.status !== 'прийнято').length})
+            </button>
+            <button
+              onClick={() => setActiveViewTab('accepted')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+                activeViewTab === 'accepted'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow dark:shadow-md'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+              }`}
+            >
+              Прийняті ({orders.filter(o => o.status === 'прийнято').length})
+            </button>
+            <button
+              onClick={() => setActiveViewTab('cancelled')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+                activeViewTab === 'cancelled'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow dark:shadow-md'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+              }`}
+            >
+              Анульовані ({orders.filter(o => o.status === 'анульовано').length})
+            </button>
+            <button
+              onClick={() => setActiveViewTab('archived')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+                activeViewTab === 'archived'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow dark:shadow-md'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+              }`}
+            >
+              Архів ({orders.filter(o => o.archived === true).length})
+            </button>
+          </div>
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Пошук за ID клієнта, назвою, трекінгом або номером запчастини..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+            />
+          </div>
+        </>
       )}
 
       {activeTab === 'orders' && isModalOpen && (
