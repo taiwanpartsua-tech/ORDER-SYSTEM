@@ -1042,22 +1042,22 @@ export default function CombinedSettlement() {
                 <div className="grid grid-cols-2 gap-4 text-xs">
                   <div>
                     <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Нарахування:</div>
-                    <div className="flex justify-between">
+                    <div className="flex gap-1.5">
                       <span className="text-gray-600 dark:text-gray-400">Прийом:</span>
                       <span className="font-bold text-rose-700 dark:text-rose-400">+{formatNumber(cashSummary.totalDebitPln)} zł</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex gap-1.5">
                       <span className="text-gray-600 dark:text-gray-400">Перевезення:</span>
                       <span className="font-bold text-rose-700 dark:text-rose-400">+{formatNumber(cashSummary.totalDebitUsd)} $</span>
                     </div>
                   </div>
                   <div>
                     <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Платежі:</div>
-                    <div className="flex justify-between">
+                    <div className="flex gap-1.5">
                       <span className="text-gray-600 dark:text-gray-400">Прийом:</span>
                       <span className="font-bold text-green-600 dark:text-green-400">-{formatNumber(cashSummary.totalCreditPln)} zł</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex gap-1.5">
                       <span className="text-gray-600 dark:text-gray-400">Перевезення:</span>
                       <span className="font-bold text-green-600 dark:text-green-400">-{formatNumber(cashSummary.totalCreditUsd)} $</span>
                     </div>
@@ -1067,16 +1067,16 @@ export default function CombinedSettlement() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 overflow-auto">
+          <div className="flex flex-col gap-3 overflow-hidden">
             {sentForSettlementCashReceipts.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 overflow-hidden">
+              <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 overflow-hidden flex flex-col">
                 <h3 className="text-sm font-semibold px-3 py-2 text-gray-800 dark:text-gray-100 border-b dark:border-gray-700 flex items-center gap-1.5">
                   На розрахунок
                   <span className="px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded text-xs font-bold">
                     {sentForSettlementCashReceipts.length}
                   </span>
                 </h3>
-                <div className="p-3 space-y-2 max-h-64 overflow-auto">
+                <div className="flex-1 p-3 space-y-2 overflow-auto">
                   {sentForSettlementCashReceipts.map(receipt => {
                     const receiptCashPln = (receipt.receipt_cost_pln || 0) + (receipt.cash_on_delivery_pln || 0);
                     const transportUsd = receipt.transport_cost_usd || 0;
@@ -1125,14 +1125,14 @@ export default function CombinedSettlement() {
             )}
 
             {settledCashReceipts.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 overflow-hidden">
+              <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 overflow-hidden flex flex-col">
                 <h3 className="text-sm font-semibold px-3 py-2 text-gray-800 dark:text-gray-100 border-b dark:border-gray-700 flex items-center gap-1.5">
                   Розраховані
                   <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded text-xs font-bold">
                     {settledCashReceipts.length}
                   </span>
                 </h3>
-                <div className="p-3 space-y-2 max-h-64 overflow-auto">
+                <div className="flex-1 p-3 space-y-2 overflow-auto">
                   {settledCashReceipts.map(receipt => {
                     const receiptCashPln = (receipt.receipt_cost_pln || 0) + (receipt.cash_on_delivery_pln || 0);
                     const transportUsd = receipt.transport_cost_usd || 0;
@@ -1247,14 +1247,14 @@ export default function CombinedSettlement() {
                 <div className="grid grid-cols-2 gap-4 text-xs">
                   <div>
                     <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Нарахування:</div>
-                    <div className="flex justify-between">
+                    <div className="flex gap-1.5">
                       <span className="text-gray-600 dark:text-gray-400">Загалом:</span>
                       <span className="font-bold text-rose-700 dark:text-rose-400">+{formatNumber(cardSummary.totalCharge)} zł</span>
                     </div>
                   </div>
                   <div>
                     <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Платежі:</div>
-                    <div className="flex justify-between">
+                    <div className="flex gap-1.5">
                       <span className="text-gray-600 dark:text-gray-400">Загалом:</span>
                       <span className="font-bold text-green-600 dark:text-green-400">-{formatNumber(cardSummary.totalPayment)} zł</span>
                     </div>
@@ -1264,16 +1264,16 @@ export default function CombinedSettlement() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 overflow-auto">
+          <div className="flex flex-col gap-3 overflow-hidden">
             {sentForSettlementCardReceipts.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 overflow-hidden">
+              <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 overflow-hidden flex flex-col">
                 <h3 className="text-sm font-semibold px-3 py-2 text-gray-800 dark:text-gray-100 border-b dark:border-gray-700 flex items-center gap-1.5">
                   На розрахунок
                   <span className="px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded text-xs font-bold">
                     {sentForSettlementCardReceipts.length}
                   </span>
                 </h3>
-                <div className="p-3 space-y-2 max-h-64 overflow-auto">
+                <div className="flex-1 p-3 space-y-2 overflow-auto">
                   {sentForSettlementCardReceipts.map(receipt => {
                     const orders = receiptOrders[receipt.id] || [];
                     const paidOrders = orders.filter(o => o.verified && o.payment_type === 'оплачено');
@@ -1317,14 +1317,14 @@ export default function CombinedSettlement() {
             )}
 
             {settledCardReceipts.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 overflow-hidden">
+              <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 overflow-hidden flex flex-col">
                 <h3 className="text-sm font-semibold px-3 py-2 text-gray-800 dark:text-gray-100 border-b dark:border-gray-700 flex items-center gap-1.5">
                   Розраховані
                   <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded text-xs font-bold">
                     {settledCardReceipts.length}
                   </span>
                 </h3>
-                <div className="p-3 space-y-2 max-h-64 overflow-auto">
+                <div className="flex-1 p-3 space-y-2 overflow-auto">
                   {settledCardReceipts.map(receipt => {
                     const orders = receiptOrders[receipt.id] || [];
                     const paidOrders = orders.filter(o => o.verified && o.payment_type === 'оплачено');
