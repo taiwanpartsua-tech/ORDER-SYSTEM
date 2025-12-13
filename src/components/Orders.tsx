@@ -20,6 +20,7 @@ type AcceptedOrder = {
   client_id?: string | null;
   part_number?: string | null;
   link?: string | null;
+  explanation?: string | null;
   supplier?: Supplier;
 };
 
@@ -44,6 +45,9 @@ export default function Orders() {
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<'orders' | 'returns'>('orders');
   const [activeViewTab, setActiveViewTab] = useState<'active' | 'archived' | 'cancelled' | 'accepted'>('active');
+  const [isAcceptConfirmOpen, setIsAcceptConfirmOpen] = useState(false);
+  const [acceptingOrderId, setAcceptingOrderId] = useState<string | null>(null);
+  const [acceptExplanation, setAcceptExplanation] = useState('');
   const [newRowData, setNewRowData] = useState({
     order_number: '',
     supplier_id: '',
@@ -302,39 +306,62 @@ export default function Orders() {
   }
 
   async function handleStatusChange(orderId: string, newStatus: string) {
+    if (newStatus === 'прийнято') {
+      setAcceptingOrderId(orderId);
+      setIsAcceptConfirmOpen(true);
+      setOpenDropdown(null);
+      return;
+    }
+
     const { error } = await supabase
       .from('orders')
       .update({ status: newStatus })
       .eq('id', orderId);
 
     if (!error) {
-      if (newStatus === 'прийнято') {
-        const order = orders.find(o => o.id === orderId);
-        if (order) {
-          await supabase.from('accepted_orders').insert({
-            order_id: orderId,
-            receipt_number: 'прийнято без документу',
-            order_number: order.order_number,
-            tracking_number: order.tracking_pl,
-            supplier_id: order.supplier_id,
-            weight_kg: order.weight_kg || 0,
-            part_price: order.part_price || 0,
-            delivery_cost: order.delivery_cost || 0,
-            received_pln: order.received_pln || 0,
-            cash_on_delivery: order.cash_on_delivery || 0,
-            transport_cost_usd: order.transport_cost_usd || 0,
-            payment_type: order.payment_type,
-            title: order.title,
-            client_id: order.client_id,
-            part_number: order.part_number,
-            link: order.link
-          });
-          loadAcceptedOrders();
-        }
-      }
       loadOrders();
       setOpenDropdown(null);
     }
+  }
+
+  async function confirmAcceptOrder() {
+    if (!acceptingOrderId) return;
+
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'прийнято' })
+      .eq('id', acceptingOrderId);
+
+    if (!error) {
+      const order = orders.find(o => o.id === acceptingOrderId);
+      if (order) {
+        await supabase.from('accepted_orders').insert({
+          order_id: acceptingOrderId,
+          receipt_number: 'прийнято без документу',
+          order_number: order.order_number,
+          tracking_number: order.tracking_pl,
+          supplier_id: order.supplier_id,
+          weight_kg: order.weight_kg || 0,
+          part_price: order.part_price || 0,
+          delivery_cost: order.delivery_cost || 0,
+          received_pln: order.received_pln || 0,
+          cash_on_delivery: order.cash_on_delivery || 0,
+          transport_cost_usd: order.transport_cost_usd || 0,
+          payment_type: order.payment_type,
+          title: order.title,
+          client_id: order.client_id,
+          part_number: order.part_number,
+          link: order.link,
+          explanation: acceptExplanation || null
+        });
+        loadAcceptedOrders();
+      }
+      loadOrders();
+    }
+
+    setIsAcceptConfirmOpen(false);
+    setAcceptingOrderId(null);
+    setAcceptExplanation('');
   }
 
   async function handlePaymentTypeChange(orderId: string, newPaymentType: string) {
@@ -1855,7 +1882,12 @@ export default function Orders() {
               <tbody>
                 {acceptedOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-green-100 dark:hover:bg-green-800/20 transition">
-                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100 font-semibold">{order.receipt_number}</td>
+                    <td
+                      className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100 font-semibold cursor-help"
+                      title={order.explanation || 'Немає пояснення'}
+                    >
+                      {order.receipt_number}
+                    </td>
                     <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{order.title || '-'}</td>
                     <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{order.client_id || '-'}</td>
                     <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{order.part_number || '-'}</td>
@@ -1930,6 +1962,40 @@ export default function Orders() {
               {paymentTypeLabels[paymentOption]}
             </button>
           ))}
+        </div>
+      )}
+
+      {isAcceptConfirmOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000]">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
+            <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">Підтвердження прийому</h3>
+            <p className="mb-4 text-gray-700 dark:text-gray-300">Ви впевнені в цій операції?</p>
+            <p className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Пояснення (чому прийом поза документом):</p>
+            <textarea
+              value={acceptExplanation}
+              onChange={(e) => setAcceptExplanation(e.target.value)}
+              placeholder="Введіть пояснення..."
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md mb-4 min-h-[100px] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={confirmAcceptOrder}
+                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 transition font-semibold"
+              >
+                Підтвердити
+              </button>
+              <button
+                onClick={() => {
+                  setIsAcceptConfirmOpen(false);
+                  setAcceptingOrderId(null);
+                  setAcceptExplanation('');
+                }}
+                className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-4 py-2 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition font-semibold"
+              >
+                Скасувати
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
