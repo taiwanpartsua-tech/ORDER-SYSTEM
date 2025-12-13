@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Send, Check, ChevronDown, ChevronRight, Plus, X, FileText } from 'lucide-react';
+import { Send, Check, ChevronDown, ChevronRight, Plus, X, FileText, ExternalLink } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 
 type Receipt = {
@@ -909,7 +909,7 @@ export default function ReceiptManagement() {
                           step="0.001"
                           value={order.editableWeight}
                           onChange={(e) => updateOrderField(receipt.id, order.id, 'editableWeight', parseFloat(e.target.value) || 0)}
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isFieldChanged(order, 'editableWeight') ? 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-400 dark:border-yellow-500' : 'border-gray-300 dark:border-gray-600'}`}
+                          className={`w-20 px-1 py-1 border rounded text-right tabular-nums bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isFieldChanged(order, 'editableWeight') ? 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-400 dark:border-yellow-500' : 'border-gray-300 dark:border-gray-600'}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -918,7 +918,7 @@ export default function ReceiptManagement() {
                           step="0.01"
                           value={order.editableParts}
                           onChange={(e) => updateOrderField(receipt.id, order.id, 'editableParts', parseFloat(e.target.value) || 0)}
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isFieldChanged(order, 'editableParts') ? 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-400 dark:border-yellow-500' : 'border-gray-300 dark:border-gray-600'}`}
+                          className={`w-20 px-1 py-1 border rounded text-right tabular-nums bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isFieldChanged(order, 'editableParts') ? 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-400 dark:border-yellow-500' : 'border-gray-300 dark:border-gray-600'}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -927,7 +927,7 @@ export default function ReceiptManagement() {
                           step="0.01"
                           value={order.editableDelivery}
                           onChange={(e) => updateOrderField(receipt.id, order.id, 'editableDelivery', parseFloat(e.target.value) || 0)}
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isFieldChanged(order, 'editableDelivery') ? 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-400 dark:border-yellow-500' : 'border-gray-300 dark:border-gray-600'}`}
+                          className={`w-20 px-1 py-1 border rounded text-right tabular-nums bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isFieldChanged(order, 'editableDelivery') ? 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-400 dark:border-yellow-500' : 'border-gray-300 dark:border-gray-600'}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -936,7 +936,7 @@ export default function ReceiptManagement() {
                           step="0.01"
                           value={order.editableReceipt}
                           onChange={(e) => updateOrderField(receipt.id, order.id, 'editableReceipt', parseFloat(e.target.value) || 0)}
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isFieldChanged(order, 'editableReceipt') ? 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-400 dark:border-yellow-500' : 'border-gray-300 dark:border-gray-600'}`}
+                          className={`w-20 px-1 py-1 border rounded text-right tabular-nums bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isFieldChanged(order, 'editableReceipt') ? 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-400 dark:border-yellow-500' : 'border-gray-300 dark:border-gray-600'}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -945,7 +945,7 @@ export default function ReceiptManagement() {
                           step="0.01"
                           value={order.editableCash}
                           onChange={(e) => updateOrderField(receipt.id, order.id, 'editableCash', parseFloat(e.target.value) || 0)}
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
+                          className={`w-20 px-1 py-1 border rounded text-right tabular-nums bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                             order.payment_type?.toLowerCase().includes('оплачено') && order.editableCash !== 0
                               ? 'border-red-500 bg-red-50 dark:bg-red-900/30 dark:border-red-400'
                               : isFieldChanged(order, 'editableCash')
@@ -960,12 +960,12 @@ export default function ReceiptManagement() {
                           step="0.01"
                           value={order.editableTransport}
                           onChange={(e) => updateOrderField(receipt.id, order.id, 'editableTransport', parseFloat(e.target.value) || 0)}
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isFieldChanged(order, 'editableTransport') ? 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-400 dark:border-yellow-500' : 'border-gray-300 dark:border-gray-600'}`}
+                          className={`w-20 px-1 py-1 border rounded text-right tabular-nums bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isFieldChanged(order, 'editableTransport') ? 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-400 dark:border-yellow-500' : 'border-gray-300 dark:border-gray-600'}`}
                         />
                       </td>
                       <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.title || '***'}</td>
-                      <td className="px-2 py-2">
-                        {order.link ? <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">Посилання</a> : <span className="text-gray-900 dark:text-gray-100">***</span>}
+                      <td className="px-2 py-2 text-center">
+                        {order.link ? <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 inline-flex"><ExternalLink size={16} /></a> : <span className="text-gray-900 dark:text-gray-100">***</span>}
                       </td>
                       <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.tracking_pl || '***'}</td>
                       <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.payment_type || '***'}</td>
@@ -1118,7 +1118,7 @@ export default function ReceiptManagement() {
                           step="0.001"
                           value={order.editableWeight}
                           disabled
-                          className="w-full px-1 py-1 border border-gray-300 dark:border-gray-600 rounded text-right tabular-nums bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 cursor-not-allowed"
+                          className="w-20 px-1 py-1 border border-gray-300 dark:border-gray-600 rounded text-right tabular-nums bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 cursor-not-allowed"
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -1127,7 +1127,7 @@ export default function ReceiptManagement() {
                           step="0.01"
                           value={order.editableParts}
                           disabled
-                          className="w-full px-1 py-1 border border-gray-300 dark:border-gray-600 rounded text-right tabular-nums bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 cursor-not-allowed"
+                          className="w-20 px-1 py-1 border border-gray-300 dark:border-gray-600 rounded text-right tabular-nums bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 cursor-not-allowed"
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -1136,7 +1136,7 @@ export default function ReceiptManagement() {
                           step="0.01"
                           value={order.editableDelivery}
                           disabled
-                          className="w-full px-1 py-1 border border-gray-300 dark:border-gray-600 rounded text-right tabular-nums bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 cursor-not-allowed"
+                          className="w-20 px-1 py-1 border border-gray-300 dark:border-gray-600 rounded text-right tabular-nums bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 cursor-not-allowed"
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -1145,7 +1145,7 @@ export default function ReceiptManagement() {
                           step="0.01"
                           value={order.editableReceipt}
                           disabled
-                          className="w-full px-1 py-1 border border-gray-300 dark:border-gray-600 rounded text-right tabular-nums bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 cursor-not-allowed"
+                          className="w-20 px-1 py-1 border border-gray-300 dark:border-gray-600 rounded text-right tabular-nums bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 cursor-not-allowed"
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -1154,7 +1154,7 @@ export default function ReceiptManagement() {
                           step="0.01"
                           value={order.editableCash}
                           disabled
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums cursor-not-allowed text-gray-500 dark:text-gray-300 ${
+                          className={`w-20 px-1 py-1 border rounded text-right tabular-nums cursor-not-allowed text-gray-500 dark:text-gray-300 ${
                             order.payment_type?.toLowerCase().includes('оплачено') && order.editableCash !== 0
                               ? 'border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/30'
                               : 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-600'
@@ -1167,12 +1167,12 @@ export default function ReceiptManagement() {
                           step="0.01"
                           value={order.editableTransport}
                           disabled
-                          className="w-full px-1 py-1 border border-gray-300 dark:border-gray-600 rounded text-right tabular-nums bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 cursor-not-allowed"
+                          className="w-20 px-1 py-1 border border-gray-300 dark:border-gray-600 rounded text-right tabular-nums bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 cursor-not-allowed"
                         />
                       </td>
                       <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.title || '***'}</td>
-                      <td className="px-2 py-2">
-                        {order.link ? <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">Посилання</a> : <span className="text-gray-900 dark:text-gray-100">***</span>}
+                      <td className="px-2 py-2 text-center">
+                        {order.link ? <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 inline-flex"><ExternalLink size={16} /></a> : <span className="text-gray-900 dark:text-gray-100">***</span>}
                       </td>
                       <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.tracking_pl || '***'}</td>
                       <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.payment_type || '***'}</td>
