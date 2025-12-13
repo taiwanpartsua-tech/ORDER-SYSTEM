@@ -770,52 +770,6 @@ export default function CombinedSettlement() {
     <div className="h-full flex flex-col p-2 max-w-full overflow-hidden">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Взаєморозрахунок</h2>
-        <div className="flex gap-2">
-          <div className="bg-white dark:bg-gray-800 rounded border dark:border-gray-700">
-            <div className="flex">
-              <button
-                onClick={() => setSettlementType('cash')}
-                className={`px-3 py-1.5 text-sm font-medium transition rounded-l ${
-                  settlementType === 'cash'
-                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                }`}
-              >
-                Готівка
-              </button>
-              <button
-                onClick={() => setSettlementType('card')}
-                className={`px-3 py-1.5 text-sm font-medium transition rounded-r ${
-                  settlementType === 'card'
-                    ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                }`}
-              >
-                Карта
-              </button>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              setShowChargeForm(!showChargeForm);
-              setShowPaymentForm(false);
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-rose-700 text-white rounded hover:bg-rose-800 transition"
-          >
-            <TrendingUp size={16} />
-            Нарахування
-          </button>
-          <button
-            onClick={() => {
-              setShowPaymentForm(!showPaymentForm);
-              setShowChargeForm(false);
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition"
-          >
-            <Plus size={16} />
-            Платіж
-          </button>
-        </div>
       </div>
 
       {showChargeForm && (
@@ -987,8 +941,81 @@ export default function CombinedSettlement() {
               </div>
             </div>
 
+            <div className="flex gap-2">
+              <div className="bg-white dark:bg-gray-800 rounded border dark:border-gray-700">
+                <div className="flex">
+                  <button
+                    onClick={() => setSettlementType('cash')}
+                    className={`px-3 py-1.5 text-sm font-medium transition rounded-l ${
+                      settlementType === 'cash'
+                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                    }`}
+                  >
+                    Готівка
+                  </button>
+                  <button
+                    onClick={() => setSettlementType('card')}
+                    className={`px-3 py-1.5 text-sm font-medium transition rounded-r ${
+                      settlementType === 'card'
+                        ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                    }`}
+                  >
+                    Карта
+                  </button>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowChargeForm(!showChargeForm);
+                  setShowPaymentForm(false);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-rose-700 text-white rounded hover:bg-rose-800 transition"
+              >
+                <TrendingUp size={16} />
+                Нарахування
+              </button>
+              <button
+                onClick={() => {
+                  setShowPaymentForm(!showPaymentForm);
+                  setShowChargeForm(false);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition"
+              >
+                <Plus size={16} />
+                Платіж
+              </button>
+            </div>
+
             <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 overflow-hidden flex flex-col">
               <h3 className="text-sm font-semibold px-3 py-2 text-gray-800 dark:text-gray-100 border-b dark:border-gray-700">Історія транзакцій</h3>
+              <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 px-3 py-2 border-b border-gray-300 dark:border-gray-600">
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Нарахування:</div>
+                    <div className="flex gap-1.5">
+                      <span className="text-gray-600 dark:text-gray-400">Прийом:</span>
+                      <span className="font-bold text-rose-700 dark:text-rose-400">+{formatNumber(cashSummary.totalDebitPln)} zł</span>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <span className="text-gray-600 dark:text-gray-400">Перевезення:</span>
+                      <span className="font-bold text-rose-700 dark:text-rose-400">+{formatNumber(cashSummary.totalDebitUsd)} $</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Платежі:</div>
+                    <div className="flex gap-1.5">
+                      <span className="text-gray-600 dark:text-gray-400">Прийом:</span>
+                      <span className="font-bold text-green-600 dark:text-green-400">-{formatNumber(cashSummary.totalCreditPln)} zł</span>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <span className="text-gray-600 dark:text-gray-400">Перевезення:</span>
+                      <span className="font-bold text-green-600 dark:text-green-400">-{formatNumber(cashSummary.totalCreditUsd)} $</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div className="flex-1 overflow-auto">
                 <table className="w-full text-xs">
                   <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
@@ -1037,32 +1064,6 @@ export default function CombinedSettlement() {
                     })}
                   </tbody>
                 </table>
-              </div>
-              <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 px-3 py-2 border-t-2 border-gray-300 dark:border-gray-600">
-                <div className="grid grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Нарахування:</div>
-                    <div className="flex gap-1.5">
-                      <span className="text-gray-600 dark:text-gray-400">Прийом:</span>
-                      <span className="font-bold text-rose-700 dark:text-rose-400">+{formatNumber(cashSummary.totalDebitPln)} zł</span>
-                    </div>
-                    <div className="flex gap-1.5">
-                      <span className="text-gray-600 dark:text-gray-400">Перевезення:</span>
-                      <span className="font-bold text-rose-700 dark:text-rose-400">+{formatNumber(cashSummary.totalDebitUsd)} $</span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Платежі:</div>
-                    <div className="flex gap-1.5">
-                      <span className="text-gray-600 dark:text-gray-400">Прийом:</span>
-                      <span className="font-bold text-green-600 dark:text-green-400">-{formatNumber(cashSummary.totalCreditPln)} zł</span>
-                    </div>
-                    <div className="flex gap-1.5">
-                      <span className="text-gray-600 dark:text-gray-400">Перевезення:</span>
-                      <span className="font-bold text-green-600 dark:text-green-400">-{formatNumber(cashSummary.totalCreditUsd)} $</span>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -1198,8 +1199,73 @@ export default function CombinedSettlement() {
               </div>
             </div>
 
+            <div className="flex gap-2">
+              <div className="bg-white dark:bg-gray-800 rounded border dark:border-gray-700">
+                <div className="flex">
+                  <button
+                    onClick={() => setSettlementType('cash')}
+                    className={`px-3 py-1.5 text-sm font-medium transition rounded-l ${
+                      settlementType === 'cash'
+                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                    }`}
+                  >
+                    Готівка
+                  </button>
+                  <button
+                    onClick={() => setSettlementType('card')}
+                    className={`px-3 py-1.5 text-sm font-medium transition rounded-r ${
+                      settlementType === 'card'
+                        ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                    }`}
+                  >
+                    Карта
+                  </button>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowChargeForm(!showChargeForm);
+                  setShowPaymentForm(false);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-rose-700 text-white rounded hover:bg-rose-800 transition"
+              >
+                <TrendingUp size={16} />
+                Нарахування
+              </button>
+              <button
+                onClick={() => {
+                  setShowPaymentForm(!showPaymentForm);
+                  setShowChargeForm(false);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition"
+              >
+                <Plus size={16} />
+                Платіж
+              </button>
+            </div>
+
             <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 overflow-hidden flex flex-col">
               <h3 className="text-sm font-semibold px-3 py-2 text-gray-800 dark:text-gray-100 border-b dark:border-gray-700">Історія транзакцій</h3>
+              <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 px-3 py-2 border-b border-gray-300 dark:border-gray-600">
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Нарахування:</div>
+                    <div className="flex gap-1.5">
+                      <span className="text-gray-600 dark:text-gray-400">Загалом:</span>
+                      <span className="font-bold text-rose-700 dark:text-rose-400">+{formatNumber(cardSummary.totalCharge)} zł</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Платежі:</div>
+                    <div className="flex gap-1.5">
+                      <span className="text-gray-600 dark:text-gray-400">Загалом:</span>
+                      <span className="font-bold text-green-600 dark:text-green-400">-{formatNumber(cardSummary.totalPayment)} zł</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div className="flex-1 overflow-auto">
                 <table className="w-full text-xs">
                   <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
@@ -1242,24 +1308,6 @@ export default function CombinedSettlement() {
                     })}
                   </tbody>
                 </table>
-              </div>
-              <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 px-3 py-2 border-t-2 border-gray-300 dark:border-gray-600">
-                <div className="grid grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Нарахування:</div>
-                    <div className="flex gap-1.5">
-                      <span className="text-gray-600 dark:text-gray-400">Загалом:</span>
-                      <span className="font-bold text-rose-700 dark:text-rose-400">+{formatNumber(cardSummary.totalCharge)} zł</span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Платежі:</div>
-                    <div className="flex gap-1.5">
-                      <span className="text-gray-600 dark:text-gray-400">Загалом:</span>
-                      <span className="font-bold text-green-600 dark:text-green-400">-{formatNumber(cardSummary.totalPayment)} zł</span>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
