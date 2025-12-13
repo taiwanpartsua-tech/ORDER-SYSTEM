@@ -1837,11 +1837,11 @@ export default function Orders() {
           </div>
         </div>
       ) : activeTab === 'orders' ? (
-        <div className="flex-1 overflow-auto min-h-0 flex flex-col">
+        <div className="flex-1 overflow-auto min-h-0 flex flex-col bg-gray-100 dark:bg-gray-900">
           {selectedOrders.size > 0 && (
-            <div className="flex-shrink-0 p-3 bg-white border-b border-gray-200 flex justify-end items-center">
-              <div className="flex items-center gap-3 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
-                <span className="text-sm font-medium text-blue-900">
+            <div className="flex-shrink-0 p-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-end items-center">
+              <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900 px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-700">
+                <span className="text-sm font-medium text-blue-900 dark:text-blue-200">
                   Обрано: {selectedOrders.size}
                 </span>
                 <div className="flex gap-2">
@@ -1852,29 +1852,29 @@ export default function Orders() {
                         e.target.value = '';
                       }
                     }}
-                    className="px-3 py-1 text-sm border border-blue-300 rounded bg-white hover:bg-blue-50 transition"
+                    className="px-3 py-1 text-sm border border-blue-300 dark:border-blue-600 rounded bg-white dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 transition text-gray-900 dark:text-gray-100"
                     defaultValue=""
                   >
-                    <option value="" disabled>Змінити статус</option>
+                    <option value="" disabled className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Змінити статус</option>
                     {statuses.map((status) => (
-                      <option key={status} value={status}>{statusLabels[status]}</option>
+                      <option key={status} value={status} className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">{statusLabels[status]}</option>
                     ))}
                   </select>
                   <button
                     onClick={() => bulkUpdateVerified(true)}
-                    className="px-3 py-1 text-sm bg-green-700 text-white rounded hover:bg-green-700 transition"
+                    className="px-3 py-1 text-sm bg-green-700 text-white rounded hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition"
                   >
                     Відзначити V
                   </button>
                   <button
                     onClick={() => bulkUpdateVerified(false)}
-                    className="px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 transition"
+                    className="px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600 transition"
                   >
                     Зняти V
                   </button>
                   <button
                     onClick={() => setSelectedOrders(new Set())}
-                    className="px-3 py-1 text-sm bg-red-100 text-red-800 rounded hover:bg-red-200 transition"
+                    className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded hover:bg-red-200 dark:hover:bg-red-800 transition"
                   >
                     <X size={16} />
                   </button>
@@ -1890,23 +1890,23 @@ export default function Orders() {
             const label = groupBy === 'status' ? statusLabels[key] : groupBy === 'payment' ? paymentTypeLabels[key] : verifiedLabels[key];
 
             return (
-              <div key={key} className="bg-white rounded-lg shadow">
+              <div key={key} className="bg-white dark:bg-gray-800 rounded-lg shadow">
                 <button
                   onClick={() => toggleGroupCollapse(key)}
-                  className={`w-full px-4 py-3 font-semibold text-sm ${colors} flex items-center justify-between hover:opacity-90 transition`}
+                  className={`w-full px-4 py-3 font-semibold text-sm ${colors} flex items-center justify-between hover:opacity-90 transition rounded-t-lg`}
                 >
                   <div className="flex items-center gap-2">
                     {isCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
                     <span>{label}</span>
                   </div>
-                  <span className="bg-white/30 px-2 py-1 rounded-full text-xs">{groupOrders.length}</span>
+                  <span className="bg-white/30 dark:bg-black/30 px-2 py-1 rounded-full text-xs">{groupOrders.length}</span>
                 </button>
                 {!isCollapsed && (
                   <div className="overflow-x-auto overflow-y-visible">
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 dark:bg-gray-700">
                       <tr>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                           <input
                             type="checkbox"
                             checked={selectedOrders.size === filteredOrders.length && filteredOrders.length > 0}
@@ -1914,30 +1914,30 @@ export default function Orders() {
                             className="w-4 h-4 rounded cursor-pointer"
                           />
                         </th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Статус</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">V</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">ID клієнта</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Назва</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Посилання</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Трекінг PL</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Вартість запч.</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Доставка</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Всього</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">№ запчастини</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Тип оплати</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Побранє</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Дата</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Прийом zl</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Перевезення $</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Вага кг</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Дії</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Статус</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">V</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ID клієнта</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Назва</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Посилання</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Трекінг PL</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Вартість запч.</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Доставка</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Всього</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">№ запчастини</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Тип оплати</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Побранє</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Дата</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Прийом zl</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Перевезення $</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Вага кг</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Дії</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
                       {groupOrders.map((order) => {
                       const isAccepted = order.status === 'прийнято';
                       return (
-                        <tr key={order.id} className={`${!isAccepted ? 'hover:bg-gray-50' : ''} ${selectedOrders.has(order.id) ? 'bg-blue-50' : ''} ${isAccepted ? 'opacity-50' : ''}`}>
+                        <tr key={order.id} className={`${!isAccepted ? 'hover:bg-gray-50 dark:hover:bg-gray-700' : ''} ${selectedOrders.has(order.id) ? 'bg-blue-50 dark:bg-blue-900' : ''} ${isAccepted ? 'opacity-50' : ''}`}>
                           <td className="px-3 py-3 text-center min-h-[48px]">
                             <input
                               type="checkbox"
@@ -1992,7 +1992,7 @@ export default function Orders() {
                           {renderEditableCell(order.id, 'tracking_pl', order.tracking_pl || '', 'text-gray-600 text-center', isAccepted)}
                           {renderEditableCell(order.id, 'part_price', `${formatNumber(order.part_price)} zl`, 'text-gray-900 font-medium text-center', isAccepted)}
                           {renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-gray-900 text-center', isAccepted)}
-                          <td className="px-3 py-3 text-center text-gray-900 font-bold bg-gray-50 min-h-[48px]">
+                          <td className="px-3 py-3 text-center text-gray-900 dark:text-gray-100 font-bold bg-gray-50 dark:bg-gray-700 min-h-[48px]">
                             {formatNumber(order.total_cost)} zl
                           </td>
                           {renderEditableCell(order.id, 'part_number', order.part_number || '', 'text-gray-600 text-center', isAccepted)}
