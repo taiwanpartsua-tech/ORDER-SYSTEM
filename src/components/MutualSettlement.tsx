@@ -294,30 +294,6 @@ export default function MutualSettlement() {
     const receipt = receipts.find(r => r.id === receiptId);
     if (!receipt) return;
 
-    const receiptCashPln = (receipt.receipt_cost_pln || 0) + (receipt.cash_on_delivery_pln || 0);
-    const transportUsd = receipt.transport_cost_usd || 0;
-
-    const { error: txError } = await supabase
-      .from('transactions')
-      .insert({
-        transaction_type: 'debit',
-        amount_pln: 0,
-        amount_usd: 0,
-        cash_on_delivery_pln: receiptCashPln,
-        transport_cost_usd: transportUsd,
-        parts_delivery_pln: 0,
-        description: `Нарахування за накладну №${receipt.receipt_number}`,
-        transaction_date: new Date().toISOString().split('T')[0],
-        receipt_id: receipt.id,
-        created_by: 'system'
-      });
-
-    if (txError) {
-      alert('Помилка при створенні транзакції нарахування');
-      console.error(txError);
-      return;
-    }
-
     const { error } = await supabase
       .from('active_receipts')
       .update({
@@ -332,7 +308,7 @@ export default function MutualSettlement() {
       return;
     }
 
-    alert('Накладну розраховано. Транзакцію додано в історію.');
+    alert('Накладну розраховано.');
     loadReceipts();
     loadTransactions();
   }
@@ -676,16 +652,16 @@ export default function MutualSettlement() {
                   <div className="flex items-center gap-1">
                     <button
                       onClick={async () => {
-                        if (confirm(`Повернути накладну №${receipt.receipt_number} назад в "на розрахунку"?\n\nТранзакції будуть видалені.`)) {
+                        if (confirm(`Повернути накладну №${receipt.receipt_number} назад в "на розрахунку"?`)) {
                           await supabase
                             .from('transactions')
-                            .delete()
+                            .update({ is_reversed: true })
                             .eq('receipt_id', receipt.id)
                             .eq('is_reversed', false);
 
                           await supabase
                             .from('card_transactions')
-                            .delete()
+                            .update({ is_reversed: true })
                             .eq('receipt_id', receipt.id)
                             .eq('is_reversed', false);
 

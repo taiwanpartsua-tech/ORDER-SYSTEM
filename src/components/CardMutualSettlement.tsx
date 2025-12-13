@@ -630,16 +630,16 @@ export default function CardMutualSettlement() {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={async () => {
-                          if (confirm(`Повернути накладну №${receipt.receipt_number} назад в "на розрахунку"?\n\nТранзакції будуть видалені.`)) {
+                          if (confirm(`Повернути накладну №${receipt.receipt_number} назад в "на розрахунку"?`)) {
                             await supabase
                               .from('transactions')
-                              .delete()
+                              .update({ is_reversed: true })
                               .eq('receipt_id', receipt.id)
                               .eq('is_reversed', false);
 
                             await supabase
                               .from('card_transactions')
-                              .delete()
+                              .update({ is_reversed: true })
                               .eq('receipt_id', receipt.id)
                               .eq('is_reversed', false);
 
