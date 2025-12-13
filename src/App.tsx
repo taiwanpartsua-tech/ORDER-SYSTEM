@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Package, ClipboardCheck, TrendingUp, FileCheck, DollarSign, CreditCard, Moon, Sun } from 'lucide-react';
 import Orders from './components/Orders';
 import ActiveReceipts from './components/ActiveReceipts';
@@ -11,8 +11,15 @@ import { useTheme } from './contexts/ThemeContext';
 type Tab = 'orders' | 'receipts' | 'management' | 'balance' | 'settlement' | 'cards';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('orders');
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    const savedTab = localStorage.getItem('activeTab');
+    return (savedTab as Tab) || 'orders';
+  });
   const { isDark, toggleTheme } = useTheme();
+
+  useEffect(() => {
+    localStorage.setItem('activeTab', activeTab);
+  }, [activeTab]);
 
   return (
     <div className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden transition-colors">
