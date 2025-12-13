@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Send, Check, ChevronDown, ChevronRight, Plus, X } from 'lucide-react';
+import { Send, Check, ChevronDown, ChevronRight, Plus, X, FileText } from 'lucide-react';
 
 type Receipt = {
   id: string;
@@ -1190,8 +1190,20 @@ export default function ReceiptManagement() {
 
 
       {receipts.length === 0 && (
-        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-8 text-center text-gray-500 dark:text-gray-400 dark:text-gray-500">
-          Немає прийомок для обробки
+        <div className="flex flex-col items-center justify-center py-16 px-4">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-12 shadow-lg border border-blue-100 dark:border-gray-700 max-w-md w-full">
+            <div className="flex justify-center mb-6">
+              <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded-full">
+                <FileText size={48} className="text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-semibold text-gray-800 dark:text-gray-100 text-center mb-3">
+              Немає прийомок
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 text-center text-sm leading-relaxed">
+              Наразі немає жодної прийомки для обробки. Прийомки з'являться тут після створення.
+            </p>
+          </div>
         </div>
       )}
     </div>
