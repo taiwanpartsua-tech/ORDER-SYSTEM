@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase, Order, Supplier } from '../lib/supabase';
-import { ChevronRight, Send, X, AlertCircle } from 'lucide-react';
+import { ChevronRight, Send, X, AlertCircle, ExternalLink } from 'lucide-react';
 
 type OrderWithSupplier = Order & { supplier: Supplier };
 
@@ -396,7 +396,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
           className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
         />
       </div>
-      <div className="grid gap-4 flex-1 overflow-hidden min-h-0" style={{ gridTemplateColumns: '380px 1fr' }}>
+      <div className="grid gap-4 flex-1 overflow-hidden min-h-0" style={{ gridTemplateColumns: '600px 1fr' }}>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow flex flex-col overflow-hidden">
           <div className="p-4 border-b flex-shrink-0 flex justify-between items-center">
             <h3 className="font-semibold text-gray-800 dark:text-gray-100">Доступні замовлення ({availableOrders.length})</h3>
@@ -410,18 +410,36 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 dark:bg-gray-700 sticky top-8 z-10">
                     <tr>
-                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">ID клієнта</th>
-                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Номер запч.</th>
-                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Вага</th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">ID</th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Назва</th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">№ запч.</th>
+                      <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 text-xs w-10">Посил.</th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Трекінг</th>
                       <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 w-10"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {availableCashOnDeliveryOrders.map((order) => (
                       <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
-                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300">{order.client_id || '-'}</td>
-                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300">{order.part_number || '-'}</td>
-                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300">{order.weight_kg ? `${formatNumber(order.weight_kg)} кг` : '-'}</td>
+                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs">{order.client_id || '-'}</td>
+                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs max-w-[150px] truncate" title={order.title || '-'}>{order.title || '-'}</td>
+                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs">{order.part_number || '-'}</td>
+                        <td className="px-2 py-2 text-center">
+                          {order.link ? (
+                            <a
+                              href={order.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-900 inline-block"
+                              title="Відкрити посилання"
+                            >
+                              <ExternalLink size={14} />
+                            </a>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs">{order.tracking_pl || '-'}</td>
                         <td className="px-2 py-2 text-center">
                           <button
                             onClick={() => moveToActiveReceipt(order, 'cash_on_delivery')}
@@ -446,18 +464,36 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 dark:bg-gray-700 sticky top-8 z-10">
                     <tr>
-                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">ID клієнта</th>
-                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Номер запч.</th>
-                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Вага</th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">ID</th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Назва</th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">№ запч.</th>
+                      <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 text-xs w-10">Посил.</th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Трекінг</th>
                       <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 w-10"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {availablePaidOrders.map((order) => (
                       <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
-                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300">{order.client_id || '-'}</td>
-                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300">{order.part_number || '-'}</td>
-                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300">{order.weight_kg ? `${formatNumber(order.weight_kg)} кг` : '-'}</td>
+                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs">{order.client_id || '-'}</td>
+                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs max-w-[150px] truncate" title={order.title || '-'}>{order.title || '-'}</td>
+                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs">{order.part_number || '-'}</td>
+                        <td className="px-2 py-2 text-center">
+                          {order.link ? (
+                            <a
+                              href={order.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-900 inline-block"
+                              title="Відкрити посилання"
+                            >
+                              <ExternalLink size={14} />
+                            </a>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs">{order.tracking_pl || '-'}</td>
                         <td className="px-2 py-2 text-center">
                           <button
                             onClick={() => moveToActiveReceipt(order, 'paid')}
