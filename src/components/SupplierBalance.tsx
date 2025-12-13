@@ -371,28 +371,28 @@ export default function SupplierBalance() {
                   <tbody className="bg-white dark:bg-gray-800 divide-y">
                     {orders.map((order) => (
                       <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
-                        <td className="px-3 py-2">{order.order_number}</td>
-                        <td className="px-3 py-2">{order.title || '-'}</td>
-                        <td className="px-3 py-2">{order.part_number || '-'}</td>
-                        <td className="px-3 py-2">{order.payment_type || '-'}</td>
-                        <td className="px-3 py-2 text-right">{formatNumber(order.part_price || 0)}</td>
-                        <td className="px-3 py-2 text-right">{formatNumber(order.delivery_cost || 0)}</td>
-                        <td className="px-3 py-2 text-right">{formatNumber(order.cash_on_delivery || 0)}</td>
-                        <td className="px-3 py-2 text-right">{formatNumber(order.transport_cost_usd || 0)}</td>
+                        <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{order.order_number}</td>
+                        <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{order.title || '-'}</td>
+                        <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{order.part_number || '-'}</td>
+                        <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{order.payment_type || '-'}</td>
+                        <td className="px-3 py-2 text-right text-gray-900 dark:text-gray-100">{formatNumber(order.part_price || 0)}</td>
+                        <td className="px-3 py-2 text-right text-gray-900 dark:text-gray-100">{formatNumber(order.delivery_cost || 0)}</td>
+                        <td className="px-3 py-2 text-right text-gray-900 dark:text-gray-100">{formatNumber(order.cash_on_delivery || 0)}</td>
+                        <td className="px-3 py-2 text-right text-gray-900 dark:text-gray-100">{formatNumber(order.transport_cost_usd || 0)}</td>
                       </tr>
                     ))}
                     <tr className="bg-gray-100 dark:bg-gray-700 font-bold border-t-2">
-                      <td className="px-3 py-2" colSpan={4}>Всього по документу:</td>
-                      <td className="px-3 py-2 text-right">
+                      <td className="px-3 py-2 text-gray-900 dark:text-gray-100" colSpan={4}>Всього по документу:</td>
+                      <td className="px-3 py-2 text-right text-gray-900 dark:text-gray-100">
                         {formatNumber(orders.reduce((sum, order) => sum + (order.part_price || 0), 0))}
                       </td>
-                      <td className="px-3 py-2 text-right">
+                      <td className="px-3 py-2 text-right text-gray-900 dark:text-gray-100">
                         {formatNumber(orders.reduce((sum, order) => sum + (order.delivery_cost || 0), 0))}
                       </td>
-                      <td className="px-3 py-2 text-right">
+                      <td className="px-3 py-2 text-right text-gray-900 dark:text-gray-100">
                         {formatNumber(orders.reduce((sum, order) => sum + (order.cash_on_delivery || 0), 0))}
                       </td>
-                      <td className="px-3 py-2 text-right">
+                      <td className="px-3 py-2 text-right text-gray-900 dark:text-gray-100">
                         {formatNumber(orders.reduce((sum, order) => sum + (order.transport_cost_usd || 0), 0))}
                       </td>
                     </tr>
