@@ -1400,7 +1400,7 @@ export default function Orders() {
                     type="checkbox"
                     checked={formData.verified}
                     onChange={(e) => setFormData({ ...formData, verified: e.target.checked })}
-                    className="w-5 h-5 text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-700"
+                    className="w-5 h-5 text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 rounded focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-600"
                   />
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">V</span>
                 </label>
@@ -1504,7 +1504,7 @@ export default function Orders() {
                       type="checkbox"
                       checked={selectedOrders.size === filteredOrders.length && filteredOrders.length > 0}
                       onChange={toggleAllOrders}
-                      className="w-4 h-4 rounded cursor-pointer"
+                      className="w-4 h-4 rounded cursor-pointer text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600"
                     />
                   </th>
                   <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Статус</th>
@@ -1552,7 +1552,7 @@ export default function Orders() {
                         type="checkbox"
                         checked={newRowData.verified}
                         onChange={(e) => setNewRowData({ ...newRowData, verified: e.target.checked })}
-                        className="w-5 h-5 rounded cursor-pointer transition text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-blue-400"
+                        className="w-5 h-5 rounded cursor-pointer transition text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-600"
                       />
                     </td>
                     <td className="px-3 py-3 min-h-[48px]">
@@ -1737,7 +1737,7 @@ export default function Orders() {
                       type="checkbox"
                       checked={selectedOrders.has(order.id)}
                       onChange={() => toggleOrderSelection(order.id)}
-                      className="w-4 h-4 rounded cursor-pointer"
+                      className="w-4 h-4 rounded cursor-pointer text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600"
                       onClick={(e) => e.stopPropagation()}
                       disabled={isAccepted}
                     />
@@ -1774,8 +1774,8 @@ export default function Orders() {
                       onChange={() => handleVerifiedChange(order.id, order.verified)}
                       className={`w-5 h-5 rounded cursor-pointer transition ${
                         order.verified
-                          ? 'accent-green-700 bg-green-700'
-                          : 'border-2 border-gray-800 accent-gray-800'
+                          ? 'accent-green-700 bg-green-700 dark:accent-green-600 dark:bg-green-600'
+                          : 'border-2 border-gray-800 dark:border-gray-400 accent-gray-800 dark:accent-gray-400 bg-white dark:bg-gray-600'
                       }`}
                       disabled={isAccepted}
                     />
@@ -1911,7 +1911,7 @@ export default function Orders() {
                             type="checkbox"
                             checked={selectedOrders.size === filteredOrders.length && filteredOrders.length > 0}
                             onChange={toggleAllOrders}
-                            className="w-4 h-4 rounded cursor-pointer"
+                            className="w-4 h-4 rounded cursor-pointer text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600"
                           />
                         </th>
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Статус</th>
@@ -1943,7 +1943,7 @@ export default function Orders() {
                               type="checkbox"
                               checked={selectedOrders.has(order.id)}
                               onChange={() => toggleOrderSelection(order.id)}
-                              className="w-4 h-4 rounded cursor-pointer"
+                              className="w-4 h-4 rounded cursor-pointer text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600"
                               onClick={(e) => e.stopPropagation()}
                               disabled={isAccepted}
                             />
@@ -1980,8 +1980,8 @@ export default function Orders() {
                               onChange={() => handleVerifiedChange(order.id, order.verified)}
                               className={`w-5 h-5 rounded cursor-pointer transition ${
                                 order.verified
-                                  ? 'accent-green-700 bg-green-700'
-                                  : 'border-2 border-gray-800 accent-gray-800'
+                                  ? 'accent-green-700 bg-green-700 dark:accent-green-600 dark:bg-green-600'
+                                  : 'border-2 border-gray-800 dark:border-gray-400 accent-gray-800 dark:accent-gray-400 bg-white dark:bg-gray-600'
                               }`}
                               disabled={isAccepted}
                             />
