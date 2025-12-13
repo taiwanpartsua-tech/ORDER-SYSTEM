@@ -32,6 +32,7 @@ export type Order = {
   order_number: string;
   supplier_id: string;
   status: string;
+  previous_status?: string;
   order_date: string;
   notes: string;
   title: string;

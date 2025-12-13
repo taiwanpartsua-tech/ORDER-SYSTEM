@@ -156,7 +156,7 @@ export default function ReceiptManagement() {
 
     let query = supabase
       .from('orders')
-      .select('id, order_number, client_id, title, link, tracking_pl, payment_type, order_date, part_price, delivery_cost, total_cost')
+      .select('id, order_number, client_id, title, link, tracking_pl, payment_type, order_date, part_price, delivery_cost, total_cost, received_pln, cash_on_delivery, transport_cost_usd')
       .eq('supplier_id', receipt.supplier_id)
       .not('status', 'in', '("проблемні","анульовано","повернення")');
 

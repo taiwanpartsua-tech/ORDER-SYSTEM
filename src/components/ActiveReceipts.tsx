@@ -203,7 +203,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
     const { data } = await supabase
       .from('orders')
       .select('*, supplier:suppliers(*)')
-      .not('status', 'in', '(повернення,проблемні,анульовано)')
+      .not('status', 'in', '(повернення,проблемні,анульовано,"в активному прийомі")')
       .order('created_at', { ascending: false });
 
     if (data) {
@@ -233,13 +233,19 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
       editableWeight: order.weight_kg || 0
     };
 
-    await supabase
+    const { error } = await supabase
       .from('orders')
       .update({
         previous_status: order.status,
         status: 'в активному прийомі'
       })
       .eq('id', order.id);
+
+    if (error) {
+      console.error('Помилка оновлення статусу:', error);
+      alert('Помилка оновлення статусу замовлення');
+      return;
+    }
 
     setAvailableOrders(prev => prev.filter(o => o.id !== order.id));
 
@@ -271,11 +277,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
       setPaidOrders(prev => prev.filter(o => o.id !== order.id));
     }
 
-    const originalOrder: OrderWithSupplier = {
-      ...order,
-      supplier: order.supplier
-    };
-    setAvailableOrders(prev => [...prev, originalOrder]);
+    await loadAvailableOrders();
   }
 
   function updateOrderField(orderId: string, field: keyof EditableOrder, value: number, group: PaymentGroup) {
