@@ -462,7 +462,7 @@ export default function CardMutualSettlement() {
                   step="0.01"
                   value={chargeData.amount}
                   onChange={(e) => setChargeData({ ...chargeData, amount: e.target.value })}
-                  className="w-full px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500"
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   required
                 />
               </div>
@@ -472,7 +472,7 @@ export default function CardMutualSettlement() {
                   type="date"
                   value={chargeData.date}
                   onChange={(e) => setChargeData({ ...chargeData, date: e.target.value })}
-                  className="w-full px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500"
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   required
                 />
               </div>
@@ -484,7 +484,7 @@ export default function CardMutualSettlement() {
                 value={chargeData.description}
                 onChange={(e) => setChargeData({ ...chargeData, description: e.target.value })}
                 placeholder="Вкажіть причину нарахування"
-                className="w-full px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500"
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                 required
               />
             </div>
@@ -512,7 +512,7 @@ export default function CardMutualSettlement() {
                   step="0.01"
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  className="w-full px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   required
                 />
               </div>
@@ -522,7 +522,7 @@ export default function CardMutualSettlement() {
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="w-full px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   required
                 />
               </div>
@@ -534,7 +534,7 @@ export default function CardMutualSettlement() {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Опис платежу"
-                className="w-full px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
               />
             </div>
             <div className="flex gap-2">

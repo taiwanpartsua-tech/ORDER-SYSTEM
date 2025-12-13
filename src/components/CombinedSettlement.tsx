@@ -842,7 +842,7 @@ export default function CombinedSettlement() {
                     <select
                       value={cashChargeData.balanceType}
                       onChange={(e) => setCashChargeData({ ...cashChargeData, balanceType: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-gray-100"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     >
                       <option value="receipt">Прийом і побраня</option>
                       <option value="transport">Перевезення</option>
@@ -855,7 +855,7 @@ export default function CombinedSettlement() {
                       step="0.01"
                       value={cashChargeData.amount}
                       onChange={(e) => setCashChargeData({ ...cashChargeData, amount: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-gray-100"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       required
                     />
                   </div>
@@ -865,7 +865,7 @@ export default function CombinedSettlement() {
                       type="date"
                       value={cashChargeData.date}
                       onChange={(e) => setCashChargeData({ ...cashChargeData, date: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-gray-100"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       required
                     />
                   </div>
@@ -877,7 +877,7 @@ export default function CombinedSettlement() {
                     value={cashChargeData.description}
                     onChange={(e) => setCashChargeData({ ...cashChargeData, description: e.target.value })}
                     placeholder="Вкажіть причину нарахування"
-                    className="w-full px-2 py-1.5 text-sm border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-gray-100"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                     required
                   />
                 </div>
@@ -903,7 +903,7 @@ export default function CombinedSettlement() {
                     <select
                       value={cashFormData.balanceType}
                       onChange={(e) => setCashFormData({ ...cashFormData, balanceType: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     >
                       <option value="receipt">Прийом і побраня</option>
                       <option value="transport">Перевезення</option>
@@ -916,7 +916,7 @@ export default function CombinedSettlement() {
                       step="0.01"
                       value={cashFormData.amount}
                       onChange={(e) => setCashFormData({ ...cashFormData, amount: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       required
                     />
                   </div>
@@ -926,7 +926,7 @@ export default function CombinedSettlement() {
                       type="date"
                       value={cashFormData.date}
                       onChange={(e) => setCashFormData({ ...cashFormData, date: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       required
                     />
                   </div>
@@ -938,7 +938,7 @@ export default function CombinedSettlement() {
                     value={cashFormData.description}
                     onChange={(e) => setCashFormData({ ...cashFormData, description: e.target.value })}
                     placeholder="Опис платежу"
-                    className="w-full px-2 py-1.5 text-sm border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 </div>
                 <div className="flex gap-2">
@@ -1134,7 +1134,7 @@ export default function CombinedSettlement() {
                       step="0.01"
                       value={cardChargeData.amount}
                       onChange={(e) => setCardChargeData({ ...cardChargeData, amount: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-gray-100"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       required
                     />
                   </div>
@@ -1144,7 +1144,7 @@ export default function CombinedSettlement() {
                       type="date"
                       value={cardChargeData.date}
                       onChange={(e) => setCardChargeData({ ...cardChargeData, date: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-gray-100"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       required
                     />
                   </div>
@@ -1156,7 +1156,7 @@ export default function CombinedSettlement() {
                     value={cardChargeData.description}
                     onChange={(e) => setCardChargeData({ ...cardChargeData, description: e.target.value })}
                     placeholder="Вкажіть причину нарахування"
-                    className="w-full px-2 py-1.5 text-sm border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-gray-100"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                     required
                   />
                 </div>
@@ -1184,7 +1184,7 @@ export default function CombinedSettlement() {
                       step="0.01"
                       value={cardFormData.amount}
                       onChange={(e) => setCardFormData({ ...cardFormData, amount: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       required
                     />
                   </div>
@@ -1194,7 +1194,7 @@ export default function CombinedSettlement() {
                       type="date"
                       value={cardFormData.date}
                       onChange={(e) => setCardFormData({ ...cardFormData, date: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       required
                     />
                   </div>
@@ -1206,7 +1206,7 @@ export default function CombinedSettlement() {
                     value={cardFormData.description}
                     onChange={(e) => setCardFormData({ ...cardFormData, description: e.target.value })}
                     placeholder="Опис платежу"
-                    className="w-full px-2 py-1.5 text-sm border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 </div>
                 <div className="flex gap-2">
