@@ -388,7 +388,9 @@ export default function Orders() {
         payment_type: order.payment_type || '',
         cash_on_delivery: order.cash_on_delivery || 0,
         order_date: order.order_date || new Date().toISOString(),
-        return_tracking_to_supplier: ''
+        return_tracking_to_supplier: '',
+        refund_status: '',
+        archived: false
       });
 
       if (!error) {
