@@ -51,7 +51,7 @@ export default function Orders() {
   const [isAddingNewRow, setIsAddingNewRow] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<'orders' | 'returns'>('orders');
-  const [activeViewTab, setActiveViewTab] = useState<'active' | 'archived' | 'cancelled' | 'accepted'>('active');
+  const [activeViewTab, setActiveViewTab] = useState<'active' | 'in_active_receipt' | 'accepted' | 'cancelled' | 'archived'>('active');
   const [isAcceptConfirmOpen, setIsAcceptConfirmOpen] = useState(false);
   const [acceptingOrderId, setAcceptingOrderId] = useState<string | null>(null);
   const [acceptExplanation, setAcceptExplanation] = useState('');
@@ -1065,13 +1065,15 @@ export default function Orders() {
 
     let matchesView = false;
     if (activeViewTab === 'active') {
-      matchesView = !order.archived && order.status !== 'анульовано' && order.status !== 'прийнято';
+      matchesView = !order.archived && order.status !== 'анульовано' && order.status !== 'прийнято' && order.status !== 'в активному прийомі';
+    } else if (activeViewTab === 'in_active_receipt') {
+      matchesView = order.status === 'в активному прийомі';
+    } else if (activeViewTab === 'accepted') {
+      matchesView = order.status === 'прийнято';
     } else if (activeViewTab === 'cancelled') {
       matchesView = order.status === 'анульовано';
     } else if (activeViewTab === 'archived') {
       matchesView = order.archived === true;
-    } else if (activeViewTab === 'accepted') {
-      matchesView = order.status === 'прийнято';
     }
 
     if (!matchesView) return false;
@@ -1173,7 +1175,17 @@ export default function Orders() {
                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
               }`}
             >
-              Активні ({orders.filter(o => !o.archived && o.status !== 'анульовано' && o.status !== 'прийнято').length})
+              Активні ({orders.filter(o => !o.archived && o.status !== 'анульовано' && o.status !== 'прийнято' && o.status !== 'в активному прийомі').length})
+            </button>
+            <button
+              onClick={() => setActiveViewTab('in_active_receipt')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+                activeViewTab === 'in_active_receipt'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow dark:shadow-md'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+              }`}
+            >
+              В активному прийомі ({orders.filter(o => o.status === 'в активному прийомі').length})
             </button>
             <button
               onClick={() => setActiveViewTab('accepted')}
