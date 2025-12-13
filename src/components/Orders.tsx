@@ -225,6 +225,48 @@ export default function Orders() {
 
     const dataToSubmit: any = { ...formData };
 
+    if (!editingOrder) {
+      if (!dataToSubmit.client_id || dataToSubmit.client_id.trim() === '') {
+        alert('ID клієнта є обов\'язковим полем!');
+        return;
+      }
+
+      if (!dataToSubmit.title || dataToSubmit.title.trim() === '') {
+        alert('Назва є обов\'язковим полем!');
+        return;
+      }
+
+      if (!dataToSubmit.link || dataToSubmit.link.trim() === '') {
+        alert('Посилання є обов\'язковим полем!');
+        return;
+      }
+
+      if (!dataToSubmit.part_price || dataToSubmit.part_price <= 0) {
+        alert('Вартість запчастини є обов\'язковим полем і повинна бути більше 0!');
+        return;
+      }
+
+      if (!dataToSubmit.part_number || dataToSubmit.part_number.trim() === '') {
+        alert('Номер запчастини є обов\'язковим полем!');
+        return;
+      }
+
+      if (!dataToSubmit.payment_type || dataToSubmit.payment_type === 'не обрано') {
+        alert('Необхідно обрати тип оплати!');
+        return;
+      }
+
+      if (dataToSubmit.payment_type === 'оплачено' && dataToSubmit.cash_on_delivery > 0) {
+        alert('Якщо оплата "Оплачено", наложка повинна дорівнювати 0!');
+        return;
+      }
+
+      if ((dataToSubmit.payment_type === 'побранє' || dataToSubmit.payment_type === 'самовивіз pl') && (!dataToSubmit.cash_on_delivery || dataToSubmit.cash_on_delivery <= 0)) {
+        alert('Якщо тип оплати "Побранє" або "Самовивіз PL", наложка є обов\'язковою і повинна бути більше 0!');
+        return;
+      }
+    }
+
     if (!dataToSubmit.supplier_id || dataToSubmit.supplier_id === '') {
       delete dataToSubmit.supplier_id;
     }
@@ -705,6 +747,31 @@ export default function Orders() {
       return;
     }
 
+    if (!newRowData.part_price || newRowData.part_price <= 0) {
+      alert('Вартість запчастини є обов\'язковим полем і повинна бути більше 0!');
+      return;
+    }
+
+    if (!newRowData.part_number || newRowData.part_number.trim() === '') {
+      alert('Номер запчастини є обов\'язковим полем!');
+      return;
+    }
+
+    if (!newRowData.payment_type || newRowData.payment_type === 'не обрано') {
+      alert('Необхідно обрати тип оплати!');
+      return;
+    }
+
+    if (newRowData.payment_type === 'оплачено' && newRowData.cash_on_delivery > 0) {
+      alert('Якщо оплата "Оплачено", наложка повинна дорівнювати 0!');
+      return;
+    }
+
+    if ((newRowData.payment_type === 'побранє' || newRowData.payment_type === 'самовивіз pl') && (!newRowData.cash_on_delivery || newRowData.cash_on_delivery <= 0)) {
+      alert('Якщо тип оплати "Побранє" або "Самовивіз PL", наложка є обов\'язковою і повинна бути більше 0!');
+      return;
+    }
+
     const dataToSubmit: any = { ...newRowData };
 
     if (!dataToSubmit.supplier_id || dataToSubmit.supplier_id === '') {
@@ -800,17 +867,19 @@ export default function Orders() {
     'не обрано': 'bg-gray-100 text-gray-800',
     'оплачено': 'bg-green-100 text-green-800',
     'побранє': 'bg-orange-100 text-orange-800',
-    'самовивіз pl': 'bg-blue-100 text-blue-800'
+    'самовивіз pl': 'bg-blue-100 text-blue-800',
+    'оплачено по перерахунку': 'bg-teal-100 text-teal-800'
   };
 
   const paymentTypeLabels: Record<string, string> = {
     'не обрано': 'Не обрано',
     'оплачено': 'Оплачено',
     'побранє': 'Побранє',
-    'самовивіз pl': 'Самовивіз PL'
+    'самовивіз pl': 'Самовивіз PL',
+    'оплачено по перерахунку': 'Оплачено по перерахунку'
   };
 
-  const paymentTypes = ['не обрано', 'оплачено', 'побранє', 'самовивіз pl'];
+  const paymentTypes = ['не обрано', 'оплачено', 'побранє', 'самовивіз pl', 'оплачено по перерахунку'];
 
   const statusLabels: Record<string, string> = {
     'в роботі на сьогодні': 'В роботі на сьогодні',
@@ -1155,13 +1224,21 @@ export default function Orders() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Тип оплати</label>
                 <select
                   value={formData.payment_type}
-                  onChange={(e) => setFormData({ ...formData, payment_type: e.target.value })}
+                  onChange={(e) => {
+                    const newPaymentType = e.target.value;
+                    setFormData({
+                      ...formData,
+                      payment_type: newPaymentType,
+                      cash_on_delivery: newPaymentType === 'оплачено' ? 0 : formData.cash_on_delivery
+                    });
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 >
                   <option value="не обрано" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Не обрано</option>
                   <option value="оплачено" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Оплачено</option>
                   <option value="побранє" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Побранє</option>
                   <option value="самовивіз pl" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Самовивіз PL</option>
+                  <option value="оплачено по перерахунку" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Оплачено по перерахунку</option>
                 </select>
               </div>
 
@@ -1205,7 +1282,8 @@ export default function Orders() {
                   step="0.01"
                   value={formData.cash_on_delivery}
                   onChange={(e) => setFormData({ ...formData, cash_on_delivery: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  disabled={formData.payment_type === 'оплачено'}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -1448,7 +1526,14 @@ export default function Orders() {
                     <td className="p-0 relative">
                       <select
                         value={newRowData.payment_type}
-                        onChange={(e) => setNewRowData({ ...newRowData, payment_type: e.target.value })}
+                        onChange={(e) => {
+                          const newPaymentType = e.target.value;
+                          setNewRowData({
+                            ...newRowData,
+                            payment_type: newPaymentType,
+                            cash_on_delivery: newPaymentType === 'оплачено' ? 0 : newRowData.cash_on_delivery
+                          });
+                        }}
                         className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 text-gray-900 dark:text-gray-100"
                       >
                         {paymentTypes.map((type) => (
@@ -1469,8 +1554,9 @@ export default function Orders() {
                         value={newRowData.cash_on_delivery}
                         onChange={(e) => setNewRowData({ ...newRowData, cash_on_delivery: Number(e.target.value) })}
                         onKeyDown={handleNewRowKeyDown}
+                        disabled={newRowData.payment_type === 'оплачено'}
                         placeholder="0"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </td>
                     <td className="px-3 py-3 min-h-[48px]">
