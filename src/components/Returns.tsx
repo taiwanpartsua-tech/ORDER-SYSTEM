@@ -152,6 +152,11 @@ export default function Returns() {
   async function saveNewRow() {
     const dataToSubmit: any = { ...newRowData };
 
+    if (!dataToSubmit.client_id || dataToSubmit.client_id.trim() === '') {
+      showWarning('ID клієнта є обов\'язковим полем!');
+      return;
+    }
+
     if (!dataToSubmit.title || dataToSubmit.title.trim() === '') {
       showWarning('Назва є обов\'язковим полем!');
       return;
@@ -180,10 +185,6 @@ export default function Returns() {
     if (dataToSubmit.payment_type === 'оплачено' && dataToSubmit.cash_on_delivery > 0) {
       showWarning('Якщо оплата "Оплачено", наложка повинна дорівнювати 0!');
       return;
-    }
-
-    if (dataToSubmit.client_id === '') {
-      delete dataToSubmit.client_id;
     }
 
     if (dataToSubmit.manager_id === '') {
@@ -521,8 +522,8 @@ export default function Returns() {
                         type="text"
                         value={newRowData.client_id}
                         onChange={(e) => setNewRowData({ ...newRowData, client_id: e.target.value })}
-                        placeholder="ID клієнта"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
+                        placeholder="ID клієнта *"
+                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
                       />
                     </td>
                     <td className="px-3 py-2">
