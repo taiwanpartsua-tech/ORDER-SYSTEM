@@ -28,3 +28,130 @@
     background: #94a3b8;
   }
 }
+
+@media print {
+  body {
+    background: white !important;
+  }
+
+  @page {
+    size: A4 landscape;
+    margin: 1cm;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+
+  .print\:bg-white {
+    background-color: white !important;
+  }
+
+  .print\:text-black {
+    color: black !important;
+  }
+
+  .print\:border-black {
+    border-color: black !important;
+  }
+
+  .print\:bg-gray-200 {
+    background-color: #e5e7eb !important;
+  }
+
+  .print\:bg-blue-50 {
+    background-color: #eff6ff !important;
+  }
+
+  .print\:bg-green-50 {
+    background-color: #f0fdf4 !important;
+  }
+
+  .print\:bg-purple-50 {
+    background-color: #faf5ff !important;
+  }
+
+  .print\:bg-orange-50 {
+    background-color: #fff7ed !important;
+  }
+
+  .print\:bg-yellow-50 {
+    background-color: #fefce8 !important;
+  }
+
+  .print\:border {
+    border-width: 1px !important;
+  }
+
+  .print\:border-blue-300 {
+    border-color: #93c5fd !important;
+  }
+
+  .print\:border-green-300 {
+    border-color: #86efac !important;
+  }
+
+  .print\:border-purple-300 {
+    border-color: #d8b4fe !important;
+  }
+
+  .print\:border-orange-300 {
+    border-color: #fdba74 !important;
+  }
+
+  .print\:p-8 {
+    padding: 2rem !important;
+  }
+
+  .print\:mb-12 {
+    margin-bottom: 3rem !important;
+  }
+
+  .print\:mt-16 {
+    margin-top: 4rem !important;
+  }
+
+  .print\:hover\:bg-transparent:hover {
+    background-color: transparent !important;
+  }
+
+  .print\:text-blue-600 {
+    color: #2563eb !important;
+  }
+
+  .print\:text-blue-900 {
+    color: #1e3a8a !important;
+  }
+
+  .print\:text-green-600 {
+    color: #16a34a !important;
+  }
+
+  .print\:text-green-900 {
+    color: #14532d !important;
+  }
+
+  .print\:text-purple-600 {
+    color: #9333ea !important;
+  }
+
+  .print\:text-purple-900 {
+    color: #581c87 !important;
+  }
+
+  .print\:text-orange-600 {
+    color: #ea580c !important;
+  }
+
+  .print\:text-orange-900 {
+    color: #7c2d12 !important;
+  }
+
+  .print\:text-yellow-900 {
+    color: #713f12 !important;
+  }
+
+  .print\:text-yellow-800 {
+    color: #854d0e !important;
+  }
+}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase, Order, Supplier } from '../lib/supabase';
-import { Plus, CreditCard as Edit, Archive, X, ExternalLink, ChevronDown, Layers, ChevronUp, Check, RotateCcw } from 'lucide-react';
+import { Plus, CreditCard as Edit, Archive, X, ExternalLink, ChevronDown, Layers, ChevronUp, Check, RotateCcw, Printer, Download } from 'lucide-react';
 import Returns from './Returns';
 
 type AcceptedOrder = {
@@ -52,6 +52,8 @@ export default function Orders() {
   const [acceptingOrderId, setAcceptingOrderId] = useState<string | null>(null);
   const [acceptExplanation, setAcceptExplanation] = useState('');
   const [isAcceptedOrdersModalOpen, setIsAcceptedOrdersModalOpen] = useState(false);
+  const [selectedReceiptNumber, setSelectedReceiptNumber] = useState<string | null>(null);
+  const [receiptDetails, setReceiptDetails] = useState<AcceptedOrder[]>([]);
   const [newRowData, setNewRowData] = useState({
     order_number: '',
     supplier_id: '',
@@ -217,6 +219,23 @@ export default function Orders() {
     if (!error && data) {
       setAcceptedOrders(data as any);
     }
+  }
+
+  async function openReceiptDetails(receiptNumber: string) {
+    setSelectedReceiptNumber(receiptNumber);
+    const { data, error } = await supabase
+      .from('accepted_orders')
+      .select('*')
+      .eq('receipt_number', receiptNumber)
+      .order('accepted_at', { ascending: true });
+
+    if (!error && data) {
+      setReceiptDetails(data as any);
+    }
+  }
+
+  function printReceipt() {
+    window.print();
   }
 
   async function loadSuppliers() {
@@ -2119,8 +2138,9 @@ export default function Orders() {
                   {acceptedOrders.map((order) => (
                     <tr key={order.id} className="hover:bg-green-100 dark:hover:bg-green-800/20 transition">
                       <td
-                        className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100 font-semibold cursor-help"
+                        className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100 font-semibold cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
                         title={order.explanation || 'Немає пояснення'}
+                        onClick={() => openReceiptDetails(order.receipt_number)}
                       >
                         {order.receipt_number}
                       </td>
@@ -2159,6 +2179,163 @@ export default function Orders() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedReceiptNumber && receiptDetails.length > 0 && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10001] p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg w-full h-full max-w-[98%] max-h-[98vh] shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 print:hidden">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Документ прийому: {selectedReceiptNumber}</h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={printReceipt}
+                  className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition flex items-center gap-2"
+                  title="Друкувати/Зберегти PDF"
+                >
+                  <Printer size={20} />
+                  <span>Друк</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedReceiptNumber(null);
+                    setReceiptDetails([]);
+                  }}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+                >
+                  <X size={24} className="text-gray-600 dark:text-gray-400" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto p-6 print:p-8">
+              <div className="max-w-7xl mx-auto bg-white dark:bg-gray-900 print:bg-white">
+                <div className="text-center mb-8 print:mb-12">
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 print:text-black mb-2">ДОКУМЕНТ ПРИЙОМУ ТОВАРУ</h1>
+                  <p className="text-xl text-gray-700 dark:text-gray-300 print:text-black">№ {selectedReceiptNumber}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 print:text-black mt-2">
+                    Дата прийому: {new Date(receiptDetails[0].accepted_at).toLocaleDateString('uk-UA', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                  {receiptDetails[0].explanation && (
+                    <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg print:bg-yellow-50">
+                      <p className="text-sm font-semibold text-yellow-900 dark:text-yellow-200 print:text-yellow-900">Пояснення:</p>
+                      <p className="text-sm text-yellow-800 dark:text-yellow-300 print:text-yellow-800">{receiptDetails[0].explanation}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mb-8">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 print:text-black mb-4 border-b-2 border-gray-300 dark:border-gray-600 print:border-black pb-2">
+                    Загальна інформація
+                  </h2>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg print:bg-blue-50 print:border print:border-blue-300">
+                      <p className="text-xs text-blue-600 dark:text-blue-400 print:text-blue-600 font-semibold">Кількість позицій</p>
+                      <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 print:text-blue-900">{receiptDetails.length}</p>
+                    </div>
+                    <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg print:bg-green-50 print:border print:border-green-300">
+                      <p className="text-xs text-green-600 dark:text-green-400 print:text-green-600 font-semibold">Загальна вага</p>
+                      <p className="text-2xl font-bold text-green-900 dark:text-green-100 print:text-green-900">
+                        {receiptDetails.reduce((sum, item) => sum + item.weight_kg, 0).toFixed(2)} кг
+                      </p>
+                    </div>
+                    <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg print:bg-purple-50 print:border print:border-purple-300">
+                      <p className="text-xs text-purple-600 dark:text-purple-400 print:text-purple-600 font-semibold">Отримано PLN</p>
+                      <p className="text-2xl font-bold text-purple-900 dark:text-purple-100 print:text-purple-900">
+                        {receiptDetails.reduce((sum, item) => sum + item.received_pln, 0).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg print:bg-orange-50 print:border print:border-orange-300">
+                      <p className="text-xs text-orange-600 dark:text-orange-400 print:text-orange-600 font-semibold">Транспорт USD</p>
+                      <p className="text-2xl font-bold text-orange-900 dark:text-orange-100 print:text-orange-900">
+                        {receiptDetails.reduce((sum, item) => sum + item.transport_cost_usd, 0).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-8">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 print:text-black mb-4 border-b-2 border-gray-300 dark:border-gray-600 print:border-black pb-2">
+                    Деталі замовлень
+                  </h2>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse border border-gray-300 dark:border-gray-600 print:border-black">
+                      <thead>
+                        <tr className="bg-gray-100 dark:bg-gray-700 print:bg-gray-200">
+                          <th className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 print:text-black">#</th>
+                          <th className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 print:text-black">№ Замовлення</th>
+                          <th className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 print:text-black">Назва</th>
+                          <th className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 print:text-black">ID Клієнта</th>
+                          <th className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 print:text-black">№ Запчастини</th>
+                          <th className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 print:text-black">ТТН</th>
+                          <th className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100 print:text-black">Вага (кг)</th>
+                          <th className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100 print:text-black">Запчастини</th>
+                          <th className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100 print:text-black">Доставка</th>
+                          <th className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100 print:text-black">Отримали PLN</th>
+                          <th className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100 print:text-black">Наложка</th>
+                          <th className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100 print:text-black">Транспорт USD</th>
+                          <th className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 print:text-black">Тип оплати</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {receiptDetails.map((order, index) => (
+                          <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 print:hover:bg-transparent">
+                            <td className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black font-semibold">{index + 1}</td>
+                            <td className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black">{order.order_number || '-'}</td>
+                            <td className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black">{order.title || '-'}</td>
+                            <td className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black">{order.client_id || '-'}</td>
+                            <td className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black">{order.part_number || '-'}</td>
+                            <td className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black">{order.tracking_number || '-'}</td>
+                            <td className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black text-right">{order.weight_kg.toFixed(2)}</td>
+                            <td className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black text-right">{order.part_price.toFixed(2)}</td>
+                            <td className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black text-right">{order.delivery_cost.toFixed(2)}</td>
+                            <td className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black text-right">{order.received_pln.toFixed(2)}</td>
+                            <td className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black text-right">{order.cash_on_delivery.toFixed(2)}</td>
+                            <td className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black text-right">{order.transport_cost_usd.toFixed(2)}</td>
+                            <td className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black">{order.payment_type || '-'}</td>
+                          </tr>
+                        ))}
+                        <tr className="bg-gray-100 dark:bg-gray-700 print:bg-gray-200 font-bold">
+                          <td colSpan={6} className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black text-right">РАЗОМ:</td>
+                          <td className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black text-right">
+                            {receiptDetails.reduce((sum, item) => sum + item.weight_kg, 0).toFixed(2)}
+                          </td>
+                          <td className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black text-right">
+                            {receiptDetails.reduce((sum, item) => sum + item.part_price, 0).toFixed(2)}
+                          </td>
+                          <td className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black text-right">
+                            {receiptDetails.reduce((sum, item) => sum + item.delivery_cost, 0).toFixed(2)}
+                          </td>
+                          <td className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black text-right">
+                            {receiptDetails.reduce((sum, item) => sum + item.received_pln, 0).toFixed(2)}
+                          </td>
+                          <td className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black text-right">
+                            {receiptDetails.reduce((sum, item) => sum + item.cash_on_delivery, 0).toFixed(2)}
+                          </td>
+                          <td className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black text-right">
+                            {receiptDetails.reduce((sum, item) => sum + item.transport_cost_usd, 0).toFixed(2)}
+                          </td>
+                          <td className="border border-gray-300 dark:border-gray-600 print:border-black px-3 py-3 text-sm text-gray-900 dark:text-gray-100 print:text-black"></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="mt-12 print:mt-16 border-t-2 border-gray-300 dark:border-gray-600 print:border-black pt-8">
+                  <div className="grid grid-cols-2 gap-8">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 print:text-black mb-2">Підпис відповідальної особи:</p>
+                      <div className="border-b-2 border-gray-400 dark:border-gray-500 print:border-black h-12"></div>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 print:text-black mb-2">Дата:</p>
+                      <div className="border-b-2 border-gray-400 dark:border-gray-500 print:border-black h-12"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
