@@ -11,7 +11,7 @@ export const statusColors: Record<string, string> = {
   'в активному прийомі': 'bg-indigo-50 text-indigo-800 dark:bg-gradient-to-br dark:from-indigo-950 dark:to-indigo-900 dark:text-indigo-200 dark:border dark:border-indigo-800/30',
   'на звірці': 'bg-violet-50 text-violet-800 dark:bg-gradient-to-br dark:from-violet-950 dark:to-violet-900 dark:text-violet-200 dark:border dark:border-violet-800/30',
   'повернення': 'bg-amber-50 text-amber-800 dark:bg-gradient-to-br dark:from-amber-950 dark:to-amber-900 dark:text-amber-200 dark:border dark:border-amber-800/30',
-  'проблемні': 'bg-red-50 text-red-800 dark:bg-gradient-to-br dark:from-red-950 dark:to-red-900 dark:text-red-200 dark:border dark:border-red-800/30',
+  'проблемні': 'bg-rose-50 text-rose-800 dark:bg-gradient-to-br dark:from-rose-950 dark:to-rose-900 dark:text-rose-200 dark:border dark:border-rose-800/30',
   'анульовано': 'bg-gray-50 text-gray-800 dark:bg-gradient-to-br dark:from-gray-900 dark:to-gray-800 dark:text-gray-300 dark:border dark:border-gray-700/30'
 };
 

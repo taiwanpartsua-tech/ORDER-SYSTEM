@@ -753,7 +753,7 @@ export default function CombinedSettlement() {
       <div className="grid grid-cols-3 gap-3 mb-3">
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-lg p-3 border border-blue-200 dark:border-blue-700">
           <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">Прийом і побраня (PLN)</div>
-          <div className={`text-xl font-bold ${balanceReceiptPln > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+          <div className={`text-xl font-bold ${balanceReceiptPln > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-green-600 dark:text-green-400'}`}>
             {formatNumber(balanceReceiptPln)} zł
           </div>
           <div className="text-[10px] text-blue-600 dark:text-blue-400 mt-0.5">
@@ -763,7 +763,7 @@ export default function CombinedSettlement() {
 
         <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 rounded-lg p-3 border border-green-200 dark:border-green-700">
           <div className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">Перевезення (USD)</div>
-          <div className={`text-xl font-bold ${balanceTransportUsd > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+          <div className={`text-xl font-bold ${balanceTransportUsd > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-green-600 dark:text-green-400'}`}>
             {formatNumber(balanceTransportUsd)} $
           </div>
           <div className="text-[10px] text-green-600 dark:text-green-400 mt-0.5">
@@ -771,9 +771,9 @@ export default function CombinedSettlement() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/30 rounded-lg p-3 border border-orange-200 dark:border-orange-700">
-          <div className="text-xs font-medium text-orange-600 dark:text-orange-400 mb-1">Картковий баланс (PLN)</div>
-          <div className={`text-xl font-bold ${balanceCardPln > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+        <div className="bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-900/30 dark:to-yellow-900/30 rounded-lg p-3 border border-orange-200 dark:border-orange-700">
+          <div className="text-xs font-medium bg-gradient-to-r from-orange-600 to-yellow-600 dark:from-orange-400 dark:to-yellow-400 bg-clip-text text-transparent mb-1 font-semibold">Картковий баланс (PLN)</div>
+          <div className={`text-xl font-bold ${balanceCardPln > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-green-600 dark:text-green-400'}`}>
             {formatNumber(balanceCardPln)} zł
           </div>
           <div className="text-[10px] text-orange-600 dark:text-orange-400 mt-0.5">
@@ -798,7 +798,7 @@ export default function CombinedSettlement() {
             onClick={() => setSettlementType('card')}
             className={`flex-1 px-4 py-3 font-medium transition ${
               settlementType === 'card'
-                ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border-b-2 border-orange-600 dark:border-orange-400'
+                ? 'bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/30 dark:to-yellow-900/30 text-orange-600 dark:text-orange-400 border-b-2 border-orange-600 dark:border-orange-400'
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
             }`}
           >
@@ -815,7 +815,7 @@ export default function CombinedSettlement() {
                 setShowChargeForm(!showChargeForm);
                 setShowPaymentForm(false);
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-rose-700 text-white rounded-lg hover:bg-rose-800 dark:bg-gradient-to-br dark:from-rose-900 dark:to-rose-800 dark:hover:from-rose-800 dark:hover:to-rose-700 transition-colors"
             >
               <TrendingUp size={16} />
               Нарахування
@@ -882,7 +882,7 @@ export default function CombinedSettlement() {
                   />
                 </div>
                 <div className="flex gap-2">
-                  <button type="submit" className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700">
+                  <button type="submit" className="px-3 py-1.5 text-sm bg-rose-700 text-white rounded-lg hover:bg-rose-800 dark:bg-gradient-to-br dark:from-rose-900 dark:to-rose-800 dark:hover:from-rose-800 dark:hover:to-rose-700">
                     Зберегти
                   </button>
                   <button type="button" onClick={() => setShowChargeForm(false)} className="px-3 py-1.5 text-sm bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500">
@@ -972,11 +972,11 @@ export default function CombinedSettlement() {
                             </div>
                             <div className="text-sm mt-1">
                               <span className="font-medium text-gray-700 dark:text-gray-300">Прийом і побраня:</span>{' '}
-                              <span className="text-red-600 dark:text-red-400 font-bold">{formatNumber(receiptCashPln)} zł</span>
+                              <span className="text-rose-700 dark:text-rose-400 font-bold">{formatNumber(receiptCashPln)} zł</span>
                             </div>
                             <div className="text-sm">
                               <span className="font-medium text-gray-700 dark:text-gray-300">Перевезення:</span>{' '}
-                              <span className="text-red-600 dark:text-red-400 font-bold">{formatNumber(transportUsd)} $</span>
+                              <span className="text-rose-700 dark:text-rose-400 font-bold">{formatNumber(transportUsd)} $</span>
                             </div>
                           </div>
                           <div className="flex gap-1">
@@ -1029,19 +1029,19 @@ export default function CombinedSettlement() {
                           </td>
                           <td className="px-2 py-2 text-gray-900 dark:text-gray-100">
                             {tx.description}
-                            {tx.is_reversed && <span className="ml-1 text-xs text-red-600 dark:text-red-400">(сторновано)</span>}
+                            {tx.is_reversed && <span className="ml-1 text-xs text-rose-700 dark:text-rose-400">(сторновано)</span>}
                           </td>
-                          <td className={`px-2 py-2 text-right font-medium ${isDebit ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                          <td className={`px-2 py-2 text-right font-medium ${isDebit ? 'text-rose-700 dark:text-rose-400' : 'text-green-600 dark:text-green-400'}`}>
                             {isDebit ? '+' : '-'}{formatNumber(cashPln)}
                           </td>
-                          <td className={`px-2 py-2 text-right font-medium ${isDebit ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                          <td className={`px-2 py-2 text-right font-medium ${isDebit ? 'text-rose-700 dark:text-rose-400' : 'text-green-600 dark:text-green-400'}`}>
                             {isDebit ? '+' : '-'}{formatNumber(transportUsd)}
                           </td>
                           <td className="px-2 py-2 text-center">
                             {!tx.is_reversed && (
                               <button
                                 onClick={() => reverseCashTransaction(tx)}
-                                className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition"
+                                className="p-1 text-red-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded transition"
                                 title="Сторнувати"
                               >
                                 <XCircle size={14} />
@@ -1105,7 +1105,7 @@ export default function CombinedSettlement() {
                 setShowChargeForm(!showChargeForm);
                 setShowPaymentForm(false);
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-rose-700 text-white rounded-lg hover:bg-rose-800 dark:bg-gradient-to-br dark:from-rose-900 dark:to-rose-800 dark:hover:from-rose-800 dark:hover:to-rose-700 transition-colors"
             >
               <TrendingUp size={16} />
               Нарахування
@@ -1161,7 +1161,7 @@ export default function CombinedSettlement() {
                   />
                 </div>
                 <div className="flex gap-2">
-                  <button type="submit" className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700">
+                  <button type="submit" className="px-3 py-1.5 text-sm bg-rose-700 text-white rounded-lg hover:bg-rose-800 dark:bg-gradient-to-br dark:from-rose-900 dark:to-rose-800 dark:hover:from-rose-800 dark:hover:to-rose-700">
                     Зберегти
                   </button>
                   <button type="button" onClick={() => setShowChargeForm(false)} className="px-3 py-1.5 text-sm bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500">
@@ -1241,7 +1241,7 @@ export default function CombinedSettlement() {
                             </div>
                             <div className="text-sm mt-1">
                               <span className="font-medium text-gray-700 dark:text-gray-300">Сума до оплати:</span>{' '}
-                              <span className="text-red-600 dark:text-red-400 font-bold">{formatNumber(totalAmount)} zł</span>
+                              <span className="text-rose-700 dark:text-rose-400 font-bold">{formatNumber(totalAmount)} zł</span>
                             </div>
                           </div>
                           <div className="flex gap-1">
@@ -1291,16 +1291,16 @@ export default function CombinedSettlement() {
                           </td>
                           <td className="px-2 py-2 text-gray-900 dark:text-gray-100">
                             {tx.description}
-                            {tx.is_reversed && <span className="ml-1 text-xs text-red-600 dark:text-red-400">(сторновано)</span>}
+                            {tx.is_reversed && <span className="ml-1 text-xs text-rose-700 dark:text-rose-400">(сторновано)</span>}
                           </td>
-                          <td className={`px-2 py-2 text-right font-medium ${isCharge ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                          <td className={`px-2 py-2 text-right font-medium ${isCharge ? 'text-rose-700 dark:text-rose-400' : 'text-green-600 dark:text-green-400'}`}>
                             {isCharge ? '+' : '-'}{formatNumber(tx.amount)}
                           </td>
                           <td className="px-2 py-2 text-center">
                             {!tx.is_reversed && (
                               <button
                                 onClick={() => reverseCardTransaction(tx)}
-                                className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition"
+                                className="p-1 text-red-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded transition"
                                 title="Сторнувати"
                               >
                                 <XCircle size={14} />

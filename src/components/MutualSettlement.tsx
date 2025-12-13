@@ -419,14 +419,14 @@ export default function MutualSettlement() {
         <div className="flex gap-2">
           <button
             onClick={() => setShowChargeForm(!showChargeForm)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-rose-700 text-white rounded-lg hover:bg-rose-800 dark:bg-gradient-to-br dark:from-rose-900 dark:to-rose-800 dark:hover:from-rose-800 dark:hover:to-rose-700 transition-colors"
           >
             <TrendingUp size={16} />
             Нарахування
           </button>
           <button
             onClick={() => setShowPaymentForm(!showPaymentForm)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-gradient-to-br dark:from-green-800 dark:to-green-700 dark:hover:from-green-700 dark:hover:to-green-600 transition-colors"
           >
             <Plus size={16} />
             Платіж
@@ -435,22 +435,22 @@ export default function MutualSettlement() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-3">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200">
-          <div className="text-xs font-medium text-blue-600 mb-1">Прийом і побраня (PLN)</div>
-          <div className={`text-xl font-bold ${balanceReceiptPln > 0 ? 'text-red-600' : 'text-green-600'}`}>
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+          <div className="text-xs font-medium text-blue-600 dark:text-blue-300 mb-1">Прийом і побраня (PLN)</div>
+          <div className={`text-xl font-bold ${balanceReceiptPln > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-green-600 dark:text-green-400'}`}>
             {formatNumber(balanceReceiptPln)} zł
           </div>
-          <div className="text-[10px] text-blue-600 mt-0.5">
+          <div className="text-[10px] text-blue-600 dark:text-blue-400 mt-0.5">
             {balanceReceiptPln > 0 ? 'до сплати' : 'закрито'}
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 border border-green-200">
-          <div className="text-xs font-medium text-green-600 mb-1">Перевезення (USD)</div>
-          <div className={`text-xl font-bold ${balanceTransportUsd > 0 ? 'text-red-600' : 'text-green-600'}`}>
+        <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 rounded-lg p-3 border border-green-200 dark:border-green-800">
+          <div className="text-xs font-medium text-green-600 dark:text-green-300 mb-1">Перевезення (USD)</div>
+          <div className={`text-xl font-bold ${balanceTransportUsd > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-green-600 dark:text-green-400'}`}>
             {formatNumber(balanceTransportUsd)} $
           </div>
-          <div className="text-[10px] text-green-600 mt-0.5">
+          <div className="text-[10px] text-green-600 dark:text-green-400 mt-0.5">
             {balanceTransportUsd > 0 ? 'до сплати' : 'закрито'}
           </div>
         </div>
@@ -506,10 +506,10 @@ export default function MutualSettlement() {
               />
             </div>
             <div className="flex gap-2">
-              <button type="submit" className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700">
+              <button type="submit" className="px-3 py-1.5 text-sm bg-rose-700 text-white rounded-lg hover:bg-rose-800 dark:bg-gradient-to-br dark:from-rose-900 dark:to-rose-800 dark:hover:from-rose-800 dark:hover:to-rose-700">
                 Зберегти
               </button>
-              <button type="button" onClick={() => setShowChargeForm(false)} className="px-3 py-1.5 text-sm bg-gray-300 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-400">
+              <button type="button" onClick={() => setShowChargeForm(false)} className="px-3 py-1.5 text-sm bg-gray-300 text-gray-700 dark:bg-gradient-to-br dark:from-gray-700 dark:to-gray-600 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:from-gray-600 dark:hover:to-gray-500">
                 Скасувати
               </button>
             </div>
@@ -566,10 +566,10 @@ export default function MutualSettlement() {
               />
             </div>
             <div className="flex gap-2">
-              <button type="submit" className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              <button type="submit" className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-gradient-to-br dark:from-blue-800 dark:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-600">
                 Зберегти
               </button>
-              <button type="button" onClick={() => setShowPaymentForm(false)} className="px-3 py-1.5 text-sm bg-gray-300 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-400">
+              <button type="button" onClick={() => setShowPaymentForm(false)} className="px-3 py-1.5 text-sm bg-gray-300 text-gray-700 dark:bg-gradient-to-br dark:from-gray-700 dark:to-gray-600 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:from-gray-600 dark:hover:to-gray-500">
                 Скасувати
               </button>
             </div>
@@ -585,17 +585,17 @@ export default function MutualSettlement() {
               const orders = receiptOrders[receipt.id] || [];
               const totalPositions = orders.length;
               return (
-                <div key={receipt.id} className="p-2 bg-amber-50 rounded border border-amber-200">
+                <div key={receipt.id} className="p-2 bg-amber-50 dark:bg-gradient-to-br dark:from-amber-950 dark:to-amber-900 rounded border border-amber-200 dark:border-amber-800">
                   <div className="flex justify-between items-start mb-1.5">
                     <div>
-                      <div className="text-sm font-medium">№{receipt.receipt_number}</div>
-                      <div className="text-xs text-gray-600 dark:text-gray-300">{receipt.receipt_date}</div>
-                      <div className="text-[10px] text-gray-500 dark:text-gray-400">Позицій: {totalPositions}</div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-amber-200">№{receipt.receipt_number}</div>
+                      <div className="text-xs text-gray-600 dark:text-amber-300">{receipt.receipt_date}</div>
+                      <div className="text-[10px] text-gray-500 dark:text-amber-400">Позицій: {totalPositions}</div>
                     </div>
                     <div className="flex gap-1">
                       <button
                         onClick={() => returnToActive(receipt.id)}
-                        className="px-2 py-1 bg-orange-600 text-white rounded text-[10px] hover:bg-orange-700 transition flex items-center gap-0.5"
+                        className="px-2 py-1 bg-gradient-to-r from-orange-600 to-yellow-500 text-white rounded text-[10px] hover:from-orange-700 hover:to-yellow-600 dark:from-orange-700 dark:to-yellow-600 dark:hover:from-orange-800 dark:hover:to-yellow-700 transition flex items-center gap-0.5"
                         title="Повернути в активні"
                       >
                         <Undo2 size={12} />
@@ -603,7 +603,7 @@ export default function MutualSettlement() {
                       </button>
                       <button
                         onClick={() => markAsSettled(receipt.id)}
-                        className="px-2 py-1 bg-green-600 text-white rounded text-[10px] hover:bg-green-700 transition flex items-center gap-0.5"
+                        className="px-2 py-1 bg-green-600 text-white rounded text-[10px] hover:bg-green-700 dark:bg-gradient-to-br dark:from-green-800 dark:to-green-700 dark:hover:from-green-700 dark:hover:to-green-600 transition flex items-center gap-0.5"
                       >
                         <CheckCircle2 size={12} />
                         Розрахувати
@@ -638,18 +638,18 @@ export default function MutualSettlement() {
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-2.5">
-          <h3 className="text-sm font-semibold text-green-700 mb-2">Розраховано ({settledReceipts.length})</h3>
+          <h3 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-2">Розраховано ({settledReceipts.length})</h3>
           <div className="space-y-1.5 max-h-32 overflow-y-auto">
             {settledReceipts.map(receipt => (
-              <div key={receipt.id} className="p-1.5 bg-green-50 rounded border border-green-200">
+              <div key={receipt.id} className="p-1.5 bg-green-50 dark:bg-gradient-to-br dark:from-green-950 dark:to-green-900 rounded border border-green-200 dark:border-green-800">
                 <div className="flex justify-between items-start mb-1">
                   <div>
-                    <div className="font-medium text-xs">№{receipt.receipt_number}</div>
-                    <div className="text-[10px] text-gray-600 dark:text-gray-300">
+                    <div className="font-medium text-xs text-gray-900 dark:text-green-200">№{receipt.receipt_number}</div>
+                    <div className="text-[10px] text-gray-600 dark:text-green-300">
                       {formatNumber((receipt.receipt_cost_pln || 0) + (receipt.cash_on_delivery_pln || 0))} zł | {formatNumber(receipt.transport_cost_usd)} $
                     </div>
                     {receipt.settled_date && (
-                      <div className="text-[10px] text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                      <div className="text-[10px] text-gray-500 dark:text-green-400">
                         {new Date(receipt.settled_date).toLocaleDateString('uk-UA')}
                       </div>
                     )}
@@ -683,12 +683,12 @@ export default function MutualSettlement() {
                           loadTransactions();
                         }
                       }}
-                      className="p-0.5 hover:bg-orange-100 rounded transition"
+                      className="p-0.5 hover:bg-orange-100 dark:hover:bg-orange-900/20 rounded transition"
                       title="Повернути в на розрахунку"
                     >
-                      <Undo2 size={12} className="text-orange-600" />
+                      <Undo2 size={12} className="text-orange-600 dark:text-orange-400" />
                     </button>
-                    <CheckCircle2 size={16} className="text-green-600" />
+                    <CheckCircle2 size={16} className="text-green-600 dark:text-green-400" />
                   </div>
                 </div>
               </div>
@@ -719,57 +719,57 @@ export default function MutualSettlement() {
             {transactions.map((tx) => (
               <tr
                 key={tx.id}
-                className={`${tx.is_reversed ? 'bg-red-50 opacity-50' : 'hover:bg-gray-50'}`}
+                className={`${tx.is_reversed ? 'bg-rose-50 dark:bg-rose-950/20 opacity-50' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}`}
               >
-                <td className={`px-3 py-2 text-xs ${tx.is_reversed ? 'text-red-400 line-through' : 'text-gray-900'}`}>
+                <td className={`px-3 py-2 text-xs ${tx.is_reversed ? 'text-rose-400 line-through' : 'text-gray-900 dark:text-gray-200'}`}>
                   {new Date(tx.transaction_date).toLocaleDateString('uk-UA')}
                 </td>
                 <td className="px-3 py-2 text-xs">
                   <div className="flex items-center gap-1">
                     {tx.is_reversed ? (
                       <>
-                        <XCircle size={14} className="text-red-400" />
-                        <span className="text-red-400 font-medium">Сторновано</span>
+                        <XCircle size={14} className="text-rose-400" />
+                        <span className="text-rose-400 font-medium">Сторновано</span>
                       </>
                     ) : tx.transaction_type === 'debit' ? (
                       <>
-                        <TrendingUp size={14} className="text-red-500" />
-                        <span className="text-red-600 font-medium">Нарахування</span>
+                        <TrendingUp size={14} className="text-rose-500" />
+                        <span className="text-rose-700 dark:text-rose-400 font-medium">Нарахування</span>
                       </>
                     ) : (
                       <>
                         <TrendingDown size={14} className="text-green-500" />
-                        <span className="text-green-600 font-medium">Платіж</span>
+                        <span className="text-green-600 dark:text-green-400 font-medium">Платіж</span>
                       </>
                     )}
                   </div>
                 </td>
-                <td className={`px-3 py-2 text-xs ${tx.is_reversed ? 'text-red-400 line-through' : 'text-gray-900'}`}>
+                <td className={`px-3 py-2 text-xs ${tx.is_reversed ? 'text-rose-400 line-through' : 'text-gray-900 dark:text-gray-200'}`}>
                   {tx.description}
                 </td>
                 <td className="px-3 py-2 text-xs text-right">
                   {(tx.cash_on_delivery_pln || 0) !== 0 && (
-                    <span className={tx.is_reversed ? 'text-red-400 line-through' : tx.transaction_type === 'debit' ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
+                    <span className={tx.is_reversed ? 'text-rose-400 line-through' : tx.transaction_type === 'debit' ? 'text-rose-700 dark:text-rose-400 font-medium' : 'text-green-600 dark:text-green-400 font-medium'}>
                       {tx.transaction_type === 'debit' ? '+' : '-'}{formatNumber(Math.abs(tx.cash_on_delivery_pln || 0))}
                     </span>
                   )}
                 </td>
                 <td className="px-3 py-2 text-xs text-right">
                   {(tx.transport_cost_usd || 0) !== 0 && (
-                    <span className={tx.is_reversed ? 'text-red-400 line-through' : tx.transaction_type === 'debit' ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
+                    <span className={tx.is_reversed ? 'text-rose-400 line-through' : tx.transaction_type === 'debit' ? 'text-rose-700 dark:text-rose-400 font-medium' : 'text-green-600 dark:text-green-400 font-medium'}>
                       {tx.transaction_type === 'debit' ? '+' : '-'}{formatNumber(Math.abs(tx.transport_cost_usd || 0))}
                     </span>
                   )}
                 </td>
                 <td className="px-3 py-2 text-center">
                   {tx.is_reversed ? (
-                    <span className="text-[10px] text-red-400 italic">
+                    <span className="text-[10px] text-rose-400 italic">
                       Сторновано
                     </span>
                   ) : (
                     <button
                       onClick={() => reverseTransaction(tx)}
-                      className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100 transition text-[10px]"
+                      className="inline-flex items-center gap-1 px-2 py-1 bg-rose-50 text-rose-700 rounded hover:bg-rose-100 dark:bg-gradient-to-br dark:from-rose-950 dark:to-rose-900 dark:text-rose-300 dark:hover:from-rose-900 dark:hover:to-rose-800 transition text-[10px]"
                       title="Сторнувати операцію"
                     >
                       <XCircle size={12} />
@@ -795,7 +795,7 @@ export default function MutualSettlement() {
                         return sum + (tx.transaction_type === 'debit' ? amount : -amount);
                       }, 0);
                     return (
-                      <span className={totalPln > 0 ? 'text-red-600' : totalPln < 0 ? 'text-green-600' : 'text-gray-700 dark:text-gray-200'}>
+                      <span className={totalPln > 0 ? 'text-rose-700 dark:text-rose-400' : totalPln < 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-700 dark:text-gray-200'}>
                         {formatNumber(totalPln)} zł
                       </span>
                     );
@@ -810,7 +810,7 @@ export default function MutualSettlement() {
                         return sum + (tx.transaction_type === 'debit' ? amount : -amount);
                       }, 0);
                     return (
-                      <span className={totalUsd > 0 ? 'text-red-600' : totalUsd < 0 ? 'text-green-600' : 'text-gray-700 dark:text-gray-200'}>
+                      <span className={totalUsd > 0 ? 'text-rose-700 dark:text-rose-400' : totalUsd < 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-700 dark:text-gray-200'}>
                         {formatNumber(totalUsd)} $
                       </span>
                     );

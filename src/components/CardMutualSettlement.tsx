@@ -413,7 +413,7 @@ export default function CardMutualSettlement() {
         <div className="flex gap-2">
           <button
             onClick={() => setShowChargeForm(!showChargeForm)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-rose-700 text-white rounded-lg hover:bg-rose-800 dark:bg-gradient-to-br dark:from-rose-900 dark:to-rose-800 dark:hover:from-rose-800 dark:hover:to-rose-700 transition-colors"
           >
             <TrendingUp size={16} />
             Нарахування
@@ -431,7 +431,7 @@ export default function CardMutualSettlement() {
       <div className="grid grid-cols-2 gap-3 mb-3">
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200">
           <div className="text-xs font-medium text-blue-600 mb-1">Баланс картки (PLN)</div>
-          <div className={`text-xl font-bold ${balancePartsPln > 0 ? 'text-red-600' : 'text-green-600'}`}>
+          <div className={`text-xl font-bold ${balancePartsPln > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-green-600'}`}>
             {formatNumber(balancePartsPln)} zł
           </div>
           <div className="text-[10px] text-blue-600 mt-0.5">
@@ -571,7 +571,7 @@ export default function CardMutualSettlement() {
                     <div className="flex gap-1">
                       <button
                         onClick={() => returnToActive(receipt.id)}
-                        className="px-2 py-1 bg-orange-600 text-white rounded text-[10px] hover:bg-orange-700 transition flex items-center gap-0.5"
+                        className="px-2 py-1 bg-gradient-to-r from-orange-600 to-yellow-500 text-white rounded text-[10px] hover:from-orange-700 hover:to-yellow-600 dark:from-orange-700 dark:to-yellow-600 dark:hover:from-orange-800 dark:hover:to-yellow-700 transition flex items-center gap-0.5"
                         title="Повернути в активні"
                       >
                         <ArrowLeft size={12} />
@@ -664,7 +664,7 @@ export default function CardMutualSettlement() {
                         className="p-0.5 hover:bg-orange-100 rounded transition"
                         title="Повернути в на розрахунку"
                       >
-                        <Undo2 size={12} className="text-orange-600" />
+                        <Undo2 size={12} className="text-orange-600 dark:text-orange-400" />
                       </button>
                       <CheckCircle2 size={16} className="text-green-600" />
                     </div>
@@ -697,22 +697,22 @@ export default function CardMutualSettlement() {
             {transactions.map((tx) => (
               <tr
                 key={tx.id}
-                className={`${tx.is_reversed ? 'bg-red-50 opacity-50' : 'hover:bg-gray-50'}`}
+                className={`${tx.is_reversed ? 'bg-rose-50 dark:bg-rose-950/20 opacity-50' : 'hover:bg-gray-50'}`}
               >
-                <td className={`px-3 py-2 text-xs ${tx.is_reversed ? 'text-red-400 line-through' : 'text-gray-900'}`}>
+                <td className={`px-3 py-2 text-xs ${tx.is_reversed ? 'text-rose-400 line-through' : 'text-gray-900'}`}>
                   {new Date(tx.transaction_date).toLocaleDateString('uk-UA')}
                 </td>
                 <td className="px-3 py-2 text-xs">
                   <div className="flex items-center gap-1">
                     {tx.is_reversed ? (
                       <>
-                        <XCircle size={14} className="text-red-400" />
-                        <span className="text-red-400 font-medium">Сторновано</span>
+                        <XCircle size={14} className="text-rose-400" />
+                        <span className="text-rose-400 font-medium">Сторновано</span>
                       </>
                     ) : tx.transaction_type === 'charge' ? (
                       <>
-                        <TrendingUp size={14} className="text-red-500" />
-                        <span className="text-red-600 font-medium">Нарахування</span>
+                        <TrendingUp size={14} className="text-rose-500" />
+                        <span className="text-rose-700 dark:text-rose-400 font-medium">Нарахування</span>
                       </>
                     ) : (
                       <>
@@ -722,23 +722,23 @@ export default function CardMutualSettlement() {
                     )}
                   </div>
                 </td>
-                <td className={`px-3 py-2 text-xs ${tx.is_reversed ? 'text-red-400 line-through' : 'text-gray-900'}`}>
+                <td className={`px-3 py-2 text-xs ${tx.is_reversed ? 'text-rose-400 line-through' : 'text-gray-900'}`}>
                   {tx.description}
                 </td>
                 <td className="px-3 py-2 text-xs text-right">
-                  <span className={tx.is_reversed ? 'text-red-400 line-through' : tx.transaction_type === 'charge' ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
+                  <span className={tx.is_reversed ? 'text-rose-400 line-through' : tx.transaction_type === 'charge' ? 'text-rose-700 dark:text-rose-400 font-medium' : 'text-green-600 font-medium'}>
                     {tx.transaction_type === 'charge' ? '+' : '-'}{formatNumber(Math.abs(tx.amount || 0))}
                   </span>
                 </td>
                 <td className="px-3 py-2 text-center">
                   {tx.is_reversed ? (
-                    <span className="text-[10px] text-red-400 italic">
+                    <span className="text-[10px] text-rose-400 italic">
                       Сторновано
                     </span>
                   ) : (
                     <button
                       onClick={() => reverseTransaction(tx)}
-                      className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100 transition text-[10px]"
+                      className="inline-flex items-center gap-1 px-2 py-1 bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 rounded hover:bg-rose-100 dark:hover:bg-rose-900/40 transition text-[10px]"
                       title="Сторнувати операцію"
                     >
                       <XCircle size={12} />
@@ -764,7 +764,7 @@ export default function CardMutualSettlement() {
                         return sum + (tx.transaction_type === 'charge' ? amount : -amount);
                       }, 0);
                     return (
-                      <span className={total > 0 ? 'text-red-600' : total < 0 ? 'text-green-600' : 'text-gray-700 dark:text-gray-200'}>
+                      <span className={total > 0 ? 'text-rose-700 dark:text-rose-400' : total < 0 ? 'text-green-600' : 'text-gray-700 dark:text-gray-200'}>
                         {formatNumber(total)} zł
                       </span>
                     );
