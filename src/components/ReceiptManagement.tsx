@@ -227,6 +227,31 @@ export default function ReceiptManagement() {
     const receiptOrders = orders[receiptId];
     if (!receiptOrders) return;
 
+    const paidOrdersWithCash = receiptOrders.filter(order =>
+      order.payment_type?.toLowerCase().includes('оплачено') && order.editableCash !== 0
+    );
+
+    if (paidOrdersWithCash.length > 0) {
+      const ordersList = paidOrdersWithCash.map(o => `- ${o.client_id}: ${o.title}`).join('\n');
+      const reason = prompt(
+        `УВАГА! Наступні замовлення мають тип оплати "оплачено", але встановлено побрання:\n\n${ordersList}\n\nЯкщо це не помилка, опишіть причину:`,
+        ''
+      );
+
+      if (reason === null) {
+        return;
+      }
+
+      if (!reason || reason.trim() === '') {
+        const confirmed = confirm(
+          'Ви не вказали причину. Ви впевнені, що хочете продовжити без пояснення?'
+        );
+        if (!confirmed) {
+          return;
+        }
+      }
+    }
+
     for (const order of receiptOrders) {
       await supabase
         .from('orders')
@@ -678,6 +703,46 @@ export default function ReceiptManagement() {
     }
   }
 
+  async function returnToDraft(receiptId: string) {
+    const confirmed = confirm('Повернути прийомку в статус чернетки?');
+    if (!confirmed) return;
+
+    const { data: receiptOrders } = await supabase
+      .from('receipt_orders')
+      .select('order_id')
+      .eq('receipt_id', receiptId);
+
+    if (receiptOrders && receiptOrders.length > 0) {
+      const orderIds = receiptOrders.map(ro => ro.order_id);
+
+      await supabase
+        .from('accepted_orders')
+        .delete()
+        .eq('receipt_id', receiptId);
+
+      for (const orderId of orderIds) {
+        await supabase
+          .from('orders')
+          .update({
+            status: 'в активному прийомі',
+            previous_status: null
+          })
+          .eq('id', orderId);
+      }
+    }
+
+    await supabase
+      .from('active_receipts')
+      .update({
+        status: 'draft',
+        approved_at: null
+      })
+      .eq('id', receiptId);
+
+    alert('Прийомку повернуто в чернетку');
+    loadReceipts();
+  }
+
   function formatNumber(num: number) {
     return new Intl.NumberFormat('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
   }
@@ -841,8 +906,8 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.001"
                           value={order.editableWeight}
-                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableWeight', parseFloat(e.target.value) || 0)}
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableWeight') ? 'bg-yellow-100 border-yellow-400' : ''}`}
+                          disabled
+                          className="w-full px-1 py-1 border rounded text-right tabular-nums bg-gray-100 cursor-not-allowed"
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -850,8 +915,8 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.01"
                           value={order.editableParts}
-                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableParts', parseFloat(e.target.value) || 0)}
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableParts') ? 'bg-yellow-100 border-yellow-400' : ''}`}
+                          disabled
+                          className="w-full px-1 py-1 border rounded text-right tabular-nums bg-gray-100 cursor-not-allowed"
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -859,8 +924,8 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.01"
                           value={order.editableDelivery}
-                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableDelivery', parseFloat(e.target.value) || 0)}
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableDelivery') ? 'bg-yellow-100 border-yellow-400' : ''}`}
+                          disabled
+                          className="w-full px-1 py-1 border rounded text-right tabular-nums bg-gray-100 cursor-not-allowed"
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -868,8 +933,8 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.01"
                           value={order.editableReceipt}
-                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableReceipt', parseFloat(e.target.value) || 0)}
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableReceipt') ? 'bg-yellow-100 border-yellow-400' : ''}`}
+                          disabled
+                          className="w-full px-1 py-1 border rounded text-right tabular-nums bg-gray-100 cursor-not-allowed"
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -877,13 +942,11 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.01"
                           value={order.editableCash}
-                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableCash', parseFloat(e.target.value) || 0)}
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${
+                          disabled
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums cursor-not-allowed ${
                             order.payment_type?.toLowerCase().includes('оплачено') && order.editableCash !== 0
                               ? 'border-red-500 bg-red-50'
-                              : isFieldChanged(order, 'editableCash')
-                              ? 'bg-yellow-100 border-yellow-400'
-                              : ''
+                              : 'bg-gray-100'
                           }`}
                         />
                       </td>
@@ -892,8 +955,8 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.01"
                           value={order.editableTransport}
-                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableTransport', parseFloat(e.target.value) || 0)}
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableTransport') ? 'bg-yellow-100 border-yellow-400' : ''}`}
+                          disabled
+                          className="w-full px-1 py-1 border rounded text-right tabular-nums bg-gray-100 cursor-not-allowed"
                         />
                       </td>
                       <td className="px-2 py-2 truncate">{order.title}</td>
@@ -905,13 +968,7 @@ export default function ReceiptManagement() {
                       <td className="px-2 py-2">{order.order_date}</td>
                       <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.total_cost)}</td>
                       <td className="px-2 py-2 text-center">
-                        <button
-                          onClick={() => removeOrderFromReceipt(receipt.id, order.id)}
-                          className="text-red-600 hover:text-red-900 hover:bg-red-50 p-1 rounded transition"
-                          title="Видалити з прійомки"
-                        >
-                          <X size={16} />
-                        </button>
+                        <span className="text-gray-400 text-xs">Заблоковано</span>
                       </td>
                     </tr>
                   ))}
@@ -941,6 +998,12 @@ export default function ReceiptManagement() {
                 </div>
               </button>
               <div className="flex gap-2">
+                <button
+                  onClick={() => returnToDraft(receipt.id)}
+                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition flex items-center gap-1"
+                >
+                  Повернути в чернетку
+                </button>
                 <button
                   onClick={() => confirmReceipt(receipt)}
                   className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center gap-1"
