@@ -102,17 +102,11 @@ export default function CombinedSettlement() {
       .from('active_receipts')
       .select('*')
       .in('status', ['sent_for_settlement', 'settled'])
-      .or('settlement_type.eq.cash,settlement_type.is.null')
       .order('settlement_date', { ascending: false });
 
     if (data) {
-      const filteredData = data.filter(r => {
-        if (r.status === 'sent_for_settlement') return true;
-        if (r.status === 'settled') return r.settlement_type === 'cash';
-        return false;
-      });
-      setCashReceipts(filteredData);
-      filteredData.forEach(receipt => loadReceiptOrders(receipt.id));
+      setCashReceipts(data);
+      data.forEach(receipt => loadReceiptOrders(receipt.id));
     }
   }
 
@@ -121,17 +115,11 @@ export default function CombinedSettlement() {
       .from('active_receipts')
       .select('*')
       .in('status', ['sent_for_settlement', 'settled'])
-      .or('settlement_type.eq.card,settlement_type.is.null')
       .order('settlement_date', { ascending: false });
 
     if (data) {
-      const filteredData = data.filter(r => {
-        if (r.status === 'sent_for_settlement') return true;
-        if (r.status === 'settled') return r.settlement_type === 'card';
-        return false;
-      });
-      setCardReceipts(filteredData);
-      filteredData.forEach(receipt => loadReceiptOrders(receipt.id));
+      setCardReceipts(data);
+      data.forEach(receipt => loadReceiptOrders(receipt.id));
     }
   }
 
@@ -385,14 +373,14 @@ export default function CombinedSettlement() {
     loadCardTransactions();
   }
 
-  async function markCashAsSettled(receiptId: string) {
-    const receipt = cashReceipts.find(r => r.id === receiptId);
+  async function markAsSettled(receiptId: string) {
+    const receipt = cashReceipts.find(r => r.id === receiptId) || cardReceipts.find(r => r.id === receiptId);
     if (!receipt) return;
 
     const receiptCashPln = (receipt.receipt_cost_pln || 0) + (receipt.cash_on_delivery_pln || 0);
     const transportUsd = receipt.transport_cost_usd || 0;
 
-    const { error: txError } = await supabase
+    const { error: cashTxError } = await supabase
       .from('transactions')
       .insert({
         transaction_type: 'debit',
@@ -407,54 +395,31 @@ export default function CombinedSettlement() {
         created_by: 'system'
       });
 
-    if (txError) {
-      alert('Помилка при створенні транзакції нарахування');
-      console.error(txError);
+    if (cashTxError) {
+      alert('Помилка при створенні готівкової транзакції');
+      console.error(cashTxError);
       return;
     }
-
-    const { error } = await supabase
-      .from('active_receipts')
-      .update({
-        status: 'settled',
-        settled_date: new Date().toISOString(),
-        settlement_type: 'cash'
-      })
-      .eq('id', receiptId);
-
-    if (error) {
-      alert('Помилка при позначенні як розраховано');
-      return;
-    }
-
-    alert('Накладну розраховано. Транзакцію додано в історію.');
-    loadCashReceipts();
-    loadCashTransactions();
-  }
-
-  async function markCardAsSettled(receiptId: string) {
-    const receipt = cardReceipts.find(r => r.id === receiptId);
-    if (!receipt) return;
 
     const orders = receiptOrders[receiptId] || [];
     const paidOrders = orders.filter(o => o.verified && o.payment_type === 'оплачено');
-    const totalAmount = paidOrders.reduce((sum, o) => sum + (o.part_price || 0) + (o.delivery_cost || 0), 0);
+    const totalCardAmount = paidOrders.reduce((sum, o) => sum + (o.part_price || 0) + (o.delivery_cost || 0), 0);
 
-    if (totalAmount > 0) {
-      const { error: txError } = await supabase
+    if (totalCardAmount > 0) {
+      const { error: cardTxError } = await supabase
         .from('card_transactions')
         .insert({
           transaction_type: 'charge',
-          amount: totalAmount,
+          amount: totalCardAmount,
           description: `Нарахування за накладну №${receipt.receipt_number}`,
           transaction_date: new Date().toISOString().split('T')[0],
           receipt_id: receipt.id,
           is_reversed: false
         });
 
-      if (txError) {
-        alert('Помилка при створенні транзакції нарахування');
-        console.error(txError);
+      if (cardTxError) {
+        alert('Помилка при створенні карткової транзакції');
+        console.error(cardTxError);
         return;
       }
     }
@@ -464,7 +429,7 @@ export default function CombinedSettlement() {
       .update({
         status: 'settled',
         settled_date: new Date().toISOString(),
-        settlement_type: 'card'
+        settlement_type: null
       })
       .eq('id', receiptId);
 
@@ -473,12 +438,14 @@ export default function CombinedSettlement() {
       return;
     }
 
-    alert('Накладну розраховано. Транзакцію додано в історію.');
+    alert('Накладну розраховано синхронно по обох рахунках. Транзакції додано в історію.');
+    loadCashReceipts();
     loadCardReceipts();
+    loadCashTransactions();
     loadCardTransactions();
   }
 
-  async function returnToActive(receiptId: string, isCash: boolean) {
+  async function returnToActive(receiptId: string) {
     const confirmed = confirm('Ви впевнені, що хочете повернути накладну в активні?');
     if (!confirmed) return;
 
@@ -498,34 +465,32 @@ export default function CombinedSettlement() {
       return;
     }
 
-    if (isCash) {
-      const { data: txData } = await supabase
+    const { data: cashTxData } = await supabase
+      .from('transactions')
+      .select('id')
+      .eq('receipt_id', receiptId)
+      .eq('is_reversed', false);
+
+    if (cashTxData && cashTxData.length > 0) {
+      await supabase
         .from('transactions')
-        .select('id')
+        .update({ is_reversed: true })
         .eq('receipt_id', receiptId)
         .eq('is_reversed', false);
+    }
 
-      if (txData && txData.length > 0) {
-        await supabase
-          .from('transactions')
-          .update({ is_reversed: true })
-          .eq('receipt_id', receiptId)
-          .eq('is_reversed', false);
-      }
-    } else {
-      const { data: txData } = await supabase
+    const { data: cardTxData } = await supabase
+      .from('card_transactions')
+      .select('id')
+      .eq('receipt_id', receiptId)
+      .eq('is_reversed', false);
+
+    if (cardTxData && cardTxData.length > 0) {
+      await supabase
         .from('card_transactions')
-        .select('id')
+        .update({ is_reversed: true })
         .eq('receipt_id', receiptId)
         .eq('is_reversed', false);
-
-      if (txData && txData.length > 0) {
-        await supabase
-          .from('card_transactions')
-          .update({ is_reversed: true })
-          .eq('receipt_id', receiptId)
-          .eq('is_reversed', false);
-      }
     }
 
     const { data: receiptOrderLinks } = await supabase
@@ -541,14 +506,11 @@ export default function CombinedSettlement() {
         .in('id', orderIds);
     }
 
-    alert('Накладну повернуто в активні');
-    if (isCash) {
-      loadCashReceipts();
-      loadCashTransactions();
-    } else {
-      loadCardReceipts();
-      loadCardTransactions();
-    }
+    alert('Накладну повернуто в активні. Обидві транзакції сторновано.');
+    loadCashReceipts();
+    loadCardReceipts();
+    loadCashTransactions();
+    loadCardTransactions();
   }
 
   async function reverseCashTransaction(tx: Transaction) {
@@ -931,14 +893,14 @@ export default function CombinedSettlement() {
                           </div>
                           <div className="flex gap-1">
                             <button
-                              onClick={() => markCashAsSettled(receipt.id)}
+                              onClick={() => markAsSettled(receipt.id)}
                               className="p-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition"
                               title="Розраховано"
                             >
                               <CheckCircle2 size={16} />
                             </button>
                             <button
-                              onClick={() => returnToActive(receipt.id, true)}
+                              onClick={() => returnToActive(receipt.id)}
                               className="p-1.5 bg-gray-500 text-white rounded hover:bg-gray-600 transition"
                               title="Повернути в активні"
                             >
@@ -1189,14 +1151,14 @@ export default function CombinedSettlement() {
                           </div>
                           <div className="flex gap-1">
                             <button
-                              onClick={() => markCardAsSettled(receipt.id)}
+                              onClick={() => markAsSettled(receipt.id)}
                               className="p-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition"
                               title="Розраховано"
                             >
                               <CheckCircle2 size={16} />
                             </button>
                             <button
-                              onClick={() => returnToActive(receipt.id, false)}
+                              onClick={() => returnToActive(receipt.id)}
                               className="p-1.5 bg-gray-500 text-white rounded hover:bg-gray-600 transition"
                               title="Повернути в активні"
                             >
