@@ -751,32 +751,32 @@ export default function CombinedSettlement() {
       </div>
 
       <div className="grid grid-cols-3 gap-3 mb-3">
-        <div className="bg-gradient-to-br from-slate-700 via-blue-800 to-slate-900 rounded-lg p-3 border border-slate-600 shadow-xl">
-          <div className="text-xs font-medium text-slate-200 mb-1">Прийом і побраня (PLN)</div>
-          <div className={`text-xl font-bold ${balanceReceiptPln > 0 ? 'text-rose-300 dark:text-red-500' : 'text-emerald-300'}`}>
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-700 dark:via-blue-800 dark:to-slate-900 rounded-lg p-3 border border-blue-200 dark:border-slate-600 shadow-lg">
+          <div className="text-xs font-medium text-blue-900 dark:text-slate-200 mb-1">Прийом і побраня (PLN)</div>
+          <div className={`text-xl font-bold ${balanceReceiptPln > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
             {formatNumber(balanceReceiptPln)} zł
           </div>
-          <div className={`text-[10px] mt-0.5 ${balanceReceiptPln > 0 ? 'text-slate-300 dark:text-red-400 dark:font-medium' : 'text-slate-300'}`}>
+          <div className={`text-[10px] font-medium mt-0.5 ${balanceReceiptPln > 0 ? 'text-red-700 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
             {balanceReceiptPln > 0 ? 'до сплати' : 'закрито'}
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-slate-700 via-emerald-800 to-slate-900 rounded-lg p-3 border border-slate-600 shadow-xl">
-          <div className="text-xs font-medium text-slate-200 mb-1">Перевезення (USD)</div>
-          <div className={`text-xl font-bold ${balanceTransportUsd > 0 ? 'text-rose-300 dark:text-red-500' : 'text-emerald-300'}`}>
+        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-slate-700 dark:via-emerald-800 dark:to-slate-900 rounded-lg p-3 border border-emerald-200 dark:border-slate-600 shadow-lg">
+          <div className="text-xs font-medium text-emerald-900 dark:text-slate-200 mb-1">Перевезення (USD)</div>
+          <div className={`text-xl font-bold ${balanceTransportUsd > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
             {formatNumber(balanceTransportUsd)} $
           </div>
-          <div className={`text-[10px] mt-0.5 ${balanceTransportUsd > 0 ? 'text-slate-300 dark:text-red-400 dark:font-medium' : 'text-slate-300'}`}>
+          <div className={`text-[10px] font-medium mt-0.5 ${balanceTransportUsd > 0 ? 'text-red-700 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
             {balanceTransportUsd > 0 ? 'до сплати' : 'закрито'}
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-slate-700 via-amber-700 to-slate-900 rounded-lg p-3 border border-slate-600 shadow-xl">
-          <div className="text-xs font-medium text-slate-100 mb-1 font-semibold">Картковий баланс (PLN)</div>
-          <div className={`text-xl font-bold ${balanceCardPln > 0 ? 'text-rose-300 dark:text-red-500' : 'text-emerald-300'}`}>
+        <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-slate-700 dark:via-amber-700 dark:to-slate-900 rounded-lg p-3 border border-amber-200 dark:border-slate-600 shadow-lg">
+          <div className="text-xs font-semibold text-amber-900 dark:text-slate-100 mb-1">Картковий баланс (PLN)</div>
+          <div className={`text-xl font-bold ${balanceCardPln > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
             {formatNumber(balanceCardPln)} zł
           </div>
-          <div className={`text-[10px] mt-0.5 ${balanceCardPln > 0 ? 'text-slate-300 dark:text-red-400 dark:font-medium' : 'text-slate-300'}`}>
+          <div className={`text-[10px] font-medium mt-0.5 ${balanceCardPln > 0 ? 'text-red-700 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
             {balanceCardPln > 0 ? 'до сплати' : 'закрито'}
           </div>
         </div>
@@ -963,20 +963,20 @@ export default function CombinedSettlement() {
                     const transportUsd = receipt.transport_cost_usd || 0;
 
                     return (
-                      <div key={receipt.id} className="bg-gradient-to-br from-slate-700 via-amber-700 to-slate-800 border border-slate-600 rounded-lg p-3 shadow-lg">
+                      <div key={receipt.id} className="bg-gradient-to-br from-orange-50 to-amber-100 dark:from-slate-700 dark:via-amber-700 dark:to-slate-800 border border-orange-200 dark:border-slate-600 rounded-lg p-3 shadow-lg">
                         <div className="flex justify-between items-start">
                           <div>
-                            <div className="font-semibold text-slate-100">Накладна #{receipt.receipt_number}</div>
-                            <div className="text-xs text-slate-300 mt-1">
+                            <div className="font-semibold text-gray-800 dark:text-slate-100">Накладна #{receipt.receipt_number}</div>
+                            <div className="text-xs text-gray-600 dark:text-slate-300 mt-1">
                               Дата: {new Date(receipt.settlement_date || '').toLocaleDateString('uk-UA')}
                             </div>
                             <div className="text-sm mt-1">
-                              <span className="font-medium text-slate-200">Прийом і побраня:</span>{' '}
-                              <span className="text-rose-300 dark:text-red-400 font-bold">{formatNumber(receiptCashPln)} zł</span>
+                              <span className="font-medium text-gray-700 dark:text-slate-200">Прийом і побраня:</span>{' '}
+                              <span className="text-red-600 dark:text-red-400 font-bold">{formatNumber(receiptCashPln)} zł</span>
                             </div>
                             <div className="text-sm">
-                              <span className="font-medium text-slate-200">Перевезення:</span>{' '}
-                              <span className="text-rose-300 dark:text-red-400 font-bold">{formatNumber(transportUsd)} $</span>
+                              <span className="font-medium text-gray-700 dark:text-slate-200">Перевезення:</span>{' '}
+                              <span className="text-red-600 dark:text-red-400 font-bold">{formatNumber(transportUsd)} $</span>
                             </div>
                           </div>
                           <div className="flex gap-1">
@@ -1232,16 +1232,16 @@ export default function CombinedSettlement() {
                     const totalAmount = paidOrders.reduce((sum, o) => sum + (o.part_price || 0) + (o.delivery_cost || 0), 0);
 
                     return (
-                      <div key={receipt.id} className="bg-gradient-to-br from-slate-700 via-amber-700 to-slate-800 border border-slate-600 rounded-lg p-3 shadow-lg">
+                      <div key={receipt.id} className="bg-gradient-to-br from-orange-50 to-amber-100 dark:from-slate-700 dark:via-amber-700 dark:to-slate-800 border border-orange-200 dark:border-slate-600 rounded-lg p-3 shadow-lg">
                         <div className="flex justify-between items-start">
                           <div>
-                            <div className="font-semibold text-slate-100">Накладна #{receipt.receipt_number}</div>
-                            <div className="text-xs text-slate-300 mt-1">
+                            <div className="font-semibold text-gray-800 dark:text-slate-100">Накладна #{receipt.receipt_number}</div>
+                            <div className="text-xs text-gray-600 dark:text-slate-300 mt-1">
                               Дата: {new Date(receipt.settlement_date || '').toLocaleDateString('uk-UA')}
                             </div>
                             <div className="text-sm mt-1">
-                              <span className="font-medium text-slate-200">Сума до оплати:</span>{' '}
-                              <span className="text-rose-300 dark:text-red-400 font-bold">{formatNumber(totalAmount)} zł</span>
+                              <span className="font-medium text-gray-700 dark:text-slate-200">Сума до оплати:</span>{' '}
+                              <span className="text-red-600 dark:text-red-400 font-bold">{formatNumber(totalAmount)} zł</span>
                             </div>
                           </div>
                           <div className="flex gap-1">
