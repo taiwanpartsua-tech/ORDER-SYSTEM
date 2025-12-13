@@ -2007,7 +2007,7 @@ export default function Orders() {
                               {!isAccepted && (
                                 <button
                                   onClick={() => openEditModal(order)}
-                                  className="px-3 py-2 bg-blue-100 text-blue-800 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
+                                  className="px-3 py-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
                                 >
                                   <Edit size={14} />
                                   Ред.
@@ -2016,7 +2016,7 @@ export default function Orders() {
                               {!order.archived && !isAccepted && (
                                 <button
                                   onClick={() => handleReturn(order)}
-                                  className="px-3 py-2 bg-orange-100 text-orange-800 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
+                                  className="px-3 py-2 bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
                                   title="Створити повернення"
                                 >
                                   <RotateCcw size={14} />
@@ -2026,7 +2026,7 @@ export default function Orders() {
                               {!isAccepted && (
                                 <button
                                   onClick={() => handleArchive(order.id)}
-                                  className="px-3 py-2 bg-gray-100 text-gray-800 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
+                                  className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
                                   title={order.archived ? 'Розархівувати' : 'Архівувати'}
                                 >
                                   <Archive size={14} />
