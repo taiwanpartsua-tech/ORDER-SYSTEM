@@ -629,7 +629,11 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
                             step="0.01"
                             value={order.editableCash}
                             onChange={(e) => updateOrderField(order.id, 'editableCash', Number(e.target.value), 'paid')}
-                            className="w-20 px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-xs"
+                            className={`w-20 px-1 py-0.5 border rounded text-xs ${
+                              order.payment_type?.toLowerCase().includes('оплачено') && order.editableCash !== 0
+                                ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                                : 'border-gray-300 dark:border-gray-600'
+                            }`}
                           />
                         </td>
                         <td className="px-2 py-2">
