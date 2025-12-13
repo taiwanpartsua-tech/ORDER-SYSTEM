@@ -1409,7 +1409,7 @@ export default function Orders() {
           )}
           <div className="flex-1 overflow-auto">
           <table className="w-full text-sm">
-              <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
+              <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
                 <tr>
                   <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                     <input
