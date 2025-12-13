@@ -356,7 +356,10 @@ export default function ReceiptManagement() {
         if (!hasOtherActiveReceipts) {
           const { error: orderError } = await supabase
             .from('orders')
-            .update({ status: 'на звірці' })
+            .update({
+              status: 'на звірці',
+              previous_status: null
+            })
             .eq('id', orderId);
 
           if (orderError) {
