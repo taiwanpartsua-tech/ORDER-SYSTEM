@@ -1136,6 +1136,15 @@ export default function Orders() {
               {isModalOpen ? <X size={20} /> : <Plus size={20} />}
               {isModalOpen ? 'Скасувати' : 'Нове замовлення'}
             </button>
+            {acceptedOrders.length > 0 && (
+              <button
+                onClick={() => setIsAcceptedOrdersModalOpen(true)}
+                className="bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition"
+              >
+                <Layers size={20} />
+                Прийняті ({acceptedOrders.length})
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -2059,18 +2068,6 @@ export default function Orders() {
           </div>
         </div>
       ) : null}
-
-      {activeTab === 'orders' && acceptedOrders.length > 0 && (
-        <div className="mt-4 flex justify-center">
-          <button
-            onClick={() => setIsAcceptedOrdersModalOpen(true)}
-            className="bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition font-medium shadow-lg"
-          >
-            <Layers size={20} />
-            Переглянути прийняті замовлення ({acceptedOrders.length})
-          </button>
-        </div>
-      )}
 
       {activeTab === 'returns' && <Returns />}
 
