@@ -78,7 +78,7 @@ type AvailableOrder = {
 };
 
 export default function ReceiptManagement() {
-  const { showSuccess, showError, showWarning, confirm } = useToast();
+  const { showSuccess, showError, showWarning, confirm, prompt } = useToast();
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [expandedReceipt, setExpandedReceipt] = useState<string | null>(null);
   const [orders, setOrders] = useState<{ [receiptId: string]: EditableOrder[] }>({});
@@ -235,7 +235,7 @@ export default function ReceiptManagement() {
 
     if (paidOrdersWithCash.length > 0) {
       const ordersList = paidOrdersWithCash.map(o => `- ${o.client_id}: ${o.title}`).join('\n');
-      const reason = prompt(
+      const reason = await prompt(
         `УВАГА! Наступні замовлення мають тип оплати "оплачено", але встановлено побрання:\n\n${ordersList}\n\nЯкщо це не помилка, опишіть причину:`,
         ''
       );
@@ -741,7 +741,7 @@ export default function ReceiptManagement() {
       })
       .eq('id', receiptId);
 
-    alert('Прийомку повернуто в чернетку');
+    showSuccess('Прийомку повернуто в чернетку');
     loadReceipts();
   }
 
