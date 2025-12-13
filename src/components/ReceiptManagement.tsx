@@ -783,7 +783,11 @@ export default function ReceiptManagement() {
                           <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.part_price)}</td>
                           <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.delivery_cost)}</td>
                           <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.received_pln || 0)}</td>
-                          <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.cash_on_delivery || 0)}</td>
+                          <td className={`px-2 py-2 text-right tabular-nums ${
+                            order.payment_type?.toLowerCase().includes('оплачено') && (order.cash_on_delivery || 0) !== 0
+                              ? 'bg-red-50 text-red-700 font-semibold'
+                              : ''
+                          }`}>{formatNumber(order.cash_on_delivery || 0)}</td>
                           <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.transport_cost_usd || 0)}</td>
                           <td className="px-2 py-2 truncate">{order.payment_type}</td>
                           <td className="px-2 py-2 text-center">
@@ -874,7 +878,13 @@ export default function ReceiptManagement() {
                           step="0.01"
                           value={order.editableCash}
                           onChange={(e) => updateOrderField(receipt.id, order.id, 'editableCash', parseFloat(e.target.value) || 0)}
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableCash') ? 'bg-yellow-100 border-yellow-400' : ''}`}
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${
+                            order.payment_type?.toLowerCase().includes('оплачено') && order.editableCash !== 0
+                              ? 'border-red-500 bg-red-50'
+                              : isFieldChanged(order, 'editableCash')
+                              ? 'bg-yellow-100 border-yellow-400'
+                              : ''
+                          }`}
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -976,7 +986,11 @@ export default function ReceiptManagement() {
                           <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.part_price)}</td>
                           <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.delivery_cost)}</td>
                           <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.received_pln || 0)}</td>
-                          <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.cash_on_delivery || 0)}</td>
+                          <td className={`px-2 py-2 text-right tabular-nums ${
+                            order.payment_type?.toLowerCase().includes('оплачено') && (order.cash_on_delivery || 0) !== 0
+                              ? 'bg-red-50 text-red-700 font-semibold'
+                              : ''
+                          }`}>{formatNumber(order.cash_on_delivery || 0)}</td>
                           <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.transport_cost_usd || 0)}</td>
                           <td className="px-2 py-2 truncate">{order.payment_type}</td>
                           <td className="px-2 py-2 text-center">
@@ -1067,7 +1081,13 @@ export default function ReceiptManagement() {
                           step="0.01"
                           value={order.editableCash}
                           onChange={(e) => updateOrderField(receipt.id, order.id, 'editableCash', parseFloat(e.target.value) || 0)}
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableCash') ? 'bg-yellow-100 border-yellow-400' : ''}`}
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${
+                            order.payment_type?.toLowerCase().includes('оплачено') && order.editableCash !== 0
+                              ? 'border-red-500 bg-red-50'
+                              : isFieldChanged(order, 'editableCash')
+                              ? 'bg-yellow-100 border-yellow-400'
+                              : ''
+                          }`}
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
