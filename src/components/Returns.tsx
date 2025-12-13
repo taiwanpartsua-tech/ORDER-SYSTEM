@@ -413,7 +413,7 @@ export default function Returns() {
           <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
             <button
               onClick={startAddingNewRow}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 transition text-sm font-medium"
+              className="bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-800 dark:bg-green-800 dark:hover:bg-green-700 transition text-sm font-medium"
             >
               <Plus size={18} />
               Додати повернення
@@ -543,7 +543,7 @@ export default function Returns() {
                       <div className="flex gap-2 justify-center">
                         <button
                           onClick={saveNewRow}
-                          className="px-3 py-2 bg-green-600 text-white rounded text-xs font-semibold hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 transition flex items-center gap-1"
+                          className="px-3 py-2 bg-green-700 text-white rounded text-xs font-semibold hover:bg-green-800 dark:bg-green-800 dark:hover:bg-green-700 transition flex items-center gap-1"
                         >
                           <Check size={14} />
                           Зберегти

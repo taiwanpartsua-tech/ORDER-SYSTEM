@@ -807,7 +807,7 @@ export default function ReceiptManagement() {
                 </button>
                 <button
                   onClick={() => sendToSupplier(receipt.id)}
-                  className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 dark:bg-gradient-to-br dark:from-green-800 dark:to-green-700 dark:hover:from-green-700 dark:hover:to-green-600 transition flex items-center gap-1"
+                  className="px-3 py-1 bg-green-700 text-white rounded hover:bg-green-700 dark:bg-gradient-to-br dark:from-green-800 dark:to-green-700 dark:hover:from-green-700 dark:hover:to-green-600 transition flex items-center gap-1"
                 >
                   <Check size={14} />
                   Затвердити

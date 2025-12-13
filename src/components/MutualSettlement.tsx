@@ -426,7 +426,7 @@ export default function MutualSettlement() {
           </button>
           <button
             onClick={() => setShowPaymentForm(!showPaymentForm)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-gradient-to-br dark:from-green-800 dark:to-green-700 dark:hover:from-green-700 dark:hover:to-green-600 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-700 text-white rounded-lg hover:bg-green-700 dark:bg-gradient-to-br dark:from-green-800 dark:to-green-700 dark:hover:from-green-700 dark:hover:to-green-600 transition-colors"
           >
             <Plus size={16} />
             Платіж
@@ -603,7 +603,7 @@ export default function MutualSettlement() {
                       </button>
                       <button
                         onClick={() => markAsSettled(receipt.id)}
-                        className="px-2 py-1 bg-green-600 text-white rounded text-[10px] hover:bg-green-700 dark:bg-gradient-to-br dark:from-green-800 dark:to-green-700 dark:hover:from-green-700 dark:hover:to-green-600 transition flex items-center gap-0.5"
+                        className="px-2 py-1 bg-green-700 text-white rounded text-[10px] hover:bg-green-700 dark:bg-gradient-to-br dark:from-green-800 dark:to-green-700 dark:hover:from-green-700 dark:hover:to-green-600 transition flex items-center gap-0.5"
                       >
                         <CheckCircle2 size={12} />
                         Розрахувати

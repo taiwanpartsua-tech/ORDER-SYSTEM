@@ -639,7 +639,7 @@ export default function Orders() {
 
     return (
       <td
-        className={`px-3 py-3 ${!isAccepted && !isOrderAccepted ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : isOrderAccepted ? 'cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-blue-600 dark:hover:text-blue-400 hover:underline' : ''} transition min-h-[48px] text-gray-900 dark:text-gray-100 text-center ${fontSizeClass} bg-white dark:bg-gray-800`}
+        className={`px-3 py-3 ${!isAccepted && !isOrderAccepted ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : isOrderAccepted ? 'cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-blue-600 dark:hover:text-blue-400 hover:underline' : ''} transition min-h-[48px] text-gray-900 dark:text-gray-100 text-center ${fontSizeClass} bg-white dark:bg-gray-800`}
         onClick={() => {
           if (!isAccepted && !isOrderAccepted) {
             startEditing(orderId, 'tracking_pl', trackingValue);
@@ -1446,7 +1446,7 @@ export default function Orders() {
             <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
               <button
                 onClick={startAddingNewRow}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 transition text-sm font-medium"
+                className="bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition text-sm font-medium"
               >
                 <Plus size={18} />
                 Додати рядок
@@ -1474,7 +1474,7 @@ export default function Orders() {
                     </select>
                     <button
                       onClick={() => bulkUpdateVerified(true)}
-                      className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 transition"
+                      className="px-3 py-1 text-sm bg-green-700 text-white rounded hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition"
                     >
                       Відзначити V
                     </button>
@@ -1528,13 +1528,13 @@ export default function Orders() {
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
                 {isAddingNewRow && (
-                  <tr className="bg-green-50 dark:bg-green-900/50">
+                  <tr className="bg-green-100 dark:bg-green-900/70">
                     <td className="px-3 py-3 text-center min-h-[48px]"></td>
                     <td className="p-0 relative">
                       <select
                         value={newRowData.status}
                         onChange={(e) => setNewRowData({ ...newRowData, status: e.target.value })}
-                        className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 text-gray-900 dark:text-gray-100"
+                        className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 text-gray-900 dark:text-gray-100"
                       >
                         {statuses.map((status) => (
                           <option
@@ -1562,7 +1562,7 @@ export default function Orders() {
                         onChange={(e) => setNewRowData({ ...newRowData, client_id: e.target.value })}
                         onKeyDown={handleNewRowKeyDown}
                         placeholder="ID клієнта *"
-                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       />
                     </td>
                     <td className="px-3 py-3 min-h-[48px]">
@@ -1572,7 +1572,7 @@ export default function Orders() {
                         onChange={(e) => setNewRowData({ ...newRowData, title: e.target.value })}
                         onKeyDown={handleNewRowKeyDown}
                         placeholder="Назва *"
-                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       />
                     </td>
                     <td className="px-3 py-3 min-h-[48px]">
@@ -1582,7 +1582,7 @@ export default function Orders() {
                         onChange={(e) => setNewRowData({ ...newRowData, link: e.target.value })}
                         onKeyDown={handleNewRowKeyDown}
                         placeholder="Посилання *"
-                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       />
                     </td>
                     <td className="px-3 py-3 min-h-[48px]">
@@ -1592,7 +1592,7 @@ export default function Orders() {
                         onChange={(e) => setNewRowData({ ...newRowData, tracking_pl: e.target.value })}
                         onKeyDown={handleNewRowKeyDown}
                         placeholder="Трекінг"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       />
                     </td>
                     <td className="px-3 py-3 min-h-[48px]">
@@ -1603,7 +1603,7 @@ export default function Orders() {
                         onChange={(e) => setNewRowData({ ...newRowData, part_price: Number(e.target.value) })}
                         onKeyDown={handleNewRowKeyDown}
                         placeholder="0"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       />
                     </td>
                     <td className="px-3 py-3 min-h-[48px]">
@@ -1614,7 +1614,7 @@ export default function Orders() {
                         onChange={(e) => setNewRowData({ ...newRowData, delivery_cost: Number(e.target.value) })}
                         onKeyDown={handleNewRowKeyDown}
                         placeholder="0"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       />
                     </td>
                     <td className="px-3 py-3 text-center text-gray-900 dark:text-gray-100 font-bold bg-gray-50 dark:bg-gray-700 min-h-[48px]">
@@ -1627,7 +1627,7 @@ export default function Orders() {
                         onChange={(e) => setNewRowData({ ...newRowData, part_number: e.target.value })}
                         onKeyDown={handleNewRowKeyDown}
                         placeholder="№"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       />
                     </td>
                     <td className="p-0 relative">
@@ -1641,7 +1641,7 @@ export default function Orders() {
                             cash_on_delivery: newPaymentType === 'оплачено' ? 0 : newRowData.cash_on_delivery
                           });
                         }}
-                        className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 text-gray-900 dark:text-gray-100"
+                        className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 text-gray-900 dark:text-gray-100"
                       >
                         {paymentTypes.map((type) => (
                           <option
@@ -1663,7 +1663,7 @@ export default function Orders() {
                         onKeyDown={handleNewRowKeyDown}
                         disabled={newRowData.payment_type === 'оплачено'}
                         placeholder="0"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </td>
                     <td className="px-3 py-3 min-h-[48px]">
@@ -1672,7 +1672,7 @@ export default function Orders() {
                         value={newRowData.order_date}
                         onChange={(e) => setNewRowData({ ...newRowData, order_date: e.target.value })}
                         onKeyDown={handleNewRowKeyDown}
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       />
                     </td>
                     <td className="px-3 py-3 min-h-[48px]">
@@ -1683,7 +1683,7 @@ export default function Orders() {
                         onChange={(e) => setNewRowData({ ...newRowData, received_pln: Number(e.target.value) })}
                         onKeyDown={handleNewRowKeyDown}
                         placeholder="0"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       />
                     </td>
                     <td className="px-3 py-3 min-h-[48px]">
@@ -1694,7 +1694,7 @@ export default function Orders() {
                         onChange={(e) => setNewRowData({ ...newRowData, transport_cost_usd: Number(e.target.value) })}
                         onKeyDown={handleNewRowKeyDown}
                         placeholder="0"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       />
                     </td>
                     <td className="px-3 py-3 min-h-[48px]">
@@ -1705,14 +1705,14 @@ export default function Orders() {
                         onChange={(e) => setNewRowData({ ...newRowData, weight_kg: Number(e.target.value) })}
                         onKeyDown={handleNewRowKeyDown}
                         placeholder="0"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       />
                     </td>
                     <td className="px-3 py-3 min-h-[48px]">
                       <div className="flex gap-2 justify-start">
                         <button
                           onClick={saveNewRow}
-                          className="px-3 py-2 bg-green-600 text-white rounded text-xs font-semibold hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 transition flex items-center gap-1"
+                          className="px-3 py-2 bg-green-700 text-white rounded text-xs font-semibold hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition flex items-center gap-1"
                         >
                           <Check size={14} />
                           Зберегти
@@ -1774,7 +1774,7 @@ export default function Orders() {
                       onChange={() => handleVerifiedChange(order.id, order.verified)}
                       className={`w-5 h-5 rounded cursor-pointer transition ${
                         order.verified
-                          ? 'accent-green-600 bg-green-600'
+                          ? 'accent-green-700 bg-green-700'
                           : 'border-2 border-gray-800 accent-gray-800'
                       }`}
                       disabled={isAccepted}
@@ -1862,7 +1862,7 @@ export default function Orders() {
                   </select>
                   <button
                     onClick={() => bulkUpdateVerified(true)}
-                    className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition"
+                    className="px-3 py-1 text-sm bg-green-700 text-white rounded hover:bg-green-700 transition"
                   >
                     Відзначити V
                   </button>
@@ -1980,7 +1980,7 @@ export default function Orders() {
                               onChange={() => handleVerifiedChange(order.id, order.verified)}
                               className={`w-5 h-5 rounded cursor-pointer transition ${
                                 order.verified
-                                  ? 'accent-green-600 bg-green-600'
+                                  ? 'accent-green-700 bg-green-700'
                                   : 'border-2 border-gray-800 accent-gray-800'
                               }`}
                               disabled={isAccepted}
@@ -2053,7 +2053,7 @@ export default function Orders() {
         <div className="mt-4 flex justify-center">
           <button
             onClick={() => setIsAcceptedOrdersModalOpen(true)}
-            className="bg-green-600 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 transition font-medium shadow-lg"
+            className="bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition font-medium shadow-lg"
           >
             <Layers size={20} />
             Переглянути прийняті замовлення ({acceptedOrders.length})
@@ -2150,7 +2150,7 @@ export default function Orders() {
             <div className="flex gap-3">
               <button
                 onClick={confirmAcceptOrder}
-                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 transition font-semibold"
+                className="flex-1 bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition font-semibold"
               >
                 Підтвердити
               </button>
@@ -2173,7 +2173,7 @@ export default function Orders() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000] p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg w-full h-full max-w-[98%] max-h-[98vh] shadow-2xl flex flex-col">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-2xl font-bold text-green-800 dark:text-green-300">Прийняті замовлення ({acceptedOrders.length})</h3>
+              <h3 className="text-2xl font-bold text-green-900 dark:text-green-200">Прийняті замовлення ({acceptedOrders.length})</h3>
               <button
                 onClick={() => setIsAcceptedOrdersModalOpen(false)}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
@@ -2183,37 +2183,37 @@ export default function Orders() {
             </div>
             <div className="flex-1 overflow-auto p-6">
               <table className="w-full border-collapse">
-                <thead className="bg-green-100 dark:bg-green-800/30 sticky top-0 z-10">
+                <thead className="bg-green-700 dark:bg-green-900 sticky top-0 z-10">
                   <tr>
-                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-left text-sm font-semibold text-green-900 dark:text-green-200">№ Док</th>
-                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-left text-sm font-semibold text-green-900 dark:text-green-200">Статус</th>
-                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-left text-sm font-semibold text-green-900 dark:text-green-200">Назва</th>
-                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-left text-sm font-semibold text-green-900 dark:text-green-200">ID Клієнта</th>
-                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-left text-sm font-semibold text-green-900 dark:text-green-200">№ Запчастини</th>
-                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-left text-sm font-semibold text-green-900 dark:text-green-200">Посилання</th>
-                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-left text-sm font-semibold text-green-900 dark:text-green-200">ТТН</th>
-                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-right text-sm font-semibold text-green-900 dark:text-green-200">Вага (кг)</th>
-                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-right text-sm font-semibold text-green-900 dark:text-green-200">Запчастини</th>
-                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-right text-sm font-semibold text-green-900 dark:text-green-200">Доставка</th>
-                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-right text-sm font-semibold text-green-900 dark:text-green-200">Отримали PLN</th>
-                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-right text-sm font-semibold text-green-900 dark:text-green-200">Наложка</th>
-                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-right text-sm font-semibold text-green-900 dark:text-green-200">Транспорт USD</th>
-                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-left text-sm font-semibold text-green-900 dark:text-green-200">Тип оплати</th>
-                    <th className="border border-green-300 dark:border-green-700 px-3 py-3 text-left text-sm font-semibold text-green-900 dark:text-green-200">Дата прийому</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">№ Док</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">Статус</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">Назва</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">ID Клієнта</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">№ Запчастини</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">Посилання</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">ТТН</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Вага (кг)</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Запчастини</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Доставка</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Отримали PLN</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Наложка</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Транспорт USD</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">Тип оплати</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">Дата прийому</th>
                   </tr>
                 </thead>
                 <tbody>
                   {acceptedOrders.map((order) => (
-                    <tr key={order.id} className="hover:bg-green-100 dark:hover:bg-green-800/20 transition">
+                    <tr key={order.id} className="hover:bg-green-50 dark:hover:bg-green-900/20 transition">
                       <td
-                        className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100 font-semibold cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
+                        className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100 font-semibold cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
                         title={order.explanation || 'Немає пояснення'}
                         onClick={() => openReceiptDetails(order.receipt_number)}
                       >
                         {order.receipt_number}
                       </td>
                       <td
-                        className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm cursor-pointer hover:bg-green-200 dark:hover:bg-green-700/30 transition"
+                        className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm cursor-pointer hover:bg-green-100 dark:hover:bg-green-800/30 transition"
                         onClick={(e) => {
                           const rect = e.currentTarget.getBoundingClientRect();
                           setAcceptedDropdownPosition({ top: rect.bottom, left: rect.left });
@@ -2224,25 +2224,25 @@ export default function Orders() {
                           {statusLabels[order.status || 'в роботі на сьогодні']}
                         </span>
                       </td>
-                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100">{order.title || '-'}</td>
-                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100">{order.client_id || '-'}</td>
-                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100">{order.part_number || '-'}</td>
-                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100">
+                      <td className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100">{order.title || '-'}</td>
+                      <td className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100">{order.client_id || '-'}</td>
+                      <td className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100">{order.part_number || '-'}</td>
+                      <td className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100">
                         {order.link ? (
                           <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
                             Посилання
                           </a>
                         ) : '-'}
                       </td>
-                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100">{order.tracking_number || '-'}</td>
-                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100 text-right">{order.weight_kg.toFixed(2)}</td>
-                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100 text-right">{order.part_price.toFixed(2)}</td>
-                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100 text-right">{order.delivery_cost.toFixed(2)}</td>
-                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100 text-right">{order.received_pln.toFixed(2)}</td>
-                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100 text-right">{order.cash_on_delivery.toFixed(2)}</td>
-                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100 text-right">{order.transport_cost_usd.toFixed(2)}</td>
-                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100">{order.payment_type || '-'}</td>
-                      <td className="border border-green-300 dark:border-green-700 px-3 py-3 text-sm text-green-900 dark:text-green-100">{new Date(order.accepted_at).toLocaleDateString('uk-UA')}</td>
+                      <td className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100">{order.tracking_number || '-'}</td>
+                      <td className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100 text-right">{order.weight_kg.toFixed(2)}</td>
+                      <td className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100 text-right">{order.part_price.toFixed(2)}</td>
+                      <td className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100 text-right">{order.delivery_cost.toFixed(2)}</td>
+                      <td className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100 text-right">{order.received_pln.toFixed(2)}</td>
+                      <td className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100 text-right">{order.cash_on_delivery.toFixed(2)}</td>
+                      <td className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100 text-right">{order.transport_cost_usd.toFixed(2)}</td>
+                      <td className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100">{order.payment_type || '-'}</td>
+                      <td className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100">{new Date(order.accepted_at).toLocaleDateString('uk-UA')}</td>
                     </tr>
                   ))}
                 </tbody>

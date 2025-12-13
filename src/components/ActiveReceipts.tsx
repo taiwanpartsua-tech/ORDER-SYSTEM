@@ -652,7 +652,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
                 </div>
                 <button
                   onClick={() => handleSaveReceipt('paid')}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700 dark:bg-gradient-to-br dark:from-green-800 dark:to-green-700 dark:hover:from-green-700 dark:hover:to-green-600 transition"
+                  className="bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700 dark:bg-gradient-to-br dark:from-green-800 dark:to-green-700 dark:hover:from-green-700 dark:hover:to-green-600 transition"
                 >
                   <Send size={18} />
                   Передати на звірку
