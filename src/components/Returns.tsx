@@ -671,7 +671,7 @@ export default function Returns() {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Посилання на обговорення</label>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Посилання на дискусію</label>
                           <input
                             type="text"
                             value={newRowData.discussion_link}
@@ -943,7 +943,7 @@ export default function Returns() {
                             </select>
                           </div>
                           <div>
-                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Посилання на обговорення</label>
+                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Посилання на дискусію</label>
                             <div
                               className="w-full px-2 py-1 border border-gray-200 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/30 transition"
                               onClick={() => startEditing(returnItem.id, 'discussion_link', returnItem.discussion_link)}
