@@ -342,19 +342,32 @@ export default function ReceiptManagement() {
       const orderIds = receiptOrderLinks.map(ro => ro.order_id);
       console.log('Оновлення статусу для замовлень:', orderIds);
 
-      const { data: updatedOrders, error: ordersError } = await supabase
-        .from('orders')
-        .update({ status: 'на звірці' })
-        .in('id', orderIds)
-        .select();
+      for (const orderId of orderIds) {
+        const { data: otherReceipts } = await supabase
+          .from('receipt_orders')
+          .select('receipt_id, active_receipts(status)')
+          .eq('order_id', orderId)
+          .neq('receipt_id', receipt.id);
 
-      if (ordersError) {
-        console.error('Помилка при оновленні статусу замовлень:', ordersError);
-        alert(`Помилка при оновленні статусу замовлень: ${ordersError.message}`);
-        return;
+        const hasOtherActiveReceipts = otherReceipts?.some((ro: any) =>
+          ro.active_receipts?.status === 'draft' || ro.active_receipts?.status === 'approved'
+        );
+
+        if (!hasOtherActiveReceipts) {
+          const { error: orderError } = await supabase
+            .from('orders')
+            .update({ status: 'на звірці' })
+            .eq('id', orderId);
+
+          if (orderError) {
+            console.error(`Помилка при оновленні замовлення ${orderId}:`, orderError);
+          } else {
+            console.log(`Замовлення ${orderId} переведено на звірку`);
+          }
+        } else {
+          console.log(`Замовлення ${orderId} залишається в активному прийомі (є в інших прийомках)`);
+        }
       }
-
-      console.log('Оновлено замовлень:', updatedOrders?.length || 0);
     }
 
     const receiptCashPln = (receipt.receipt_cost_pln || 0) + (receipt.cash_on_delivery_pln || 0);
