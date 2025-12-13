@@ -1065,20 +1065,20 @@ export default function CombinedSettlement() {
                     const transportUsd = receipt.transport_cost_usd || 0;
 
                     return (
-                      <div key={receipt.id} className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                      <div key={receipt.id} className="bg-green-50 dark:bg-gradient-to-br dark:from-emerald-900 dark:via-teal-800 dark:to-slate-900 border border-green-200 dark:border-emerald-700 rounded-lg p-3 shadow-lg">
                         <div className="flex justify-between items-start">
                           <div>
-                            <div className="font-semibold text-gray-900 dark:text-gray-100">Накладна #{receipt.receipt_number}</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            <div className="font-semibold text-gray-900 dark:text-emerald-100">Накладна #{receipt.receipt_number}</div>
+                            <div className="text-xs text-gray-600 dark:text-emerald-200 mt-1">
                               Розраховано: {new Date(receipt.settled_date || '').toLocaleDateString('uk-UA')}
                             </div>
                             <div className="text-sm mt-1">
-                              <span className="font-medium text-gray-700 dark:text-gray-300">Прийом і побраня:</span>{' '}
-                              <span className="text-gray-900 dark:text-gray-100 font-bold">{formatNumber(receiptCashPln)} zł</span>
+                              <span className="font-medium text-gray-700 dark:text-emerald-200">Прийом і побраня:</span>{' '}
+                              <span className="text-gray-900 dark:text-white font-bold">{formatNumber(receiptCashPln)} zł</span>
                             </div>
                             <div className="text-sm">
-                              <span className="font-medium text-gray-700 dark:text-gray-300">Перевезення:</span>{' '}
-                              <span className="text-gray-900 dark:text-gray-100 font-bold">{formatNumber(transportUsd)} $</span>
+                              <span className="font-medium text-gray-700 dark:text-emerald-200">Перевезення:</span>{' '}
+                              <span className="text-gray-900 dark:text-white font-bold">{formatNumber(transportUsd)} $</span>
                             </div>
                           </div>
                           <button
@@ -1325,16 +1325,16 @@ export default function CombinedSettlement() {
                     const totalAmount = paidOrders.reduce((sum, o) => sum + (o.part_price || 0) + (o.delivery_cost || 0), 0);
 
                     return (
-                      <div key={receipt.id} className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                      <div key={receipt.id} className="bg-green-50 dark:bg-gradient-to-br dark:from-emerald-900 dark:via-teal-800 dark:to-slate-900 border border-green-200 dark:border-emerald-700 rounded-lg p-3 shadow-lg">
                         <div className="flex justify-between items-start">
                           <div>
-                            <div className="font-semibold text-gray-900 dark:text-gray-100">Накладна #{receipt.receipt_number}</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            <div className="font-semibold text-gray-900 dark:text-emerald-100">Накладна #{receipt.receipt_number}</div>
+                            <div className="text-xs text-gray-600 dark:text-emerald-200 mt-1">
                               Розраховано: {new Date(receipt.settled_date || '').toLocaleDateString('uk-UA')}
                             </div>
                             <div className="text-sm mt-1">
-                              <span className="font-medium text-gray-700 dark:text-gray-300">Сума:</span>{' '}
-                              <span className="text-gray-900 dark:text-gray-100 font-bold">{formatNumber(totalAmount)} zł</span>
+                              <span className="font-medium text-gray-700 dark:text-emerald-200">Сума:</span>{' '}
+                              <span className="text-gray-900 dark:text-white font-bold">{formatNumber(totalAmount)} zł</span>
                             </div>
                           </div>
                           <button
