@@ -898,7 +898,7 @@ export default function ReceiptManagement() {
                 </thead>
                 <tbody className="divide-y">
                   {orders[receipt.id].map(order => (
-                    <tr key={order.id} className={hasChanges(order) ? 'bg-yellow-50' : 'hover:bg-gray-50'}>
+                    <tr key={order.id} className="hover:bg-gray-50">
                       <td className="px-2 py-2">{order.client_id}</td>
                       <td className="px-2 py-2 truncate">{order.part_number}</td>
                       <td className="px-2 py-2 text-right">
