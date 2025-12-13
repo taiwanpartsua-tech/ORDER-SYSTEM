@@ -745,147 +745,146 @@ export default function CombinedSettlement() {
   const settledCardReceipts = cardReceipts.filter(r => r.status === 'settled');
 
   return (
-    <div className="h-full flex flex-col p-3 max-w-full overflow-hidden">
-      <div className="flex justify-between items-center mb-3">
-        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Взаєморозрахунок</h2>
+    <div className="h-full flex flex-col p-2 max-w-full overflow-hidden">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">Взаєморозрахунок</h2>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              setShowChargeForm(!showChargeForm);
+              setShowPaymentForm(false);
+            }}
+            className="flex items-center gap-1 px-2 py-1 text-xs bg-rose-700 text-white rounded hover:bg-rose-800 dark:bg-gradient-to-br dark:from-rose-900 dark:to-rose-800 dark:hover:from-rose-800 dark:hover:to-rose-700 transition-colors"
+          >
+            <TrendingUp size={14} />
+            Нарахування
+          </button>
+          <button
+            onClick={() => {
+              setShowPaymentForm(!showPaymentForm);
+              setShowChargeForm(false);
+            }}
+            className="flex items-center gap-1 px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+          >
+            <Plus size={14} />
+            Платіж
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-3">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-700 dark:via-blue-800 dark:to-slate-900 rounded-lg p-3 border border-blue-200 dark:border-slate-600 shadow-lg">
-          <div className="text-xs font-medium text-blue-900 dark:text-slate-200 mb-1">Прийом і побраня (PLN)</div>
-          <div className={`text-xl font-bold ${balanceReceiptPln > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+      <div className="grid grid-cols-3 gap-2 mb-2">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-700 dark:via-blue-800 dark:to-slate-900 rounded-lg p-2 border border-blue-200 dark:border-slate-600 shadow">
+          <div className="text-[10px] font-medium text-blue-900 dark:text-slate-200 mb-0.5">Прийом і побраня</div>
+          <div className={`text-base font-bold ${balanceReceiptPln > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
             {formatNumber(balanceReceiptPln)} zł
           </div>
-          <div className={`text-[10px] font-medium mt-0.5 ${balanceReceiptPln > 0 ? 'text-red-700 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
+          <div className={`text-[9px] font-medium ${balanceReceiptPln > 0 ? 'text-red-700 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
             {balanceReceiptPln > 0 ? 'до сплати' : 'закрито'}
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-slate-700 dark:via-emerald-800 dark:to-slate-900 rounded-lg p-3 border border-emerald-200 dark:border-slate-600 shadow-lg">
-          <div className="text-xs font-medium text-emerald-900 dark:text-slate-200 mb-1">Перевезення (USD)</div>
-          <div className={`text-xl font-bold ${balanceTransportUsd > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-slate-700 dark:via-emerald-800 dark:to-slate-900 rounded-lg p-2 border border-emerald-200 dark:border-slate-600 shadow">
+          <div className="text-[10px] font-medium text-emerald-900 dark:text-slate-200 mb-0.5">Перевезення</div>
+          <div className={`text-base font-bold ${balanceTransportUsd > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
             {formatNumber(balanceTransportUsd)} $
           </div>
-          <div className={`text-[10px] font-medium mt-0.5 ${balanceTransportUsd > 0 ? 'text-red-700 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
+          <div className={`text-[9px] font-medium ${balanceTransportUsd > 0 ? 'text-red-700 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
             {balanceTransportUsd > 0 ? 'до сплати' : 'закрито'}
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-slate-700 dark:via-amber-700 dark:to-slate-900 rounded-lg p-3 border border-amber-200 dark:border-slate-600 shadow-lg">
-          <div className="text-xs font-semibold text-amber-900 dark:text-slate-100 mb-1">Картковий баланс (PLN)</div>
-          <div className={`text-xl font-bold ${balanceCardPln > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+        <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-slate-700 dark:via-amber-700 dark:to-slate-900 rounded-lg p-2 border border-amber-200 dark:border-slate-600 shadow">
+          <div className="text-[10px] font-semibold text-amber-900 dark:text-slate-100 mb-0.5">Карта</div>
+          <div className={`text-base font-bold ${balanceCardPln > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
             {formatNumber(balanceCardPln)} zł
           </div>
-          <div className={`text-[10px] font-medium mt-0.5 ${balanceCardPln > 0 ? 'text-red-700 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
+          <div className={`text-[9px] font-medium ${balanceCardPln > 0 ? 'text-red-700 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
             {balanceCardPln > 0 ? 'до сплати' : 'закрито'}
           </div>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 mb-3">
+      <div className="bg-white dark:bg-gray-800 rounded border dark:border-gray-700 mb-2">
         <div className="flex border-b dark:border-gray-700">
           <button
             onClick={() => setSettlementType('cash')}
-            className={`flex-1 px-4 py-3 font-medium transition ${
+            className={`flex-1 px-3 py-2 text-xs font-medium transition ${
               settlementType === 'cash'
                 ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
             }`}
           >
-            Готівковий розрахунок
+            Готівка
           </button>
           <button
             onClick={() => setSettlementType('card')}
-            className={`flex-1 px-4 py-3 font-medium transition ${
+            className={`flex-1 px-3 py-2 text-xs font-medium transition ${
               settlementType === 'card'
                 ? 'bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/30 dark:to-yellow-900/30 text-orange-600 dark:text-orange-400 border-b-2 border-orange-600 dark:border-orange-400'
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
             }`}
           >
-            Картковий розрахунок
+            Карта
           </button>
         </div>
       </div>
 
       {settlementType === 'cash' ? (
         <div className="flex-1 overflow-auto">
-          <div className="flex justify-end gap-2 mb-3">
-            <button
-              onClick={() => {
-                setShowChargeForm(!showChargeForm);
-                setShowPaymentForm(false);
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-rose-700 text-white rounded-lg hover:bg-rose-800 dark:bg-gradient-to-br dark:from-rose-900 dark:to-rose-800 dark:hover:from-rose-800 dark:hover:to-rose-700 transition-colors"
-            >
-              <TrendingUp size={16} />
-              Нарахування
-            </button>
-            <button
-              onClick={() => {
-                setShowPaymentForm(!showPaymentForm);
-                setShowChargeForm(false);
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <Plus size={16} />
-              Платіж
-            </button>
-          </div>
-
           {showChargeForm && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 mb-3 border dark:border-gray-700">
-              <h3 className="text-sm font-semibold mb-2 dark:text-gray-100">Нове нарахування</h3>
-              <form onSubmit={handleCashChargeSubmit} className="space-y-2">
-                <div className="grid grid-cols-3 gap-2">
+            <div className="bg-white dark:bg-gray-800 rounded shadow-lg p-2 mb-2 border dark:border-gray-700">
+              <h3 className="text-xs font-semibold mb-1.5 dark:text-gray-100">Нове нарахування</h3>
+              <form onSubmit={handleCashChargeSubmit} className="space-y-1.5">
+                <div className="grid grid-cols-3 gap-1.5">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Тип балансу</label>
+                    <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">Тип</label>
                     <select
                       value={cashChargeData.balanceType}
                       onChange={(e) => setCashChargeData({ ...cashChargeData, balanceType: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full px-1.5 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     >
-                      <option value="receipt">Прийом і побраня</option>
+                      <option value="receipt">Прийом</option>
                       <option value="transport">Перевезення</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Сума</label>
+                    <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">Сума</label>
                     <input
                       type="number"
                       step="0.01"
                       value={cashChargeData.amount}
                       onChange={(e) => setCashChargeData({ ...cashChargeData, amount: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full px-1.5 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Дата</label>
+                    <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">Дата</label>
                     <input
                       type="date"
                       value={cashChargeData.date}
                       onChange={(e) => setCashChargeData({ ...cashChargeData, date: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full px-1.5 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       required
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Причина нарахування *</label>
+                  <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">Причина *</label>
                   <input
                     type="text"
                     value={cashChargeData.description}
                     onChange={(e) => setCashChargeData({ ...cashChargeData, description: e.target.value })}
-                    placeholder="Вкажіть причину нарахування"
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                    placeholder="Вкажіть причину"
+                    className="w-full px-1.5 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                     required
                   />
                 </div>
-                <div className="flex gap-2">
-                  <button type="submit" className="px-3 py-1.5 text-sm bg-rose-700 text-white rounded-lg hover:bg-rose-800 dark:bg-gradient-to-br dark:from-rose-900 dark:to-rose-800 dark:hover:from-rose-800 dark:hover:to-rose-700">
+                <div className="flex gap-1.5">
+                  <button type="submit" className="px-2 py-1 text-xs bg-rose-700 text-white rounded hover:bg-rose-800 dark:bg-gradient-to-br dark:from-rose-900 dark:to-rose-800 dark:hover:from-rose-800 dark:hover:to-rose-700">
                     Зберегти
                   </button>
-                  <button type="button" onClick={() => setShowChargeForm(false)} className="px-3 py-1.5 text-sm bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500">
+                  <button type="button" onClick={() => setShowChargeForm(false)} className="px-2 py-1 text-xs bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-400 dark:hover:bg-gray-500">
                     Скасувати
                   </button>
                 </div>
@@ -894,58 +893,58 @@ export default function CombinedSettlement() {
           )}
 
           {showPaymentForm && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 mb-3 border dark:border-gray-700">
-              <h3 className="text-sm font-semibold mb-2 dark:text-gray-100">Новий платіж</h3>
-              <form onSubmit={handleCashPaymentSubmit} className="space-y-2">
-                <div className="grid grid-cols-3 gap-2">
+            <div className="bg-white dark:bg-gray-800 rounded shadow-lg p-2 mb-2 border dark:border-gray-700">
+              <h3 className="text-xs font-semibold mb-1.5 dark:text-gray-100">Новий платіж</h3>
+              <form onSubmit={handleCashPaymentSubmit} className="space-y-1.5">
+                <div className="grid grid-cols-3 gap-1.5">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Тип балансу</label>
+                    <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">Тип</label>
                     <select
                       value={cashFormData.balanceType}
                       onChange={(e) => setCashFormData({ ...cashFormData, balanceType: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full px-1.5 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     >
-                      <option value="receipt">Прийом і побраня</option>
+                      <option value="receipt">Прийом</option>
                       <option value="transport">Перевезення</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Сума</label>
+                    <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">Сума</label>
                     <input
                       type="number"
                       step="0.01"
                       value={cashFormData.amount}
                       onChange={(e) => setCashFormData({ ...cashFormData, amount: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full px-1.5 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Дата</label>
+                    <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">Дата</label>
                     <input
                       type="date"
                       value={cashFormData.date}
                       onChange={(e) => setCashFormData({ ...cashFormData, date: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full px-1.5 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       required
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Опис</label>
+                  <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">Опис</label>
                   <input
                     type="text"
                     value={cashFormData.description}
                     onChange={(e) => setCashFormData({ ...cashFormData, description: e.target.value })}
                     placeholder="Опис платежу"
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                    className="w-full px-1.5 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 </div>
-                <div className="flex gap-2">
-                  <button type="submit" className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700">
+                <div className="flex gap-1.5">
+                  <button type="submit" className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700">
                     Зберегти
                   </button>
-                  <button type="button" onClick={() => setShowPaymentForm(false)} className="px-3 py-1.5 text-sm bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500">
+                  <button type="button" onClick={() => setShowPaymentForm(false)} className="px-2 py-1 text-xs bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-400 dark:hover:bg-gray-500">
                     Скасувати
                   </button>
                 </div>
@@ -953,47 +952,52 @@ export default function CombinedSettlement() {
             </div>
           )}
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             {sentForSettlementCashReceipts.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold mb-2 text-gray-800 dark:text-gray-100">Накладні на розрахунок ({sentForSettlementCashReceipts.length})</h3>
-                <div className="space-y-2">
+                <h3 className="text-xs font-semibold mb-1 text-gray-800 dark:text-gray-100 flex items-center gap-1">
+                  На розрахунок
+                  <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded text-[10px] font-bold">
+                    {sentForSettlementCashReceipts.length}
+                  </span>
+                </h3>
+                <div className="grid grid-cols-2 gap-1.5">
                   {sentForSettlementCashReceipts.map(receipt => {
                     const receiptCashPln = (receipt.receipt_cost_pln || 0) + (receipt.cash_on_delivery_pln || 0);
                     const transportUsd = receipt.transport_cost_usd || 0;
 
                     return (
-                      <div key={receipt.id} className="bg-gradient-to-br from-orange-50 to-amber-100 dark:from-slate-700 dark:via-amber-700 dark:to-slate-800 border border-orange-200 dark:border-slate-600 rounded-lg p-3 shadow-lg">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="font-semibold text-gray-800 dark:text-slate-100">Накладна #{receipt.receipt_number}</div>
-                            <div className="text-xs text-gray-600 dark:text-slate-300 mt-1">
-                              Дата: {new Date(receipt.settlement_date || '').toLocaleDateString('uk-UA')}
-                            </div>
-                            <div className="text-sm mt-1">
-                              <span className="font-medium text-gray-700 dark:text-slate-200">Прийом і побраня:</span>{' '}
-                              <span className="text-red-600 dark:text-red-400 font-bold">{formatNumber(receiptCashPln)} zł</span>
-                            </div>
-                            <div className="text-sm">
-                              <span className="font-medium text-gray-700 dark:text-slate-200">Перевезення:</span>{' '}
-                              <span className="text-red-600 dark:text-red-400 font-bold">{formatNumber(transportUsd)} $</span>
-                            </div>
-                          </div>
-                          <div className="flex gap-1">
+                      <div key={receipt.id} className="bg-gradient-to-br from-orange-50 to-amber-100 dark:from-slate-700 dark:via-amber-700 dark:to-slate-800 border border-orange-200 dark:border-slate-600 rounded p-2 shadow">
+                        <div className="flex justify-between items-start mb-1">
+                          <div className="font-semibold text-xs text-gray-800 dark:text-slate-100">№{receipt.receipt_number}</div>
+                          <div className="flex gap-0.5">
                             <button
                               onClick={() => markAsSettled(receipt.id)}
-                              className="p-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition"
+                              className="p-1 bg-green-600 text-white rounded hover:bg-green-700 transition"
                               title="Розраховано"
                             >
-                              <CheckCircle2 size={16} />
+                              <CheckCircle2 size={12} />
                             </button>
                             <button
                               onClick={() => returnToActive(receipt.id)}
-                              className="p-1.5 bg-gray-500 text-white rounded hover:bg-gray-600 transition"
-                              title="Повернути в активні"
+                              className="p-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition"
+                              title="Повернути"
                             >
-                              <Undo2 size={16} />
+                              <Undo2 size={12} />
                             </button>
+                          </div>
+                        </div>
+                        <div className="text-[10px] text-gray-600 dark:text-slate-300 mb-1">
+                          {new Date(receipt.settlement_date || '').toLocaleDateString('uk-UA')}
+                        </div>
+                        <div className="space-y-0.5 text-[10px]">
+                          <div className="flex justify-between">
+                            <span className="text-gray-700 dark:text-slate-200">Прийом:</span>
+                            <span className="text-red-600 dark:text-red-400 font-bold">{formatNumber(receiptCashPln)} zł</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-700 dark:text-slate-200">Перевезення:</span>
+                            <span className="text-red-600 dark:text-red-400 font-bold">{formatNumber(transportUsd)} $</span>
                           </div>
                         </div>
                       </div>
@@ -1004,16 +1008,16 @@ export default function CombinedSettlement() {
             )}
 
             <div>
-              <h3 className="text-sm font-semibold mb-2 text-gray-800 dark:text-gray-100">Історія транзакцій</h3>
-              <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 overflow-hidden">
-                <table className="w-full text-xs">
+              <h3 className="text-xs font-semibold mb-1 text-gray-800 dark:text-gray-100">Історія транзакцій</h3>
+              <div className="bg-white dark:bg-gray-800 rounded border dark:border-gray-700 overflow-hidden">
+                <table className="w-full text-[10px]">
                   <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
-                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300">Дата</th>
-                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300">Опис</th>
-                      <th className="px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-300">Прийом (zł)</th>
-                      <th className="px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-300">Перевезення ($)</th>
-                      <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-300">Дія</th>
+                      <th className="px-1.5 py-1 text-left font-medium text-gray-700 dark:text-gray-300">Дата</th>
+                      <th className="px-1.5 py-1 text-left font-medium text-gray-700 dark:text-gray-300">Опис</th>
+                      <th className="px-1.5 py-1 text-right font-medium text-gray-700 dark:text-gray-300">Прийом</th>
+                      <th className="px-1.5 py-1 text-right font-medium text-gray-700 dark:text-gray-300">Перевезення</th>
+                      <th className="px-1.5 py-1 text-center font-medium text-gray-700 dark:text-gray-300 w-8"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -1024,27 +1028,27 @@ export default function CombinedSettlement() {
 
                       return (
                         <tr key={tx.id} className={tx.is_reversed ? 'bg-gray-100 dark:bg-gray-700/50 opacity-50' : ''}>
-                          <td className="px-2 py-2 text-gray-900 dark:text-gray-100">
-                            {new Date(tx.transaction_date).toLocaleDateString('uk-UA')}
+                          <td className="px-1.5 py-1 text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                            {new Date(tx.transaction_date).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' })}
                           </td>
-                          <td className="px-2 py-2 text-gray-900 dark:text-gray-100">
+                          <td className="px-1.5 py-1 text-gray-900 dark:text-gray-100">
                             {tx.description}
-                            {tx.is_reversed && <span className="ml-1 text-xs text-rose-700 dark:text-rose-400">(сторновано)</span>}
+                            {tx.is_reversed && <span className="ml-0.5 text-[9px] text-rose-700 dark:text-rose-400">(сторн.)</span>}
                           </td>
-                          <td className={`px-2 py-2 text-right font-medium ${isDebit ? 'text-rose-700 dark:text-rose-400' : 'text-green-600 dark:text-green-400'}`}>
-                            {isDebit ? '+' : '-'}{formatNumber(cashPln)}
+                          <td className={`px-1.5 py-1 text-right font-medium whitespace-nowrap ${isDebit ? 'text-rose-700 dark:text-rose-400' : 'text-green-600 dark:text-green-400'}`}>
+                            {isDebit ? '+' : '-'}{formatNumber(cashPln)} zł
                           </td>
-                          <td className={`px-2 py-2 text-right font-medium ${isDebit ? 'text-rose-700 dark:text-rose-400' : 'text-green-600 dark:text-green-400'}`}>
-                            {isDebit ? '+' : '-'}{formatNumber(transportUsd)}
+                          <td className={`px-1.5 py-1 text-right font-medium whitespace-nowrap ${isDebit ? 'text-rose-700 dark:text-rose-400' : 'text-green-600 dark:text-green-400'}`}>
+                            {isDebit ? '+' : '-'}{formatNumber(transportUsd)} $
                           </td>
-                          <td className="px-2 py-2 text-center">
+                          <td className="px-1.5 py-1 text-center">
                             {!tx.is_reversed && (
                               <button
                                 onClick={() => reverseCashTransaction(tx)}
-                                className="p-1 text-red-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded transition"
+                                className="p-0.5 text-red-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded transition"
                                 title="Сторнувати"
                               >
-                                <XCircle size={14} />
+                                <XCircle size={12} />
                               </button>
                             )}
                           </td>
@@ -1058,36 +1062,41 @@ export default function CombinedSettlement() {
 
             {settledCashReceipts.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold mb-2 text-gray-800 dark:text-gray-100">Розраховані накладні ({settledCashReceipts.length})</h3>
-                <div className="space-y-2">
+                <h3 className="text-xs font-semibold mb-1 text-gray-800 dark:text-gray-100 flex items-center gap-1">
+                  Розраховані
+                  <span className="px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded text-[10px] font-bold">
+                    {settledCashReceipts.length}
+                  </span>
+                </h3>
+                <div className="grid grid-cols-3 gap-1.5">
                   {settledCashReceipts.map(receipt => {
                     const receiptCashPln = (receipt.receipt_cost_pln || 0) + (receipt.cash_on_delivery_pln || 0);
                     const transportUsd = receipt.transport_cost_usd || 0;
 
                     return (
-                      <div key={receipt.id} className="bg-green-50 dark:bg-gradient-to-br dark:from-emerald-900 dark:via-teal-800 dark:to-slate-900 border border-green-200 dark:border-emerald-700 rounded-lg p-3 shadow-lg">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="font-semibold text-gray-900 dark:text-emerald-100">Накладна #{receipt.receipt_number}</div>
-                            <div className="text-xs text-gray-600 dark:text-emerald-200 mt-1">
-                              Розраховано: {new Date(receipt.settled_date || '').toLocaleDateString('uk-UA')}
-                            </div>
-                            <div className="text-sm mt-1">
-                              <span className="font-medium text-gray-700 dark:text-emerald-200">Прийом і побраня:</span>{' '}
-                              <span className="text-gray-900 dark:text-white font-bold">{formatNumber(receiptCashPln)} zł</span>
-                            </div>
-                            <div className="text-sm">
-                              <span className="font-medium text-gray-700 dark:text-emerald-200">Перевезення:</span>{' '}
-                              <span className="text-gray-900 dark:text-white font-bold">{formatNumber(transportUsd)} $</span>
-                            </div>
-                          </div>
+                      <div key={receipt.id} className="bg-green-50 dark:bg-gradient-to-br dark:from-emerald-900 dark:via-teal-800 dark:to-slate-900 border border-green-200 dark:border-emerald-700 rounded p-2 shadow">
+                        <div className="flex justify-between items-start mb-1">
+                          <div className="font-semibold text-xs text-gray-900 dark:text-emerald-100">№{receipt.receipt_number}</div>
                           <button
                             onClick={() => returnSettledToSettlement(receipt.id)}
-                            className="p-1.5 bg-amber-600 text-white rounded hover:bg-amber-700 transition"
-                            title="Повернути на розрахунок"
+                            className="p-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition"
+                            title="Повернути"
                           >
-                            <Undo2 size={16} />
+                            <Undo2 size={12} />
                           </button>
+                        </div>
+                        <div className="text-[10px] text-gray-600 dark:text-emerald-200 mb-1">
+                          {new Date(receipt.settled_date || '').toLocaleDateString('uk-UA')}
+                        </div>
+                        <div className="space-y-0.5 text-[10px]">
+                          <div className="flex justify-between">
+                            <span className="text-gray-700 dark:text-emerald-200">Прийом:</span>
+                            <span className="text-gray-900 dark:text-white font-bold">{formatNumber(receiptCashPln)} zł</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-700 dark:text-emerald-200">Перевезення:</span>
+                            <span className="text-gray-900 dark:text-white font-bold">{formatNumber(transportUsd)} $</span>
+                          </div>
                         </div>
                       </div>
                     );
@@ -1099,72 +1108,49 @@ export default function CombinedSettlement() {
         </div>
       ) : (
         <div className="flex-1 overflow-auto">
-          <div className="flex justify-end gap-2 mb-3">
-            <button
-              onClick={() => {
-                setShowChargeForm(!showChargeForm);
-                setShowPaymentForm(false);
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-rose-700 text-white rounded-lg hover:bg-rose-800 dark:bg-gradient-to-br dark:from-rose-900 dark:to-rose-800 dark:hover:from-rose-800 dark:hover:to-rose-700 transition-colors"
-            >
-              <TrendingUp size={16} />
-              Нарахування
-            </button>
-            <button
-              onClick={() => {
-                setShowPaymentForm(!showPaymentForm);
-                setShowChargeForm(false);
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <Plus size={16} />
-              Платіж
-            </button>
-          </div>
-
           {showChargeForm && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 mb-3 border dark:border-gray-700">
-              <h3 className="text-sm font-semibold mb-2 dark:text-gray-100">Нове нарахування</h3>
-              <form onSubmit={handleCardChargeSubmit} className="space-y-2">
-                <div className="grid grid-cols-2 gap-2">
+            <div className="bg-white dark:bg-gray-800 rounded shadow-lg p-2 mb-2 border dark:border-gray-700">
+              <h3 className="text-xs font-semibold mb-1.5 dark:text-gray-100">Нове нарахування</h3>
+              <form onSubmit={handleCardChargeSubmit} className="space-y-1.5">
+                <div className="grid grid-cols-2 gap-1.5">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Сума (zł)</label>
+                    <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">Сума (zł)</label>
                     <input
                       type="number"
                       step="0.01"
                       value={cardChargeData.amount}
                       onChange={(e) => setCardChargeData({ ...cardChargeData, amount: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full px-1.5 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Дата</label>
+                    <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">Дата</label>
                     <input
                       type="date"
                       value={cardChargeData.date}
                       onChange={(e) => setCardChargeData({ ...cardChargeData, date: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full px-1.5 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       required
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Причина нарахування *</label>
+                  <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">Причина *</label>
                   <input
                     type="text"
                     value={cardChargeData.description}
                     onChange={(e) => setCardChargeData({ ...cardChargeData, description: e.target.value })}
-                    placeholder="Вкажіть причину нарахування"
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                    placeholder="Вкажіть причину"
+                    className="w-full px-1.5 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                     required
                   />
                 </div>
-                <div className="flex gap-2">
-                  <button type="submit" className="px-3 py-1.5 text-sm bg-rose-700 text-white rounded-lg hover:bg-rose-800 dark:bg-gradient-to-br dark:from-rose-900 dark:to-rose-800 dark:hover:from-rose-800 dark:hover:to-rose-700">
+                <div className="flex gap-1.5">
+                  <button type="submit" className="px-2 py-1 text-xs bg-rose-700 text-white rounded hover:bg-rose-800 dark:bg-gradient-to-br dark:from-rose-900 dark:to-rose-800 dark:hover:from-rose-800 dark:hover:to-rose-700">
                     Зберегти
                   </button>
-                  <button type="button" onClick={() => setShowChargeForm(false)} className="px-3 py-1.5 text-sm bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500">
+                  <button type="button" onClick={() => setShowChargeForm(false)} className="px-2 py-1 text-xs bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-400 dark:hover:bg-gray-500">
                     Скасувати
                   </button>
                 </div>
@@ -1173,47 +1159,47 @@ export default function CombinedSettlement() {
           )}
 
           {showPaymentForm && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 mb-3 border dark:border-gray-700">
-              <h3 className="text-sm font-semibold mb-2 dark:text-gray-100">Новий платіж</h3>
-              <form onSubmit={handleCardPaymentSubmit} className="space-y-2">
-                <div className="grid grid-cols-2 gap-2">
+            <div className="bg-white dark:bg-gray-800 rounded shadow-lg p-2 mb-2 border dark:border-gray-700">
+              <h3 className="text-xs font-semibold mb-1.5 dark:text-gray-100">Новий платіж</h3>
+              <form onSubmit={handleCardPaymentSubmit} className="space-y-1.5">
+                <div className="grid grid-cols-2 gap-1.5">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Сума (zł)</label>
+                    <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">Сума (zł)</label>
                     <input
                       type="number"
                       step="0.01"
                       value={cardFormData.amount}
                       onChange={(e) => setCardFormData({ ...cardFormData, amount: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full px-1.5 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Дата</label>
+                    <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">Дата</label>
                     <input
                       type="date"
                       value={cardFormData.date}
                       onChange={(e) => setCardFormData({ ...cardFormData, date: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full px-1.5 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       required
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Опис</label>
+                  <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">Опис</label>
                   <input
                     type="text"
                     value={cardFormData.description}
                     onChange={(e) => setCardFormData({ ...cardFormData, description: e.target.value })}
                     placeholder="Опис платежу"
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                    className="w-full px-1.5 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 </div>
-                <div className="flex gap-2">
-                  <button type="submit" className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700">
+                <div className="flex gap-1.5">
+                  <button type="submit" className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700">
                     Зберегти
                   </button>
-                  <button type="button" onClick={() => setShowPaymentForm(false)} className="px-3 py-1.5 text-sm bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500">
+                  <button type="button" onClick={() => setShowPaymentForm(false)} className="px-2 py-1 text-xs bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-400 dark:hover:bg-gray-500">
                     Скасувати
                   </button>
                 </div>
@@ -1221,45 +1207,48 @@ export default function CombinedSettlement() {
             </div>
           )}
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             {sentForSettlementCardReceipts.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold mb-2 text-gray-800 dark:text-gray-100">Накладні на розрахунок ({sentForSettlementCardReceipts.length})</h3>
-                <div className="space-y-2">
+                <h3 className="text-xs font-semibold mb-1 text-gray-800 dark:text-gray-100 flex items-center gap-1">
+                  На розрахунок
+                  <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded text-[10px] font-bold">
+                    {sentForSettlementCardReceipts.length}
+                  </span>
+                </h3>
+                <div className="grid grid-cols-2 gap-1.5">
                   {sentForSettlementCardReceipts.map(receipt => {
                     const orders = receiptOrders[receipt.id] || [];
                     const paidOrders = orders.filter(o => o.verified && o.payment_type === 'оплачено');
                     const totalAmount = paidOrders.reduce((sum, o) => sum + (o.part_price || 0) + (o.delivery_cost || 0), 0);
 
                     return (
-                      <div key={receipt.id} className="bg-gradient-to-br from-orange-50 to-amber-100 dark:from-slate-700 dark:via-amber-700 dark:to-slate-800 border border-orange-200 dark:border-slate-600 rounded-lg p-3 shadow-lg">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="font-semibold text-gray-800 dark:text-slate-100">Накладна #{receipt.receipt_number}</div>
-                            <div className="text-xs text-gray-600 dark:text-slate-300 mt-1">
-                              Дата: {new Date(receipt.settlement_date || '').toLocaleDateString('uk-UA')}
-                            </div>
-                            <div className="text-sm mt-1">
-                              <span className="font-medium text-gray-700 dark:text-slate-200">Сума до оплати:</span>{' '}
-                              <span className="text-red-600 dark:text-red-400 font-bold">{formatNumber(totalAmount)} zł</span>
-                            </div>
-                          </div>
-                          <div className="flex gap-1">
+                      <div key={receipt.id} className="bg-gradient-to-br from-orange-50 to-amber-100 dark:from-slate-700 dark:via-amber-700 dark:to-slate-800 border border-orange-200 dark:border-slate-600 rounded p-2 shadow">
+                        <div className="flex justify-between items-start mb-1">
+                          <div className="font-semibold text-xs text-gray-800 dark:text-slate-100">№{receipt.receipt_number}</div>
+                          <div className="flex gap-0.5">
                             <button
                               onClick={() => markAsSettled(receipt.id)}
-                              className="p-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition"
+                              className="p-1 bg-green-600 text-white rounded hover:bg-green-700 transition"
                               title="Розраховано"
                             >
-                              <CheckCircle2 size={16} />
+                              <CheckCircle2 size={12} />
                             </button>
                             <button
                               onClick={() => returnToActive(receipt.id)}
-                              className="p-1.5 bg-gray-500 text-white rounded hover:bg-gray-600 transition"
-                              title="Повернути в активні"
+                              className="p-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition"
+                              title="Повернути"
                             >
-                              <Undo2 size={16} />
+                              <Undo2 size={12} />
                             </button>
                           </div>
+                        </div>
+                        <div className="text-[10px] text-gray-600 dark:text-slate-300 mb-1">
+                          {new Date(receipt.settlement_date || '').toLocaleDateString('uk-UA')}
+                        </div>
+                        <div className="flex justify-between text-[10px]">
+                          <span className="text-gray-700 dark:text-slate-200">Сума:</span>
+                          <span className="text-red-600 dark:text-red-400 font-bold">{formatNumber(totalAmount)} zł</span>
                         </div>
                       </div>
                     );
@@ -1269,15 +1258,15 @@ export default function CombinedSettlement() {
             )}
 
             <div>
-              <h3 className="text-sm font-semibold mb-2 text-gray-800 dark:text-gray-100">Історія транзакцій</h3>
-              <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 overflow-hidden">
-                <table className="w-full text-xs">
+              <h3 className="text-xs font-semibold mb-1 text-gray-800 dark:text-gray-100">Історія транзакцій</h3>
+              <div className="bg-white dark:bg-gray-800 rounded border dark:border-gray-700 overflow-hidden">
+                <table className="w-full text-[10px]">
                   <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
-                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300">Дата</th>
-                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300">Опис</th>
-                      <th className="px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-300">Сума (zł)</th>
-                      <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-300">Дія</th>
+                      <th className="px-1.5 py-1 text-left font-medium text-gray-700 dark:text-gray-300">Дата</th>
+                      <th className="px-1.5 py-1 text-left font-medium text-gray-700 dark:text-gray-300">Опис</th>
+                      <th className="px-1.5 py-1 text-right font-medium text-gray-700 dark:text-gray-300">Сума</th>
+                      <th className="px-1.5 py-1 text-center font-medium text-gray-700 dark:text-gray-300 w-8"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -1286,24 +1275,24 @@ export default function CombinedSettlement() {
 
                       return (
                         <tr key={tx.id} className={tx.is_reversed ? 'bg-gray-100 dark:bg-gray-700/50 opacity-50' : ''}>
-                          <td className="px-2 py-2 text-gray-900 dark:text-gray-100">
-                            {new Date(tx.transaction_date).toLocaleDateString('uk-UA')}
+                          <td className="px-1.5 py-1 text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                            {new Date(tx.transaction_date).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' })}
                           </td>
-                          <td className="px-2 py-2 text-gray-900 dark:text-gray-100">
+                          <td className="px-1.5 py-1 text-gray-900 dark:text-gray-100">
                             {tx.description}
-                            {tx.is_reversed && <span className="ml-1 text-xs text-rose-700 dark:text-rose-400">(сторновано)</span>}
+                            {tx.is_reversed && <span className="ml-0.5 text-[9px] text-rose-700 dark:text-rose-400">(сторн.)</span>}
                           </td>
-                          <td className={`px-2 py-2 text-right font-medium ${isCharge ? 'text-rose-700 dark:text-rose-400' : 'text-green-600 dark:text-green-400'}`}>
-                            {isCharge ? '+' : '-'}{formatNumber(tx.amount)}
+                          <td className={`px-1.5 py-1 text-right font-medium whitespace-nowrap ${isCharge ? 'text-rose-700 dark:text-rose-400' : 'text-green-600 dark:text-green-400'}`}>
+                            {isCharge ? '+' : '-'}{formatNumber(tx.amount)} zł
                           </td>
-                          <td className="px-2 py-2 text-center">
+                          <td className="px-1.5 py-1 text-center">
                             {!tx.is_reversed && (
                               <button
                                 onClick={() => reverseCardTransaction(tx)}
-                                className="p-1 text-red-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded transition"
+                                className="p-0.5 text-red-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded transition"
                                 title="Сторнувати"
                               >
-                                <XCircle size={14} />
+                                <XCircle size={12} />
                               </button>
                             )}
                           </td>
@@ -1317,33 +1306,36 @@ export default function CombinedSettlement() {
 
             {settledCardReceipts.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold mb-2 text-gray-800 dark:text-gray-100">Розраховані накладні ({settledCardReceipts.length})</h3>
-                <div className="space-y-2">
+                <h3 className="text-xs font-semibold mb-1 text-gray-800 dark:text-gray-100 flex items-center gap-1">
+                  Розраховані
+                  <span className="px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded text-[10px] font-bold">
+                    {settledCardReceipts.length}
+                  </span>
+                </h3>
+                <div className="grid grid-cols-3 gap-1.5">
                   {settledCardReceipts.map(receipt => {
                     const orders = receiptOrders[receipt.id] || [];
                     const paidOrders = orders.filter(o => o.verified && o.payment_type === 'оплачено');
                     const totalAmount = paidOrders.reduce((sum, o) => sum + (o.part_price || 0) + (o.delivery_cost || 0), 0);
 
                     return (
-                      <div key={receipt.id} className="bg-green-50 dark:bg-gradient-to-br dark:from-emerald-900 dark:via-teal-800 dark:to-slate-900 border border-green-200 dark:border-emerald-700 rounded-lg p-3 shadow-lg">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="font-semibold text-gray-900 dark:text-emerald-100">Накладна #{receipt.receipt_number}</div>
-                            <div className="text-xs text-gray-600 dark:text-emerald-200 mt-1">
-                              Розраховано: {new Date(receipt.settled_date || '').toLocaleDateString('uk-UA')}
-                            </div>
-                            <div className="text-sm mt-1">
-                              <span className="font-medium text-gray-700 dark:text-emerald-200">Сума:</span>{' '}
-                              <span className="text-gray-900 dark:text-white font-bold">{formatNumber(totalAmount)} zł</span>
-                            </div>
-                          </div>
+                      <div key={receipt.id} className="bg-green-50 dark:bg-gradient-to-br dark:from-emerald-900 dark:via-teal-800 dark:to-slate-900 border border-green-200 dark:border-emerald-700 rounded p-2 shadow">
+                        <div className="flex justify-between items-start mb-1">
+                          <div className="font-semibold text-xs text-gray-900 dark:text-emerald-100">№{receipt.receipt_number}</div>
                           <button
                             onClick={() => returnSettledToSettlement(receipt.id)}
-                            className="p-1.5 bg-amber-600 text-white rounded hover:bg-amber-700 transition"
-                            title="Повернути на розрахунок"
+                            className="p-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition"
+                            title="Повернути"
                           >
-                            <Undo2 size={16} />
+                            <Undo2 size={12} />
                           </button>
+                        </div>
+                        <div className="text-[10px] text-gray-600 dark:text-emerald-200 mb-1">
+                          {new Date(receipt.settled_date || '').toLocaleDateString('uk-UA')}
+                        </div>
+                        <div className="flex justify-between text-[10px]">
+                          <span className="text-gray-700 dark:text-emerald-200">Сума:</span>
+                          <span className="text-gray-900 dark:text-white font-bold">{formatNumber(totalAmount)} zł</span>
                         </div>
                       </div>
                     );
