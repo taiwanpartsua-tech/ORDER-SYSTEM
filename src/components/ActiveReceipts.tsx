@@ -27,6 +27,8 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
   const [cashOnDeliveryReceiptNumber, setCashOnDeliveryReceiptNumber] = useState<string>('');
   const [paidReceiptNumber, setPaidReceiptNumber] = useState<string>('');
 
+  const [showRestorePrompt, setShowRestorePrompt] = useState<boolean>(false);
+
   function generateReceiptNumber(group: PaymentGroup): string {
     const now = new Date();
     const year = now.getFullYear();
@@ -43,9 +45,60 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
     return num % 1 === 0 ? num.toString() : num.toFixed(2);
   }
 
+  function saveDraft() {
+    const draft = {
+      cashOnDeliveryOrders,
+      paidOrders,
+      cashOnDeliveryReceiptNumber,
+      paidReceiptNumber,
+      timestamp: new Date().toISOString()
+    };
+    localStorage.setItem('activeReceiptDraft', JSON.stringify(draft));
+  }
+
+  function clearDraft() {
+    localStorage.removeItem('activeReceiptDraft');
+  }
+
+  function restoreDraft() {
+    const savedDraft = localStorage.getItem('activeReceiptDraft');
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft);
+        setCashOnDeliveryOrders(draft.cashOnDeliveryOrders || []);
+        setPaidOrders(draft.paidOrders || []);
+        setCashOnDeliveryReceiptNumber(draft.cashOnDeliveryReceiptNumber || '');
+        setPaidReceiptNumber(draft.paidReceiptNumber || '');
+        setShowRestorePrompt(false);
+      } catch (error) {
+        console.error('Помилка відновлення чернетки:', error);
+        clearDraft();
+      }
+    }
+  }
+
+  function discardDraft() {
+    clearDraft();
+    setShowRestorePrompt(false);
+  }
+
   useEffect(() => {
     loadAvailableOrders();
+
+    const savedDraft = localStorage.getItem('activeReceiptDraft');
+    if (savedDraft) {
+      setShowRestorePrompt(true);
+    }
   }, []);
+
+  useEffect(() => {
+    if (cashOnDeliveryOrders.length > 0 || paidOrders.length > 0 ||
+        cashOnDeliveryReceiptNumber || paidReceiptNumber) {
+      saveDraft();
+    } else {
+      clearDraft();
+    }
+  }, [cashOnDeliveryOrders, paidOrders, cashOnDeliveryReceiptNumber, paidReceiptNumber]);
 
   async function loadAvailableOrders() {
     const { data } = await supabase
@@ -266,6 +319,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
         setPaidReceiptNumber('');
       }
 
+      clearDraft();
       loadAvailableOrders();
 
       alert('Прійомку передано постачальнику на звірку.');
@@ -300,7 +354,34 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
   const paidTotalPln = paidTotals.parts + paidTotals.delivery + paidTotals.receipt + paidTotals.cash;
 
   return (
-    <div className="h-full flex flex-col p-4 max-w-[98%] mx-auto">
+    <div className="h-full flex flex-col p-4 max-w-[98%] mx-auto relative">
+      {showRestorePrompt && (
+        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 max-w-md">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">
+              Знайдено збережену чернетку
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              Виявлено незавершену прийомку. Бажаєте відновити дані?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={discardDraft}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+              >
+                Відхилити
+              </button>
+              <button
+                onClick={restoreDraft}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Відновити
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-4 flex-1 overflow-hidden min-h-0" style={{ gridTemplateColumns: '380px 1fr' }}>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow flex flex-col overflow-hidden">
           <div className="p-4 border-b flex-shrink-0">
