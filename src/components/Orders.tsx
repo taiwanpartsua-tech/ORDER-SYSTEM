@@ -1785,9 +1785,11 @@ export default function Orders() {
               <thead>
                 <tr className="bg-green-100 dark:bg-green-800/30">
                   <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">№ Док</th>
-                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">№ Замовлення</th>
+                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">Назва</th>
+                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">ID Клієнта</th>
+                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">№ Запчастини</th>
+                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">Посилання</th>
                   <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">ТТН</th>
-                  <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-left text-xs font-semibold text-green-900 dark:text-green-200">Поставник</th>
                   <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-right text-xs font-semibold text-green-900 dark:text-green-200">Вага (кг)</th>
                   <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-right text-xs font-semibold text-green-900 dark:text-green-200">Запчастини</th>
                   <th className="border border-green-300 dark:border-green-700 px-2 py-2 text-right text-xs font-semibold text-green-900 dark:text-green-200">Доставка</th>
@@ -1802,9 +1804,17 @@ export default function Orders() {
                 {acceptedOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-green-100 dark:hover:bg-green-800/20 transition">
                     <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100 font-semibold">{order.receipt_number}</td>
-                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{order.order_number || '-'}</td>
+                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{order.title || '-'}</td>
+                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{order.client_id || '-'}</td>
+                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{order.part_number || '-'}</td>
+                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">
+                      {order.link ? (
+                        <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
+                          Посилання
+                        </a>
+                      ) : '-'}
+                    </td>
                     <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{order.tracking_number || '-'}</td>
-                    <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100">{order.supplier?.name || '-'}</td>
                     <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100 text-right">{order.weight_kg.toFixed(2)}</td>
                     <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100 text-right">{order.part_price.toFixed(2)}</td>
                     <td className="border border-green-300 dark:border-green-700 px-2 py-2 text-xs text-green-900 dark:text-green-100 text-right">{order.delivery_cost.toFixed(2)}</td>
