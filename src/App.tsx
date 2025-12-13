@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Package, ClipboardCheck, TrendingUp, FileCheck, DollarSign, CreditCard, Moon, Sun } from 'lucide-react';
+import { Package, ClipboardCheck, TrendingUp, FileCheck, DollarSign, Moon, Sun } from 'lucide-react';
 import Orders from './components/Orders';
 import ActiveReceipts from './components/ActiveReceipts';
 import SupplierBalance from './components/SupplierBalance';
 import ReceiptManagement from './components/ReceiptManagement';
-import MutualSettlement from './components/MutualSettlement';
-import CardMutualSettlement from './components/CardMutualSettlement';
+import CombinedSettlement from './components/CombinedSettlement';
 import { useTheme } from './contexts/ThemeContext';
 
-type Tab = 'orders' | 'receipts' | 'management' | 'balance' | 'settlement' | 'cards';
+type Tab = 'orders' | 'receipts' | 'management' | 'balance' | 'settlement';
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>(() => {
@@ -94,17 +93,6 @@ function App() {
               <DollarSign size={20} />
               Взаєморозрахунок
             </button>
-            <button
-              onClick={() => setActiveTab('cards')}
-              className={`flex items-center gap-2 px-6 py-4 font-medium transition border-b-2 ${
-                activeTab === 'cards'
-                  ? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-400'
-                  : 'border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600'
-              }`}
-            >
-              <CreditCard size={20} />
-              Взаєморозрахунок по картках
-            </button>
           </div>
         </div>
       </nav>
@@ -114,8 +102,7 @@ function App() {
         {activeTab === 'receipts' && <ActiveReceipts onNavigateToManagement={() => setActiveTab('management')} />}
         {activeTab === 'management' && <ReceiptManagement />}
         {activeTab === 'balance' && <SupplierBalance />}
-        {activeTab === 'settlement' && <MutualSettlement />}
-        {activeTab === 'cards' && <CardMutualSettlement />}
+        {activeTab === 'settlement' && <CombinedSettlement />}
       </main>
     </div>
   );
