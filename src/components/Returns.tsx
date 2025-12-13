@@ -191,10 +191,6 @@ export default function Returns() {
       delete dataToSubmit.manager_id;
     }
 
-    if (dataToSubmit.refund_status === '' || dataToSubmit.refund_status === null) {
-      dataToSubmit.refund_status = null;
-    }
-
     const shouldArchive = dataToSubmit.status === 'проблемні' || dataToSubmit.status === 'анульовано';
     dataToSubmit.archived = shouldArchive;
 
