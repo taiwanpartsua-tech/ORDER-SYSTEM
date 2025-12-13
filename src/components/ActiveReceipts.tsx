@@ -60,29 +60,75 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
     localStorage.removeItem('activeReceiptDraft');
   }
 
-  function restoreDraft() {
+  async function restoreDraft() {
     const savedDraft = localStorage.getItem('activeReceiptDraft');
     if (savedDraft) {
       try {
         const draft = JSON.parse(savedDraft);
-        const restoredCashOrders = draft.cashOnDeliveryOrders || [];
-        const restoredPaidOrders = draft.paidOrders || [];
+        const draftCashOrders = draft.cashOnDeliveryOrders || [];
+        const draftPaidOrders = draft.paidOrders || [];
+
+        const allDraftOrderIds = [
+          ...draftCashOrders.map((o: EditableOrder) => o.id),
+          ...draftPaidOrders.map((o: EditableOrder) => o.id)
+        ];
+
+        const { data: currentOrders } = await supabase
+          .from('orders')
+          .select('*, supplier:suppliers(*)')
+          .in('id', allDraftOrderIds);
+
+        if (!currentOrders || currentOrders.length === 0) {
+          alert('Замовлення з чернетки більше не доступні');
+          clearDraft();
+          setShowRestorePrompt(false);
+          return;
+        }
+
+        const restoredCashOrders = draftCashOrders
+          .map((draftOrder: EditableOrder) => {
+            const currentOrder = currentOrders.find(o => o.id === draftOrder.id);
+            if (!currentOrder) return null;
+            return {
+              ...currentOrder,
+              editableParts: draftOrder.editableParts,
+              editableDelivery: draftOrder.editableDelivery,
+              editableReceipt: draftOrder.editableReceipt,
+              editableCash: draftOrder.editableCash,
+              editableTransport: draftOrder.editableTransport
+            };
+          })
+          .filter(Boolean) as EditableOrder[];
+
+        const restoredPaidOrders = draftPaidOrders
+          .map((draftOrder: EditableOrder) => {
+            const currentOrder = currentOrders.find(o => o.id === draftOrder.id);
+            if (!currentOrder) return null;
+            return {
+              ...currentOrder,
+              editableParts: draftOrder.editableParts,
+              editableDelivery: draftOrder.editableDelivery,
+              editableReceipt: draftOrder.editableReceipt,
+              editableCash: draftOrder.editableCash,
+              editableTransport: draftOrder.editableTransport
+            };
+          })
+          .filter(Boolean) as EditableOrder[];
 
         setCashOnDeliveryOrders(restoredCashOrders);
         setPaidOrders(restoredPaidOrders);
         setCashOnDeliveryReceiptNumber(draft.cashOnDeliveryReceiptNumber || '');
         setPaidReceiptNumber(draft.paidReceiptNumber || '');
 
-        const restoredOrderIds = [
-          ...restoredCashOrders.map((o: EditableOrder) => o.id),
-          ...restoredPaidOrders.map((o: EditableOrder) => o.id)
-        ];
-
+        const restoredOrderIds = currentOrders.map(o => o.id);
         setAvailableOrders(prev => prev.filter(order => !restoredOrderIds.includes(order.id)));
+
         setShowRestorePrompt(false);
       } catch (error) {
         console.error('Помилка відновлення чернетки:', error);
+        alert('Помилка відновлення чернетки');
         clearDraft();
+        setShowRestorePrompt(false);
       }
     }
   }
