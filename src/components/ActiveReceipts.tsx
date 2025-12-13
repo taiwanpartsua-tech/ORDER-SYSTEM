@@ -222,7 +222,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
   const availableCashOnDeliveryOrders = availableOrders.filter(order => getOrderGroup(order) === 'cash_on_delivery');
   const availablePaidOrders = availableOrders.filter(order => getOrderGroup(order) === 'paid');
 
-  function moveToActiveReceipt(order: OrderWithSupplier, group: PaymentGroup) {
+  async function moveToActiveReceipt(order: OrderWithSupplier, group: PaymentGroup) {
     const editableOrder: EditableOrder = {
       ...order,
       editableParts: order.part_price || 0,
@@ -232,6 +232,14 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
       editableTransport: order.transport_cost_usd || 0,
       editableWeight: order.weight_kg || 0
     };
+
+    await supabase
+      .from('orders')
+      .update({
+        previous_status: order.status,
+        status: 'в активному прийомі'
+      })
+      .eq('id', order.id);
 
     setAvailableOrders(prev => prev.filter(o => o.id !== order.id));
 
@@ -248,7 +256,15 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
     }
   }
 
-  function removeFromActiveReceipt(order: EditableOrder, group: PaymentGroup) {
+  async function removeFromActiveReceipt(order: EditableOrder, group: PaymentGroup) {
+    await supabase
+      .from('orders')
+      .update({
+        status: order.previous_status || order.status,
+        previous_status: null
+      })
+      .eq('id', order.id);
+
     if (group === 'cash_on_delivery') {
       setCashOnDeliveryOrders(prev => prev.filter(o => o.id !== order.id));
     } else {

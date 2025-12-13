@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Send, Check, ChevronDown, ChevronRight, Plus } from 'lucide-react';
+import { Send, Check, ChevronDown, ChevronRight, Plus, X } from 'lucide-react';
 
 type Receipt = {
   id: string;
@@ -434,6 +434,14 @@ export default function ReceiptManagement() {
         return;
       }
 
+      await supabase
+        .from('orders')
+        .update({
+          previous_status: orderData.status,
+          status: 'в активному прийомі'
+        })
+        .eq('id', orderId);
+
       console.log('Додаємо зв\'язок receipt_orders...');
       const { error: receiptOrderError } = await supabase.from('receipt_orders').insert({
         receipt_id: receiptId,
@@ -473,6 +481,50 @@ export default function ReceiptManagement() {
     } catch (err) {
       console.error('Помилка при створенні замовлення (catch):', err);
       alert(`Помилка при створенні замовлення: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  async function removeOrderFromReceipt(receiptId: string, orderId: string) {
+    try {
+      const { data: orderData } = await supabase
+        .from('orders')
+        .select('previous_status, status')
+        .eq('id', orderId)
+        .single();
+
+      if (!orderData) {
+        alert('Замовлення не знайдено');
+        return;
+      }
+
+      await supabase
+        .from('orders')
+        .update({
+          status: orderData.previous_status || orderData.status,
+          previous_status: null
+        })
+        .eq('id', orderId);
+
+      await supabase
+        .from('receipt_orders')
+        .delete()
+        .eq('receipt_id', receiptId)
+        .eq('order_id', orderId);
+
+      await supabase
+        .from('receipt_order_snapshots')
+        .delete()
+        .eq('receipt_id', receiptId)
+        .eq('order_id', orderId);
+
+      loadOrdersForReceipt(receiptId);
+      loadReceipts();
+      if (showAddOrders === receiptId) {
+        loadAvailableOrders(receiptId);
+      }
+    } catch (err) {
+      console.error('Помилка при видаленні замовлення:', err);
+      alert(`Помилка при видаленні замовлення: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
@@ -597,6 +649,7 @@ export default function ReceiptManagement() {
                     <th className="w-24 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Тип оплати</th>
                     <th className="w-24 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Дата</th>
                     <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Всього</th>
+                    <th className="w-12 px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200">Дія</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -666,6 +719,15 @@ export default function ReceiptManagement() {
                       <td className="px-2 py-2 truncate">{order.payment_type}</td>
                       <td className="px-2 py-2">{order.order_date}</td>
                       <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.total_cost)}</td>
+                      <td className="px-2 py-2 text-center">
+                        <button
+                          onClick={() => removeOrderFromReceipt(receipt.id, order.id)}
+                          className="text-red-600 hover:text-red-900 hover:bg-red-50 p-1 rounded transition"
+                          title="Видалити з прійомки"
+                        >
+                          <X size={16} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -771,6 +833,7 @@ export default function ReceiptManagement() {
                     <th className="w-24 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Тип оплати</th>
                     <th className="w-24 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Дата</th>
                     <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Всього</th>
+                    <th className="w-12 px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200">Дія</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -840,6 +903,15 @@ export default function ReceiptManagement() {
                       <td className="px-2 py-2 truncate">{order.payment_type}</td>
                       <td className="px-2 py-2">{order.order_date}</td>
                       <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.total_cost)}</td>
+                      <td className="px-2 py-2 text-center">
+                        <button
+                          onClick={() => removeOrderFromReceipt(receipt.id, order.id)}
+                          className="text-red-600 hover:text-red-900 hover:bg-red-50 p-1 rounded transition"
+                          title="Видалити з прійомки"
+                        >
+                          <X size={16} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
