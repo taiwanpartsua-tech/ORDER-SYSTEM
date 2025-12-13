@@ -1141,8 +1141,8 @@ export default function Orders() {
       </div>
 
       {activeTab === 'orders' && (
-        <>
-          <div className="flex gap-2 mb-4 bg-gray-50 dark:bg-gray-800 p-1 rounded-lg w-fit">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="flex gap-2 bg-gray-50 dark:bg-gray-800 p-1 rounded-lg flex-shrink-0">
             <button
               onClick={() => setActiveViewTab('active')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition ${
@@ -1184,11 +1184,11 @@ export default function Orders() {
               Архів ({orders.filter(o => o.archived === true).length})
             </button>
           </div>
-          <div className="mb-4 relative">
+          <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={20} />
             <input
               type="text"
-              placeholder="Пошук за ID клієнта, назвою, трекінгом або номером запчастини..."
+              placeholder="Пошук..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-10 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
@@ -1202,7 +1202,7 @@ export default function Orders() {
               </button>
             )}
           </div>
-        </>
+        </div>
       )}
 
       {activeTab === 'orders' && isModalOpen && (
