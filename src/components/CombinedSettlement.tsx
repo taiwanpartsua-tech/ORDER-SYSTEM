@@ -919,23 +919,23 @@ export default function CombinedSettlement() {
         <div className="flex-1 grid grid-cols-2 gap-2 overflow-hidden">
           <div className="flex flex-col gap-2 overflow-auto">
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-700 dark:via-blue-800 dark:to-slate-900 rounded-lg p-3 border border-blue-200 dark:border-slate-600 shadow">
-                <div className="text-xs font-medium text-blue-900 dark:text-slate-200 mb-1">Прийом</div>
-                <div className={`text-lg font-bold ${balanceReceiptPln > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-700 dark:via-blue-800 dark:to-slate-900 rounded-lg p-4 border border-blue-200 dark:border-slate-600 shadow">
+                <div className="text-sm font-medium text-blue-900 dark:text-slate-200 mb-2">Прийом</div>
+                <div className={`text-2xl font-bold ${balanceReceiptPln > 0 ? 'text-red-700 dark:text-red-500' : 'text-green-700 dark:text-green-500'}`}>
                   {formatNumber(balanceReceiptPln)} zł
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-slate-700 dark:via-emerald-800 dark:to-slate-900 rounded-lg p-3 border border-emerald-200 dark:border-slate-600 shadow">
-                <div className="text-xs font-medium text-emerald-900 dark:text-slate-200 mb-1">Перевезення</div>
-                <div className={`text-lg font-bold ${balanceTransportUsd > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-slate-700 dark:via-emerald-800 dark:to-slate-900 rounded-lg p-4 border border-emerald-200 dark:border-slate-600 shadow">
+                <div className="text-sm font-medium text-emerald-900 dark:text-slate-200 mb-2">Перевезення</div>
+                <div className={`text-2xl font-bold ${balanceTransportUsd > 0 ? 'text-red-700 dark:text-red-500' : 'text-green-700 dark:text-green-500'}`}>
                   {formatNumber(balanceTransportUsd)} $
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-slate-700 dark:via-amber-700 dark:to-slate-900 rounded-lg p-3 border border-amber-200 dark:border-slate-600 shadow">
-                <div className="text-xs font-semibold text-amber-900 dark:text-slate-100 mb-1">Карта</div>
-                <div className={`text-lg font-bold ${balanceCardPln > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+              <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-slate-700 dark:via-amber-700 dark:to-slate-900 rounded-lg p-4 border border-amber-200 dark:border-slate-600 shadow">
+                <div className="text-sm font-semibold text-amber-900 dark:text-slate-100 mb-2">Карта</div>
+                <div className={`text-2xl font-bold ${balanceCardPln > 0 ? 'text-red-700 dark:text-red-500' : 'text-green-700 dark:text-green-500'}`}>
                   {formatNumber(balanceCardPln)} zł
                 </div>
               </div>
@@ -946,7 +946,7 @@ export default function CombinedSettlement() {
                 <div className="flex">
                   <button
                     onClick={() => setSettlementType('cash')}
-                    className={`px-3 py-1.5 text-sm font-medium transition rounded-l ${
+                    className={`px-5 py-2.5 text-base font-medium transition rounded-l ${
                       settlementType === 'cash'
                         ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                         : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
@@ -956,7 +956,7 @@ export default function CombinedSettlement() {
                   </button>
                   <button
                     onClick={() => setSettlementType('card')}
-                    className={`px-3 py-1.5 text-sm font-medium transition rounded-r ${
+                    className={`px-5 py-2.5 text-base font-medium transition rounded-r ${
                       settlementType === 'card'
                         ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
                         : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
@@ -971,9 +971,9 @@ export default function CombinedSettlement() {
                   setShowChargeForm(!showChargeForm);
                   setShowPaymentForm(false);
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-rose-700 text-white rounded hover:bg-rose-800 transition"
+                className="flex items-center gap-2 px-5 py-2.5 text-base bg-rose-700 text-white rounded hover:bg-rose-800 transition"
               >
-                <TrendingUp size={16} />
+                <TrendingUp size={18} />
                 Нарахування
               </button>
               <button
@@ -981,37 +981,37 @@ export default function CombinedSettlement() {
                   setShowPaymentForm(!showPaymentForm);
                   setShowChargeForm(false);
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition"
+                className="flex items-center gap-2 px-5 py-2.5 text-base bg-green-700 text-white rounded hover:bg-green-800 transition"
               >
-                <Plus size={16} />
+                <Plus size={18} />
                 Платіж
               </button>
             </div>
 
             <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 overflow-hidden flex flex-col">
-              <h3 className="text-sm font-semibold px-3 py-2 text-gray-800 dark:text-gray-100 border-b dark:border-gray-700">Історія транзакцій</h3>
-              <div className="bg-gradient-to-r from-blue-50 via-slate-50 to-emerald-50 dark:from-blue-950 dark:via-slate-800 dark:to-emerald-950 px-3 py-2 border-b-2 border-blue-200 dark:border-blue-700 shadow-sm">
-                <div className="grid grid-cols-2 gap-4 text-sm">
+              <h3 className="text-base font-semibold px-4 py-3 text-gray-800 dark:text-gray-100 border-b dark:border-gray-700">Історія транзакцій</h3>
+              <div className="bg-gradient-to-r from-blue-50 via-slate-50 to-emerald-50 dark:from-blue-950 dark:via-slate-800 dark:to-emerald-950 px-4 py-3 border-b-2 border-blue-200 dark:border-blue-700 shadow-sm">
+                <div className="grid grid-cols-2 gap-4 text-base">
                   <div>
-                    <div className="font-semibold text-gray-800 dark:text-gray-200 mb-1">Нарахування:</div>
-                    <div className="flex gap-1.5">
+                    <div className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Нарахування:</div>
+                    <div className="flex gap-2">
                       <span className="text-gray-700 dark:text-gray-300">Прийом:</span>
-                      <span className="font-bold text-red-600 dark:text-red-500">+{formatNumber(cashSummary.totalDebitPln)} zł</span>
+                      <span className="font-bold text-red-700 dark:text-red-500">+{formatNumber(cashSummary.totalDebitPln)} zł</span>
                     </div>
-                    <div className="flex gap-1.5">
+                    <div className="flex gap-2">
                       <span className="text-gray-700 dark:text-gray-300">Перевезення:</span>
-                      <span className="font-bold text-red-600 dark:text-red-500">+{formatNumber(cashSummary.totalDebitUsd)} $</span>
+                      <span className="font-bold text-red-700 dark:text-red-500">+{formatNumber(cashSummary.totalDebitUsd)} $</span>
                     </div>
                   </div>
                   <div>
-                    <div className="font-semibold text-gray-800 dark:text-gray-200 mb-1">Платежі:</div>
-                    <div className="flex gap-1.5">
+                    <div className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Платежі:</div>
+                    <div className="flex gap-2">
                       <span className="text-gray-700 dark:text-gray-300">Прийом:</span>
-                      <span className="font-bold text-green-600 dark:text-green-500">-{formatNumber(cashSummary.totalCreditPln)} zł</span>
+                      <span className="font-bold text-green-700 dark:text-green-500">-{formatNumber(cashSummary.totalCreditPln)} zł</span>
                     </div>
-                    <div className="flex gap-1.5">
+                    <div className="flex gap-2">
                       <span className="text-gray-700 dark:text-gray-300">Перевезення:</span>
-                      <span className="font-bold text-green-600 dark:text-green-500">-{formatNumber(cashSummary.totalCreditUsd)} $</span>
+                      <span className="font-bold text-green-700 dark:text-green-500">-{formatNumber(cashSummary.totalCreditUsd)} $</span>
                     </div>
                   </div>
                 </div>
@@ -1177,23 +1177,23 @@ export default function CombinedSettlement() {
         <div className="flex-1 grid grid-cols-2 gap-2 overflow-hidden">
           <div className="flex flex-col gap-2 overflow-auto">
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-700 dark:via-blue-800 dark:to-slate-900 rounded-lg p-3 border border-blue-200 dark:border-slate-600 shadow">
-                <div className="text-xs font-medium text-blue-900 dark:text-slate-200 mb-1">Прийом</div>
-                <div className={`text-lg font-bold ${balanceReceiptPln > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-700 dark:via-blue-800 dark:to-slate-900 rounded-lg p-4 border border-blue-200 dark:border-slate-600 shadow">
+                <div className="text-sm font-medium text-blue-900 dark:text-slate-200 mb-2">Прийом</div>
+                <div className={`text-2xl font-bold ${balanceReceiptPln > 0 ? 'text-red-700 dark:text-red-500' : 'text-green-700 dark:text-green-500'}`}>
                   {formatNumber(balanceReceiptPln)} zł
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-slate-700 dark:via-emerald-800 dark:to-slate-900 rounded-lg p-3 border border-emerald-200 dark:border-slate-600 shadow">
-                <div className="text-xs font-medium text-emerald-900 dark:text-slate-200 mb-1">Перевезення</div>
-                <div className={`text-lg font-bold ${balanceTransportUsd > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-slate-700 dark:via-emerald-800 dark:to-slate-900 rounded-lg p-4 border border-emerald-200 dark:border-slate-600 shadow">
+                <div className="text-sm font-medium text-emerald-900 dark:text-slate-200 mb-2">Перевезення</div>
+                <div className={`text-2xl font-bold ${balanceTransportUsd > 0 ? 'text-red-700 dark:text-red-500' : 'text-green-700 dark:text-green-500'}`}>
                   {formatNumber(balanceTransportUsd)} $
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-slate-700 dark:via-amber-700 dark:to-slate-900 rounded-lg p-3 border border-amber-200 dark:border-slate-600 shadow">
-                <div className="text-xs font-semibold text-amber-900 dark:text-slate-100 mb-1">Карта</div>
-                <div className={`text-lg font-bold ${balanceCardPln > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+              <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-slate-700 dark:via-amber-700 dark:to-slate-900 rounded-lg p-4 border border-amber-200 dark:border-slate-600 shadow">
+                <div className="text-sm font-semibold text-amber-900 dark:text-slate-100 mb-2">Карта</div>
+                <div className={`text-2xl font-bold ${balanceCardPln > 0 ? 'text-red-700 dark:text-red-500' : 'text-green-700 dark:text-green-500'}`}>
                   {formatNumber(balanceCardPln)} zł
                 </div>
               </div>
@@ -1204,7 +1204,7 @@ export default function CombinedSettlement() {
                 <div className="flex">
                   <button
                     onClick={() => setSettlementType('cash')}
-                    className={`px-3 py-1.5 text-sm font-medium transition rounded-l ${
+                    className={`px-5 py-2.5 text-base font-medium transition rounded-l ${
                       settlementType === 'cash'
                         ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                         : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
@@ -1214,7 +1214,7 @@ export default function CombinedSettlement() {
                   </button>
                   <button
                     onClick={() => setSettlementType('card')}
-                    className={`px-3 py-1.5 text-sm font-medium transition rounded-r ${
+                    className={`px-5 py-2.5 text-base font-medium transition rounded-r ${
                       settlementType === 'card'
                         ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
                         : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
@@ -1229,9 +1229,9 @@ export default function CombinedSettlement() {
                   setShowChargeForm(!showChargeForm);
                   setShowPaymentForm(false);
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-rose-700 text-white rounded hover:bg-rose-800 transition"
+                className="flex items-center gap-2 px-5 py-2.5 text-base bg-rose-700 text-white rounded hover:bg-rose-800 transition"
               >
-                <TrendingUp size={16} />
+                <TrendingUp size={18} />
                 Нарахування
               </button>
               <button
@@ -1239,29 +1239,29 @@ export default function CombinedSettlement() {
                   setShowPaymentForm(!showPaymentForm);
                   setShowChargeForm(false);
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition"
+                className="flex items-center gap-2 px-5 py-2.5 text-base bg-green-700 text-white rounded hover:bg-green-800 transition"
               >
-                <Plus size={16} />
+                <Plus size={18} />
                 Платіж
               </button>
             </div>
 
             <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 overflow-hidden flex flex-col">
-              <h3 className="text-sm font-semibold px-3 py-2 text-gray-800 dark:text-gray-100 border-b dark:border-gray-700">Історія транзакцій</h3>
-              <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 dark:from-amber-950 dark:via-orange-900 dark:to-amber-950 px-3 py-2 border-b-2 border-amber-200 dark:border-amber-700 shadow-sm">
-                <div className="grid grid-cols-2 gap-4 text-sm">
+              <h3 className="text-base font-semibold px-4 py-3 text-gray-800 dark:text-gray-100 border-b dark:border-gray-700">Історія транзакцій</h3>
+              <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 dark:from-amber-950 dark:via-orange-900 dark:to-amber-950 px-4 py-3 border-b-2 border-amber-200 dark:border-amber-700 shadow-sm">
+                <div className="grid grid-cols-2 gap-4 text-base">
                   <div>
-                    <div className="font-semibold text-gray-800 dark:text-gray-200 mb-1">Нарахування:</div>
-                    <div className="flex gap-1.5">
+                    <div className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Нарахування:</div>
+                    <div className="flex gap-2">
                       <span className="text-gray-700 dark:text-gray-300">Загалом:</span>
-                      <span className="font-bold text-red-600 dark:text-red-500">+{formatNumber(cardSummary.totalCharge)} zł</span>
+                      <span className="font-bold text-red-700 dark:text-red-500">+{formatNumber(cardSummary.totalCharge)} zł</span>
                     </div>
                   </div>
                   <div>
-                    <div className="font-semibold text-gray-800 dark:text-gray-200 mb-1">Платежі:</div>
-                    <div className="flex gap-1.5">
+                    <div className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Платежі:</div>
+                    <div className="flex gap-2">
                       <span className="text-gray-700 dark:text-gray-300">Загалом:</span>
-                      <span className="font-bold text-green-600 dark:text-green-500">-{formatNumber(cardSummary.totalPayment)} zł</span>
+                      <span className="font-bold text-green-700 dark:text-green-500">-{formatNumber(cardSummary.totalPayment)} zł</span>
                     </div>
                   </div>
                 </div>
