@@ -898,7 +898,7 @@ export default function ReceiptManagement() {
                 </thead>
                 <tbody className="divide-y">
                   {orders[receipt.id].map(order => (
-                    <tr key={order.id} className="hover:bg-gray-50">
+                    <tr key={order.id} className={hasChanges(order) ? 'bg-yellow-50' : 'hover:bg-gray-50'}>
                       <td className="px-2 py-2">{order.client_id}</td>
                       <td className="px-2 py-2 truncate">{order.part_number}</td>
                       <td className="px-2 py-2 text-right">
@@ -906,8 +906,8 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.001"
                           value={order.editableWeight}
-                          disabled
-                          className="w-full px-1 py-1 border rounded text-right tabular-nums bg-gray-100 cursor-not-allowed"
+                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableWeight', parseFloat(e.target.value) || 0)}
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableWeight') ? 'bg-yellow-100 border-yellow-400' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -915,8 +915,8 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.01"
                           value={order.editableParts}
-                          disabled
-                          className="w-full px-1 py-1 border rounded text-right tabular-nums bg-gray-100 cursor-not-allowed"
+                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableParts', parseFloat(e.target.value) || 0)}
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableParts') ? 'bg-yellow-100 border-yellow-400' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -924,8 +924,8 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.01"
                           value={order.editableDelivery}
-                          disabled
-                          className="w-full px-1 py-1 border rounded text-right tabular-nums bg-gray-100 cursor-not-allowed"
+                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableDelivery', parseFloat(e.target.value) || 0)}
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableDelivery') ? 'bg-yellow-100 border-yellow-400' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -933,8 +933,8 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.01"
                           value={order.editableReceipt}
-                          disabled
-                          className="w-full px-1 py-1 border rounded text-right tabular-nums bg-gray-100 cursor-not-allowed"
+                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableReceipt', parseFloat(e.target.value) || 0)}
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableReceipt') ? 'bg-yellow-100 border-yellow-400' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -942,11 +942,13 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.01"
                           value={order.editableCash}
-                          disabled
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums cursor-not-allowed ${
+                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableCash', parseFloat(e.target.value) || 0)}
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${
                             order.payment_type?.toLowerCase().includes('оплачено') && order.editableCash !== 0
                               ? 'border-red-500 bg-red-50'
-                              : 'bg-gray-100'
+                              : isFieldChanged(order, 'editableCash')
+                              ? 'bg-yellow-100 border-yellow-400'
+                              : ''
                           }`}
                         />
                       </td>
@@ -955,8 +957,8 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.01"
                           value={order.editableTransport}
-                          disabled
-                          className="w-full px-1 py-1 border rounded text-right tabular-nums bg-gray-100 cursor-not-allowed"
+                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableTransport', parseFloat(e.target.value) || 0)}
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableTransport') ? 'bg-yellow-100 border-yellow-400' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 truncate">{order.title}</td>
@@ -968,7 +970,13 @@ export default function ReceiptManagement() {
                       <td className="px-2 py-2">{order.order_date}</td>
                       <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.total_cost)}</td>
                       <td className="px-2 py-2 text-center">
-                        <span className="text-gray-400 text-xs">Заблоковано</span>
+                        <button
+                          onClick={() => removeOrderFromReceipt(receipt.id, order.id)}
+                          className="text-red-600 hover:text-red-900 hover:bg-red-50 p-1 rounded transition"
+                          title="Видалити з прийомки"
+                        >
+                          <X size={16} />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -1099,7 +1107,7 @@ export default function ReceiptManagement() {
                 </thead>
                 <tbody className="divide-y">
                   {orders[receipt.id].map(order => (
-                    <tr key={order.id} className={hasChanges(order) ? 'bg-yellow-50' : 'hover:bg-gray-50'}>
+                    <tr key={order.id} className="hover:bg-gray-50">
                       <td className="px-2 py-2">{order.client_id}</td>
                       <td className="px-2 py-2 truncate">{order.part_number}</td>
                       <td className="px-2 py-2 text-right">
@@ -1107,8 +1115,8 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.001"
                           value={order.editableWeight}
-                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableWeight', parseFloat(e.target.value) || 0)}
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableWeight') ? 'bg-yellow-100 border-yellow-400' : ''}`}
+                          disabled
+                          className="w-full px-1 py-1 border rounded text-right tabular-nums bg-gray-100 cursor-not-allowed"
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -1116,8 +1124,8 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.01"
                           value={order.editableParts}
-                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableParts', parseFloat(e.target.value) || 0)}
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableParts') ? 'bg-yellow-100 border-yellow-400' : ''}`}
+                          disabled
+                          className="w-full px-1 py-1 border rounded text-right tabular-nums bg-gray-100 cursor-not-allowed"
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -1125,8 +1133,8 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.01"
                           value={order.editableDelivery}
-                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableDelivery', parseFloat(e.target.value) || 0)}
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableDelivery') ? 'bg-yellow-100 border-yellow-400' : ''}`}
+                          disabled
+                          className="w-full px-1 py-1 border rounded text-right tabular-nums bg-gray-100 cursor-not-allowed"
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -1134,8 +1142,8 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.01"
                           value={order.editableReceipt}
-                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableReceipt', parseFloat(e.target.value) || 0)}
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableReceipt') ? 'bg-yellow-100 border-yellow-400' : ''}`}
+                          disabled
+                          className="w-full px-1 py-1 border rounded text-right tabular-nums bg-gray-100 cursor-not-allowed"
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -1143,13 +1151,11 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.01"
                           value={order.editableCash}
-                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableCash', parseFloat(e.target.value) || 0)}
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${
+                          disabled
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums cursor-not-allowed ${
                             order.payment_type?.toLowerCase().includes('оплачено') && order.editableCash !== 0
                               ? 'border-red-500 bg-red-50'
-                              : isFieldChanged(order, 'editableCash')
-                              ? 'bg-yellow-100 border-yellow-400'
-                              : ''
+                              : 'bg-gray-100'
                           }`}
                         />
                       </td>
@@ -1158,8 +1164,8 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.01"
                           value={order.editableTransport}
-                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableTransport', parseFloat(e.target.value) || 0)}
-                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableTransport') ? 'bg-yellow-100 border-yellow-400' : ''}`}
+                          disabled
+                          className="w-full px-1 py-1 border rounded text-right tabular-nums bg-gray-100 cursor-not-allowed"
                         />
                       </td>
                       <td className="px-2 py-2 truncate">{order.title}</td>
@@ -1171,13 +1177,7 @@ export default function ReceiptManagement() {
                       <td className="px-2 py-2">{order.order_date}</td>
                       <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.total_cost)}</td>
                       <td className="px-2 py-2 text-center">
-                        <button
-                          onClick={() => removeOrderFromReceipt(receipt.id, order.id)}
-                          className="text-red-600 hover:text-red-900 hover:bg-red-50 p-1 rounded transition"
-                          title="Видалити з прійомки"
-                        >
-                          <X size={16} />
-                        </button>
+                        <span className="text-gray-400 text-xs">Заблоковано</span>
                       </td>
                     </tr>
                   ))}
