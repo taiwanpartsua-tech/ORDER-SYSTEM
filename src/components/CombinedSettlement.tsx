@@ -990,27 +990,27 @@ export default function CombinedSettlement() {
 
             <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 overflow-hidden flex flex-col">
               <h3 className="text-sm font-semibold px-3 py-2 text-gray-800 dark:text-gray-100 border-b dark:border-gray-700">Історія транзакцій</h3>
-              <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 px-3 py-2 border-b border-gray-300 dark:border-gray-600">
+              <div className="bg-gradient-to-r from-blue-50 via-slate-50 to-emerald-50 dark:from-blue-950 dark:via-slate-800 dark:to-emerald-950 px-3 py-2 border-b-2 border-blue-200 dark:border-blue-700 shadow-sm">
                 <div className="grid grid-cols-2 gap-4 text-xs">
                   <div>
-                    <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Нарахування:</div>
+                    <div className="font-semibold text-gray-800 dark:text-gray-200 mb-1">Нарахування:</div>
                     <div className="flex gap-1.5">
-                      <span className="text-gray-600 dark:text-gray-400">Прийом:</span>
+                      <span className="text-gray-700 dark:text-gray-300">Прийом:</span>
                       <span className="font-bold text-rose-700 dark:text-rose-400">+{formatNumber(cashSummary.totalDebitPln)} zł</span>
                     </div>
                     <div className="flex gap-1.5">
-                      <span className="text-gray-600 dark:text-gray-400">Перевезення:</span>
+                      <span className="text-gray-700 dark:text-gray-300">Перевезення:</span>
                       <span className="font-bold text-rose-700 dark:text-rose-400">+{formatNumber(cashSummary.totalDebitUsd)} $</span>
                     </div>
                   </div>
                   <div>
-                    <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Платежі:</div>
+                    <div className="font-semibold text-gray-800 dark:text-gray-200 mb-1">Платежі:</div>
                     <div className="flex gap-1.5">
-                      <span className="text-gray-600 dark:text-gray-400">Прийом:</span>
+                      <span className="text-gray-700 dark:text-gray-300">Прийом:</span>
                       <span className="font-bold text-green-600 dark:text-green-400">-{formatNumber(cashSummary.totalCreditPln)} zł</span>
                     </div>
                     <div className="flex gap-1.5">
-                      <span className="text-gray-600 dark:text-gray-400">Перевезення:</span>
+                      <span className="text-gray-700 dark:text-gray-300">Перевезення:</span>
                       <span className="font-bold text-green-600 dark:text-green-400">-{formatNumber(cashSummary.totalCreditUsd)} $</span>
                     </div>
                   </div>
@@ -1248,19 +1248,19 @@ export default function CombinedSettlement() {
 
             <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 overflow-hidden flex flex-col">
               <h3 className="text-sm font-semibold px-3 py-2 text-gray-800 dark:text-gray-100 border-b dark:border-gray-700">Історія транзакцій</h3>
-              <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 px-3 py-2 border-b border-gray-300 dark:border-gray-600">
+              <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 dark:from-amber-950 dark:via-orange-900 dark:to-amber-950 px-3 py-2 border-b-2 border-amber-200 dark:border-amber-700 shadow-sm">
                 <div className="grid grid-cols-2 gap-4 text-xs">
                   <div>
-                    <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Нарахування:</div>
+                    <div className="font-semibold text-gray-800 dark:text-gray-200 mb-1">Нарахування:</div>
                     <div className="flex gap-1.5">
-                      <span className="text-gray-600 dark:text-gray-400">Загалом:</span>
+                      <span className="text-gray-700 dark:text-gray-300">Загалом:</span>
                       <span className="font-bold text-rose-700 dark:text-rose-400">+{formatNumber(cardSummary.totalCharge)} zł</span>
                     </div>
                   </div>
                   <div>
-                    <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Платежі:</div>
+                    <div className="font-semibold text-gray-800 dark:text-gray-200 mb-1">Платежі:</div>
                     <div className="flex gap-1.5">
-                      <span className="text-gray-600 dark:text-gray-400">Загалом:</span>
+                      <span className="text-gray-700 dark:text-gray-300">Загалом:</span>
                       <span className="font-bold text-green-600 dark:text-green-400">-{formatNumber(cardSummary.totalPayment)} zł</span>
                     </div>
                   </div>
