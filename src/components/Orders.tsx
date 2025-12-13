@@ -394,8 +394,19 @@ export default function Orders() {
       });
 
       if (!error) {
+        await supabase
+          .from('orders')
+          .update({
+            status: 'повернення',
+            previous_status: order.status,
+            archived: true,
+            archived_at: new Date().toISOString()
+          })
+          .eq('id', order.id);
+
         showSuccess('Повернення створено успішно!');
         loadReturnsCount();
+        loadOrders();
       } else {
         showError('Помилка при створенні повернення');
       }
