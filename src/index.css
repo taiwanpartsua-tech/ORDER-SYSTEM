@@ -57,6 +57,55 @@
   *::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
   }
+
+  /* Dark mode scrollbars */
+  .dark * {
+    scrollbar-color: #4b5563 #1f2937;
+  }
+
+  .dark *::-webkit-scrollbar-track {
+    background: #1f2937;
+  }
+
+  .dark *::-webkit-scrollbar-thumb {
+    background: #4b5563;
+  }
+
+  .dark *::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+  }
+
+  /* Fix autofill background in dark mode */
+  .dark input:-webkit-autofill,
+  .dark input:-webkit-autofill:hover,
+  .dark input:-webkit-autofill:focus,
+  .dark input:-webkit-autofill:active,
+  .dark select:-webkit-autofill,
+  .dark select:-webkit-autofill:hover,
+  .dark select:-webkit-autofill:focus,
+  .dark select:-webkit-autofill:active,
+  .dark textarea:-webkit-autofill,
+  .dark textarea:-webkit-autofill:hover,
+  .dark textarea:-webkit-autofill:focus,
+  .dark textarea:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px #374151 inset !important;
+    -webkit-text-fill-color: #f3f4f6 !important;
+    box-shadow: 0 0 0 1000px #374151 inset !important;
+    caret-color: #f3f4f6 !important;
+  }
+
+  /* Ensure input/select/textarea maintain dark background on focus */
+  .dark input:focus,
+  .dark select:focus,
+  .dark textarea:focus {
+    background-color: inherit !important;
+  }
+
+  /* Fix select dropdown options in dark mode */
+  .dark select option {
+    background-color: #374151 !important;
+    color: #f3f4f6 !important;
+  }
 }
 
 @media print {

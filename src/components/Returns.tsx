@@ -669,7 +669,7 @@ export default function Returns() {
                             onChange={(e) => setNewRowData({ ...newRowData, situation_description: e.target.value })}
                             rows={3}
                             placeholder="Опишіть ситуацію..."
-                            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
+                            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 dark:focus:ring-green-400 placeholder-gray-400 dark:placeholder-gray-500"
                           />
                         </div>
                       </div>
@@ -976,7 +976,7 @@ export default function Returns() {
                                   onKeyDown={handleKeyDown}
                                   autoFocus
                                   rows={3}
-                                  className="w-full px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 dark:border-blue-400 dark:focus:ring-blue-400 text-sm"
+                                  className="w-full px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 dark:border-blue-400 dark:focus:ring-blue-400 text-sm"
                                 />
                               ) : (
                                 returnItem.situation_description || '-'

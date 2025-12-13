@@ -626,7 +626,7 @@ export default function Orders() {
             onChange={(e) => setEditValue(e.target.value)}
             onBlur={saveInlineEdit}
             onKeyDown={handleKeyDown}
-            className="w-full px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full px-2 py-1 border border-blue-500 dark:border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           />
         </td>
       );
@@ -669,7 +669,7 @@ export default function Orders() {
             onChange={(e) => setEditValue(e.target.value)}
             onBlur={saveInlineEdit}
             onKeyDown={handleKeyDown}
-            className="w-full px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full px-2 py-1 border border-blue-500 dark:border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
             placeholder="https://"
           />
         </td>
@@ -714,7 +714,7 @@ export default function Orders() {
             onChange={(e) => setEditValue(e.target.value)}
             onBlur={saveInlineEdit}
             onKeyDown={handleKeyDown}
-            className="w-full px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full px-2 py-1 border border-blue-500 dark:border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           />
         </td>
       );
