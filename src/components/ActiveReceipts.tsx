@@ -62,74 +62,91 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
 
   async function restoreDraft() {
     const savedDraft = localStorage.getItem('activeReceiptDraft');
-    if (savedDraft) {
-      try {
-        const draft = JSON.parse(savedDraft);
-        const draftCashOrders = draft.cashOnDeliveryOrders || [];
-        const draftPaidOrders = draft.paidOrders || [];
+    if (!savedDraft) {
+      setShowRestorePrompt(false);
+      return;
+    }
 
-        const allDraftOrderIds = [
-          ...draftCashOrders.map((o: EditableOrder) => o.id),
-          ...draftPaidOrders.map((o: EditableOrder) => o.id)
-        ];
+    try {
+      const draft = JSON.parse(savedDraft);
+      const draftCashOrders = draft.cashOnDeliveryOrders || [];
+      const draftPaidOrders = draft.paidOrders || [];
 
-        const { data: currentOrders } = await supabase
-          .from('orders')
-          .select('*, supplier:suppliers(*)')
-          .in('id', allDraftOrderIds);
+      const allDraftOrderIds = [
+        ...draftCashOrders.map((o: EditableOrder) => o.id),
+        ...draftPaidOrders.map((o: EditableOrder) => o.id)
+      ];
 
-        if (!currentOrders || currentOrders.length === 0) {
-          alert('Замовлення з чернетки більше не доступні');
-          clearDraft();
-          setShowRestorePrompt(false);
-          return;
-        }
-
-        const restoredCashOrders = draftCashOrders
-          .map((draftOrder: EditableOrder) => {
-            const currentOrder = currentOrders.find(o => o.id === draftOrder.id);
-            if (!currentOrder) return null;
-            return {
-              ...currentOrder,
-              editableParts: draftOrder.editableParts,
-              editableDelivery: draftOrder.editableDelivery,
-              editableReceipt: draftOrder.editableReceipt,
-              editableCash: draftOrder.editableCash,
-              editableTransport: draftOrder.editableTransport
-            };
-          })
-          .filter(Boolean) as EditableOrder[];
-
-        const restoredPaidOrders = draftPaidOrders
-          .map((draftOrder: EditableOrder) => {
-            const currentOrder = currentOrders.find(o => o.id === draftOrder.id);
-            if (!currentOrder) return null;
-            return {
-              ...currentOrder,
-              editableParts: draftOrder.editableParts,
-              editableDelivery: draftOrder.editableDelivery,
-              editableReceipt: draftOrder.editableReceipt,
-              editableCash: draftOrder.editableCash,
-              editableTransport: draftOrder.editableTransport
-            };
-          })
-          .filter(Boolean) as EditableOrder[];
-
-        setCashOnDeliveryOrders(restoredCashOrders);
-        setPaidOrders(restoredPaidOrders);
-        setCashOnDeliveryReceiptNumber(draft.cashOnDeliveryReceiptNumber || '');
-        setPaidReceiptNumber(draft.paidReceiptNumber || '');
-
-        const restoredOrderIds = currentOrders.map(o => o.id);
-        setAvailableOrders(prev => prev.filter(order => !restoredOrderIds.includes(order.id)));
-
-        setShowRestorePrompt(false);
-      } catch (error) {
-        console.error('Помилка відновлення чернетки:', error);
-        alert('Помилка відновлення чернетки');
+      if (allDraftOrderIds.length === 0) {
         clearDraft();
         setShowRestorePrompt(false);
+        return;
       }
+
+      const { data: currentOrders, error: fetchError } = await supabase
+        .from('orders')
+        .select('*, supplier:suppliers(*)')
+        .in('id', allDraftOrderIds);
+
+      if (fetchError) {
+        console.error('Помилка завантаження замовлень:', fetchError);
+        alert('Помилка завантаження замовлень: ' + fetchError.message);
+        return;
+      }
+
+      if (!currentOrders || currentOrders.length === 0) {
+        alert('Замовлення з чернетки більше не доступні');
+        clearDraft();
+        setShowRestorePrompt(false);
+        return;
+      }
+
+      const restoredCashOrders = draftCashOrders
+        .map((draftOrder: EditableOrder) => {
+          const currentOrder = currentOrders.find(o => o.id === draftOrder.id);
+          if (!currentOrder) return null;
+          return {
+            ...currentOrder,
+            editableParts: draftOrder.editableParts || currentOrder.parts,
+            editableDelivery: draftOrder.editableDelivery || currentOrder.delivery,
+            editableReceipt: draftOrder.editableReceipt || currentOrder.receipt,
+            editableCash: draftOrder.editableCash || currentOrder.cash_on_delivery,
+            editableTransport: draftOrder.editableTransport || currentOrder.transport,
+            editableWeight: draftOrder.editableWeight || currentOrder.weight
+          };
+        })
+        .filter(Boolean) as EditableOrder[];
+
+      const restoredPaidOrders = draftPaidOrders
+        .map((draftOrder: EditableOrder) => {
+          const currentOrder = currentOrders.find(o => o.id === draftOrder.id);
+          if (!currentOrder) return null;
+          return {
+            ...currentOrder,
+            editableParts: draftOrder.editableParts || currentOrder.parts,
+            editableDelivery: draftOrder.editableDelivery || currentOrder.delivery,
+            editableReceipt: draftOrder.editableReceipt || currentOrder.receipt,
+            editableCash: draftOrder.editableCash || currentOrder.cash_on_delivery,
+            editableTransport: draftOrder.editableTransport || currentOrder.transport,
+            editableWeight: draftOrder.editableWeight || currentOrder.weight
+          };
+        })
+        .filter(Boolean) as EditableOrder[];
+
+      setCashOnDeliveryOrders(restoredCashOrders);
+      setPaidOrders(restoredPaidOrders);
+      setCashOnDeliveryReceiptNumber(draft.cashOnDeliveryReceiptNumber || '');
+      setPaidReceiptNumber(draft.paidReceiptNumber || '');
+
+      const restoredOrderIds = currentOrders.map(o => o.id);
+      setAvailableOrders(prev => prev.filter(order => !restoredOrderIds.includes(order.id)));
+
+      setShowRestorePrompt(false);
+    } catch (error) {
+      console.error('Помилка відновлення чернетки:', error);
+      alert('Помилка відновлення чернетки: ' + (error instanceof Error ? error.message : 'Невідома помилка'));
+      clearDraft();
+      setShowRestorePrompt(false);
     }
   }
 
