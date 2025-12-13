@@ -521,7 +521,7 @@ export default function CombinedSettlement() {
 
     const totalPln = tx.cash_on_delivery_pln || 0;
     const totalUsd = tx.transport_cost_usd || 0;
-    const confirmed = confirm(`Ви впевнені, що хочете сторнувати цю операцію?\n\nОпис: ${tx.description}\nСума: ${formatNumber(totalPln)} zl / ${formatNumber(totalUsd)} $\n\nТранзакція залишиться в історії з позначкою "сторновано".`);
+    const confirmed = confirm(`Ви впевнені, що хочете сторнувати цю операцію?\n\nОпис: ${tx.description}\nСума: ${formatNumber(totalPln)} zl / ${formatNumber(totalUsd)} $\n\nТранзакція залишиться в історії з позначкою "сторновано".\n\nТакож буде сторновано пов'язану карткову транзакцію.`);
     if (!confirmed) return;
 
     if (tx.receipt_id) {
@@ -564,6 +564,20 @@ export default function CombinedSettlement() {
               .in('id', orderIds);
           }
         }
+      }
+
+      const { data: cardTxData } = await supabase
+        .from('card_transactions')
+        .select('id')
+        .eq('receipt_id', tx.receipt_id)
+        .eq('is_reversed', false);
+
+      if (cardTxData && cardTxData.length > 0) {
+        await supabase
+          .from('card_transactions')
+          .update({ is_reversed: true })
+          .eq('receipt_id', tx.receipt_id)
+          .eq('is_reversed', false);
       }
     }
 
@@ -578,9 +592,11 @@ export default function CombinedSettlement() {
       return;
     }
 
-    alert('Операцію успішно сторновано. Транзакція залишається в історії.');
+    alert('Операцію успішно сторновано синхронно по обох рахунках. Транзакції залишаються в історії.');
     loadCashReceipts();
+    loadCardReceipts();
     loadCashTransactions();
+    loadCardTransactions();
   }
 
   async function reverseCardTransaction(tx: CardTransaction) {
@@ -589,7 +605,7 @@ export default function CombinedSettlement() {
       return;
     }
 
-    const confirmed = confirm(`Ви впевнені, що хочете сторнувати цю операцію?\n\nОпис: ${tx.description}\nСума: ${formatNumber(tx.amount)} zł\n\nТранзакція залишиться в історії з позначкою "сторновано".`);
+    const confirmed = confirm(`Ви впевнені, що хочете сторнувати цю операцію?\n\nОпис: ${tx.description}\nСума: ${formatNumber(tx.amount)} zł\n\nТранзакція залишиться в історії з позначкою "сторновано".\n\nТакож буде сторновано пов'язану готівкову транзакцію.`);
     if (!confirmed) return;
 
     if (tx.receipt_id) {
@@ -633,6 +649,20 @@ export default function CombinedSettlement() {
           }
         }
       }
+
+      const { data: cashTxData } = await supabase
+        .from('transactions')
+        .select('id')
+        .eq('receipt_id', tx.receipt_id)
+        .eq('is_reversed', false);
+
+      if (cashTxData && cashTxData.length > 0) {
+        await supabase
+          .from('transactions')
+          .update({ is_reversed: true })
+          .eq('receipt_id', tx.receipt_id)
+          .eq('is_reversed', false);
+      }
     }
 
     const { error } = await supabase
@@ -646,8 +676,64 @@ export default function CombinedSettlement() {
       return;
     }
 
-    alert('Операцію успішно сторновано. Транзакція залишається в історії.');
+    alert('Операцію успішно сторновано синхронно по обох рахунках. Транзакції залишаються в історії.');
+    loadCashReceipts();
     loadCardReceipts();
+    loadCashTransactions();
+    loadCardTransactions();
+  }
+
+  async function returnSettledToSettlement(receiptId: string) {
+    const confirmed = confirm('Ви впевнені, що хочете повернути накладну назад на розрахунок?\n\nОбидві транзакції будуть сторновані.');
+    if (!confirmed) return;
+
+    const { data: cashTxData } = await supabase
+      .from('transactions')
+      .select('id')
+      .eq('receipt_id', receiptId)
+      .eq('is_reversed', false);
+
+    if (cashTxData && cashTxData.length > 0) {
+      await supabase
+        .from('transactions')
+        .update({ is_reversed: true })
+        .eq('receipt_id', receiptId)
+        .eq('is_reversed', false);
+    }
+
+    const { data: cardTxData } = await supabase
+      .from('card_transactions')
+      .select('id')
+      .eq('receipt_id', receiptId)
+      .eq('is_reversed', false);
+
+    if (cardTxData && cardTxData.length > 0) {
+      await supabase
+        .from('card_transactions')
+        .update({ is_reversed: true })
+        .eq('receipt_id', receiptId)
+        .eq('is_reversed', false);
+    }
+
+    const { error } = await supabase
+      .from('active_receipts')
+      .update({
+        status: 'sent_for_settlement',
+        settled_date: null,
+        settlement_type: null
+      })
+      .eq('id', receiptId);
+
+    if (error) {
+      alert('Помилка при поверненні накладної');
+      console.error(error);
+      return;
+    }
+
+    alert('Накладну повернуто назад на розрахунок. Обидві транзакції сторновано.');
+    loadCashReceipts();
+    loadCardReceipts();
+    loadCashTransactions();
     loadCardTransactions();
   }
 
@@ -993,6 +1079,13 @@ export default function CombinedSettlement() {
                               <span className="text-gray-900 dark:text-gray-100 font-bold">{formatNumber(transportUsd)} $</span>
                             </div>
                           </div>
+                          <button
+                            onClick={() => returnSettledToSettlement(receipt.id)}
+                            className="p-1.5 bg-amber-600 text-white rounded hover:bg-amber-700 transition"
+                            title="Повернути на розрахунок"
+                          >
+                            <Undo2 size={16} />
+                          </button>
                         </div>
                       </div>
                     );
@@ -1242,6 +1335,13 @@ export default function CombinedSettlement() {
                               <span className="text-gray-900 dark:text-gray-100 font-bold">{formatNumber(totalAmount)} zł</span>
                             </div>
                           </div>
+                          <button
+                            onClick={() => returnSettledToSettlement(receipt.id)}
+                            className="p-1.5 bg-amber-600 text-white rounded hover:bg-amber-700 transition"
+                            title="Повернути на розрахунок"
+                          >
+                            <Undo2 size={16} />
+                          </button>
                         </div>
                       </div>
                     );
