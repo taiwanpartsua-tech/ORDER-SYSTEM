@@ -217,7 +217,6 @@ export default function CardMutualSettlement() {
       .from('card_transactions')
       .insert({
         transaction_type: 'charge',
-        charge_type: 'debit',
         amount: totalAmount,
         parts_amount: totalPartsPln,
         delivery_amount: totalDeliveryPln,
