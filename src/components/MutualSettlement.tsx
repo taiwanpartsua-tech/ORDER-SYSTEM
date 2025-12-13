@@ -269,6 +269,23 @@ export default function MutualSettlement() {
       }
     }
 
+    const { data: receiptOrderLinks } = await supabase
+      .from('receipt_orders')
+      .select('order_id')
+      .eq('receipt_id', receiptId);
+
+    if (receiptOrderLinks && receiptOrderLinks.length > 0) {
+      const orderIds = receiptOrderLinks.map(ro => ro.order_id);
+      const { error: ordersError } = await supabase
+        .from('orders')
+        .update({ status: 'в активному прийомі' })
+        .in('id', orderIds);
+
+      if (ordersError) {
+        console.error('Помилка при оновленні статусу замовлень:', ordersError);
+      }
+    }
+
     alert('Накладну повернуто в активні');
     loadReceipts();
   }
@@ -357,6 +374,19 @@ export default function MutualSettlement() {
               settlement_type: null
             })
             .eq('id', tx.receipt_id);
+
+          const { data: receiptOrderLinks } = await supabase
+            .from('receipt_orders')
+            .select('order_id')
+            .eq('receipt_id', tx.receipt_id);
+
+          if (receiptOrderLinks && receiptOrderLinks.length > 0) {
+            const orderIds = receiptOrderLinks.map(ro => ro.order_id);
+            await supabase
+              .from('orders')
+              .update({ status: 'в активному прийомі' })
+              .in('id', orderIds);
+          }
         }
 
         await supabase

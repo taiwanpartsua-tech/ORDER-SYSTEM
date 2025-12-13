@@ -338,6 +338,18 @@ export default function ReceiptManagement() {
       return;
     }
 
+    if (receiptOrderLinks && receiptOrderLinks.length > 0) {
+      const orderIds = receiptOrderLinks.map(ro => ro.order_id);
+      const { error: ordersError } = await supabase
+        .from('orders')
+        .update({ status: 'на звірці' })
+        .in('id', orderIds);
+
+      if (ordersError) {
+        console.error('Помилка при оновленні статусу замовлень:', ordersError);
+      }
+    }
+
     const receiptCashPln = (receipt.receipt_cost_pln || 0) + (receipt.cash_on_delivery_pln || 0);
     const transportUsd = receipt.transport_cost_usd || 0;
 
