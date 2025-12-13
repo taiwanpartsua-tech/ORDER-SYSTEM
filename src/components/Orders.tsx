@@ -5,6 +5,7 @@ import Returns from './Returns';
 
 type AcceptedOrder = {
   id: string;
+  order_id?: string;
   receipt_number: string;
   order_number: string | null;
   tracking_number: string | null;
@@ -231,6 +232,20 @@ export default function Orders() {
 
     if (!error && data) {
       setReceiptDetails(data as any);
+    }
+  }
+
+  async function openReceiptByOrderId(orderId: string) {
+    const { data, error } = await supabase
+      .from('accepted_orders')
+      .select('receipt_number')
+      .eq('order_id', orderId)
+      .maybeSingle();
+
+    if (!error && data) {
+      openReceiptDetails(data.receipt_number);
+    } else {
+      alert('Документ прийому не знайдено для цього замовлення');
     }
   }
 
@@ -580,6 +595,48 @@ export default function Orders() {
       >
         <div className={`w-full ${isTitle ? 'line-clamp-3 break-words' : 'break-words whitespace-normal'}`}>
           {value}
+        </div>
+      </td>
+    );
+  }
+
+  function renderTrackingCell(orderId: string, order: Order & { supplier: Supplier }, isAccepted: boolean = false) {
+    const isEditing = editingCell?.orderId === orderId && editingCell?.field === 'tracking_pl';
+    const trackingValue = order.tracking_pl || '';
+
+    if (isEditing && !isAccepted) {
+      return (
+        <td className="px-3 py-3 min-h-[48px]">
+          <input
+            ref={inputRef}
+            type="text"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onBlur={saveInlineEdit}
+            onKeyDown={handleKeyDown}
+            className="w-full px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          />
+        </td>
+      );
+    }
+
+    const isOrderAccepted = order.status === 'прийнято';
+    const fontSizeClass = getFontSizeClass(trackingValue);
+
+    return (
+      <td
+        className={`px-3 py-3 ${!isAccepted && !isOrderAccepted ? 'cursor-pointer hover:bg-blue-50' : isOrderAccepted ? 'cursor-pointer hover:bg-green-50 hover:text-blue-600 hover:underline' : ''} transition min-h-[48px] text-gray-600 text-center ${fontSizeClass}`}
+        onClick={() => {
+          if (!isAccepted && !isOrderAccepted) {
+            startEditing(orderId, 'tracking_pl', trackingValue);
+          } else if (isOrderAccepted) {
+            openReceiptByOrderId(orderId);
+          }
+        }}
+        title={isOrderAccepted ? 'Натисніть, щоб відкрити документ прийому' : trackingValue}
+      >
+        <div className="w-full break-words whitespace-normal">
+          {trackingValue}
         </div>
       </td>
     );
@@ -1715,7 +1772,7 @@ export default function Orders() {
                   {renderEditableCell(order.id, 'client_id', order.client_id, 'text-gray-900 text-center', isAccepted)}
                   {renderEditableCell(order.id, 'title', order.title, 'text-gray-900 text-center', isAccepted)}
                   {renderLinkCell(order.id, order.link || '', isAccepted)}
-                  {renderEditableCell(order.id, 'tracking_pl', order.tracking_pl || '', 'text-gray-600 text-center', isAccepted)}
+                  {renderTrackingCell(order.id, order, isAccepted)}
                   {renderEditableCell(order.id, 'part_price', `${formatNumber(order.part_price)} zl`, 'text-gray-900 font-medium text-center', isAccepted)}
                   {renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-gray-900 text-center', isAccepted)}
                   <td className="px-3 py-3 text-center text-gray-900 font-bold bg-gray-50 dark:bg-gray-600 min-h-[48px]">
