@@ -100,6 +100,7 @@ export type ActiveReceipt = {
   approved_at?: string;
   settlement_date?: string;
   settled_date?: string;
+  settlement_type?: 'cash' | 'card' | null;
   created_at: string;
 };
 

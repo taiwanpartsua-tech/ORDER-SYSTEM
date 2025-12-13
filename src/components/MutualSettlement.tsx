@@ -55,11 +55,17 @@ export default function MutualSettlement() {
       .from('active_receipts')
       .select('*')
       .in('status', ['sent_for_settlement', 'settled'])
+      .or('settlement_type.eq.cash,settlement_type.is.null')
       .order('settlement_date', { ascending: false });
 
     if (data) {
-      setReceipts(data);
-      data.forEach(receipt => loadReceiptOrders(receipt.id));
+      const filteredData = data.filter(r => {
+        if (r.status === 'sent_for_settlement') return true;
+        if (r.status === 'settled') return r.settlement_type === 'cash';
+        return false;
+      });
+      setReceipts(filteredData);
+      filteredData.forEach(receipt => loadReceiptOrders(receipt.id));
     }
   }
 
@@ -222,7 +228,8 @@ export default function MutualSettlement() {
       .update({
         status: 'approved',
         settlement_date: null,
-        settled_date: null
+        settled_date: null,
+        settlement_type: null
       })
       .eq('id', receiptId);
 
@@ -298,7 +305,8 @@ export default function MutualSettlement() {
       .from('active_receipts')
       .update({
         status: 'settled',
-        settled_date: new Date().toISOString()
+        settled_date: new Date().toISOString(),
+        settlement_type: 'cash'
       })
       .eq('id', receiptId);
 
@@ -336,7 +344,8 @@ export default function MutualSettlement() {
             .from('active_receipts')
             .update({
               status: 'sent_for_settlement',
-              settled_date: null
+              settled_date: null,
+              settlement_type: null
             })
             .eq('id', tx.receipt_id);
         } else if (receipt.status === 'sent_for_settlement') {
@@ -344,7 +353,8 @@ export default function MutualSettlement() {
             .from('active_receipts')
             .update({
               status: 'approved',
-              settlement_date: null
+              settlement_date: null,
+              settlement_type: null
             })
             .eq('id', tx.receipt_id);
         }
@@ -653,7 +663,8 @@ export default function MutualSettlement() {
                             .from('active_receipts')
                             .update({
                               status: 'sent_for_settlement',
-                              settled_date: null
+                              settled_date: null,
+                              settlement_type: null
                             })
                             .eq('id', receipt.id);
                           loadReceipts();
