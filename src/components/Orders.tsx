@@ -39,7 +39,7 @@ export default function Orders() {
   const [isAddingNewRow, setIsAddingNewRow] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<'orders' | 'returns'>('orders');
-  const [activeViewTab, setActiveViewTab] = useState<'active' | 'archived' | 'cancelled'>('active');
+  const [activeViewTab, setActiveViewTab] = useState<'active' | 'archived' | 'cancelled' | 'accepted'>('active');
   const [newRowData, setNewRowData] = useState({
     order_number: '',
     supplier_id: '',
@@ -841,11 +841,13 @@ export default function Orders() {
     }
 
     if (activeViewTab === 'active') {
-      return !order.archived && order.status !== 'анульовано';
+      return !order.archived && order.status !== 'анульовано' && order.status !== 'прийнято';
     } else if (activeViewTab === 'cancelled') {
       return order.status === 'анульовано';
     } else if (activeViewTab === 'archived') {
       return order.archived === true;
+    } else if (activeViewTab === 'accepted') {
+      return order.status === 'прийнято';
     }
     return false;
   });
@@ -926,7 +928,17 @@ export default function Orders() {
                 : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
             }`}
           >
-            Активні ({orders.filter(o => !o.archived && o.status !== 'анульовано').length})
+            Активні ({orders.filter(o => !o.archived && o.status !== 'анульовано' && o.status !== 'прийнято').length})
+          </button>
+          <button
+            onClick={() => setActiveViewTab('accepted')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+              activeViewTab === 'accepted'
+                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow dark:shadow-md'
+                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+            }`}
+          >
+            Прийняті ({orders.filter(o => o.status === 'прийнято').length})
           </button>
           <button
             onClick={() => setActiveViewTab('cancelled')}
