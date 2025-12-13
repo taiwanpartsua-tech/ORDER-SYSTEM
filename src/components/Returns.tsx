@@ -52,9 +52,9 @@ export default function Returns() {
   ];
 
   const statusColors: Record<string, string> = {
-    'повернення': 'bg-amber-50 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200',
-    'проблемні': 'bg-red-50 text-red-800 dark:bg-red-900/50 dark:text-red-200',
-    'анульовано': 'bg-gray-50 text-gray-800 dark:bg-gray-700/50 dark:text-gray-300'
+    'повернення': 'bg-amber-50 text-amber-800 dark:bg-gradient-to-br dark:from-amber-950 dark:to-amber-900 dark:text-amber-200 dark:border dark:border-amber-800/30',
+    'проблемні': 'bg-red-50 text-red-800 dark:bg-gradient-to-br dark:from-red-950 dark:to-red-900 dark:text-red-200 dark:border dark:border-red-800/30',
+    'анульовано': 'bg-gray-50 text-gray-800 dark:bg-gradient-to-br dark:from-gray-900 dark:to-gray-800 dark:text-gray-300 dark:border dark:border-gray-700/30'
   };
 
   const refundStatuses = [

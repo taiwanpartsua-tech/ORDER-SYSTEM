@@ -767,7 +767,7 @@ export default function ReceiptManagement() {
     <div className="max-w-[98%] mx-auto px-4 py-6 space-y-6">
       {draftReceipts.map(receipt => (
         <div key={receipt.id} className="bg-white dark:bg-gray-800 rounded-lg shadow">
-          <div className="p-4 border-b bg-gray-50 dark:bg-gray-700">
+          <div className="p-4 border-b bg-gray-50 dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-750 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <button
                 onClick={() => toggleReceipt(receipt.id)}
@@ -794,20 +794,20 @@ export default function ReceiptManagement() {
                       setSearchTerm('');
                     }
                   }}
-                  className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition flex items-center gap-1"
+                  className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-700 dark:hover:from-gray-700 dark:hover:to-gray-600 transition flex items-center gap-1"
                 >
                   <Plus size={14} />
                   Додати замовлення
                 </button>
                 <button
                   onClick={() => saveChanges(receipt.id)}
-                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 dark:bg-gradient-to-br dark:from-blue-800 dark:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-600 transition"
                 >
                   Зберегти зміни
                 </button>
                 <button
                   onClick={() => sendToSupplier(receipt.id)}
-                  className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition flex items-center gap-1"
+                  className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 dark:bg-gradient-to-br dark:from-green-800 dark:to-green-700 dark:hover:from-green-700 dark:hover:to-green-600 transition flex items-center gap-1"
                 >
                   <Check size={14} />
                   Затвердити
@@ -817,8 +817,8 @@ export default function ReceiptManagement() {
           </div>
 
           {showAddOrders === receipt.id && (
-            <div className="p-4 bg-blue-50 border-b">
-              <h4 className="font-medium mb-2">Доступні замовлення для додавання:</h4>
+            <div className="p-4 bg-blue-50 dark:bg-gradient-to-br dark:from-blue-950 dark:to-blue-900 border-b dark:border-blue-800">
+              <h4 className="font-medium mb-2 text-gray-900 dark:text-blue-200">Доступні замовлення для додавання:</h4>
               <div className="mb-3">
                 <input
                   type="text"
@@ -860,7 +860,7 @@ export default function ReceiptManagement() {
                           <td className="px-2 py-2 text-center">
                             <button
                               onClick={() => addOrderToReceipt(receipt.id, order.id)}
-                              className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
+                              className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 dark:bg-gradient-to-br dark:from-blue-800 dark:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-600 text-xs"
                             >
                               Додати
                             </button>
@@ -870,7 +870,7 @@ export default function ReceiptManagement() {
                     </tbody>
                   </table>
                 ) : (
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Немає доступних замовлень</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Немає доступних замовлень</p>
                 )}
               </div>
             </div>
@@ -990,8 +990,8 @@ export default function ReceiptManagement() {
       ))}
 
       {approvedReceipts.map(receipt => (
-        <div key={receipt.id} className="bg-white dark:bg-gray-800 rounded-lg shadow border-2 border-green-300">
-          <div className="p-4 border-b bg-green-50">
+        <div key={receipt.id} className="bg-white dark:bg-gray-800 rounded-lg shadow border-2 border-green-300 dark:border-green-800">
+          <div className="p-4 border-b bg-green-50 dark:bg-gradient-to-br dark:from-green-950 dark:to-green-900 dark:border-green-800">
             <div className="flex items-center justify-between">
               <button
                 onClick={() => toggleReceipt(receipt.id)}
@@ -1010,13 +1010,13 @@ export default function ReceiptManagement() {
               <div className="flex gap-2">
                 <button
                   onClick={() => returnToDraft(receipt.id)}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition flex items-center gap-1"
+                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-700 dark:hover:from-gray-700 dark:hover:to-gray-600 transition flex items-center gap-1"
                 >
                   Повернути в чернетку
                 </button>
                 <button
                   onClick={() => confirmReceipt(receipt)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center gap-1"
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 dark:bg-gradient-to-br dark:from-blue-800 dark:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-600 transition flex items-center gap-1"
                 >
                   <Send size={16} />
                   Передати на розрахунок
@@ -1026,8 +1026,8 @@ export default function ReceiptManagement() {
           </div>
 
           {showAddOrders === receipt.id && (
-            <div className="p-4 bg-blue-50 border-b">
-              <h4 className="font-medium mb-2">Доступні замовлення для додавання:</h4>
+            <div className="p-4 bg-blue-50 dark:bg-gradient-to-br dark:from-blue-950 dark:to-blue-900 border-b dark:border-blue-800">
+              <h4 className="font-medium mb-2 text-gray-900 dark:text-blue-200">Доступні замовлення для додавання:</h4>
               <div className="mb-3">
                 <input
                   type="text"
@@ -1069,7 +1069,7 @@ export default function ReceiptManagement() {
                           <td className="px-2 py-2 text-center">
                             <button
                               onClick={() => addOrderToReceipt(receipt.id, order.id)}
-                              className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
+                              className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 dark:bg-gradient-to-br dark:from-blue-800 dark:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-600 text-xs"
                             >
                               Додати
                             </button>
@@ -1079,7 +1079,7 @@ export default function ReceiptManagement() {
                     </tbody>
                   </table>
                 ) : (
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Немає доступних замовлень</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Немає доступних замовлень</p>
                 )}
               </div>
             </div>

@@ -273,10 +273,10 @@ export default function SupplierBalance() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'sent_for_settlement': return 'bg-amber-100 text-amber-800';
-      case 'settled': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'approved': return 'bg-green-100 text-green-800 dark:bg-gradient-to-br dark:from-green-950 dark:to-green-900 dark:text-green-200';
+      case 'sent_for_settlement': return 'bg-amber-100 text-amber-800 dark:bg-gradient-to-br dark:from-amber-950 dark:to-amber-900 dark:text-amber-200';
+      case 'settled': return 'bg-blue-100 text-blue-800 dark:bg-gradient-to-br dark:from-blue-950 dark:to-blue-900 dark:text-blue-200';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gradient-to-br dark:from-gray-900 dark:to-gray-800 dark:text-gray-300';
     }
   };
 
@@ -323,7 +323,7 @@ export default function SupplierBalance() {
                   e.stopPropagation();
                   sendToSettlement(receipt);
                 }}
-                className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center gap-1 mx-auto"
+                className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 dark:bg-gradient-to-br dark:from-blue-800 dark:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-600 transition flex items-center gap-1 mx-auto"
               >
                 <Send size={14} />
                 На розрахунок
@@ -335,7 +335,7 @@ export default function SupplierBalance() {
                   e.stopPropagation();
                   returnFromSettlement(receipt);
                 }}
-                className="px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition flex items-center gap-1 mx-auto"
+                className="px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 dark:bg-gradient-to-br dark:from-amber-800 dark:to-amber-700 dark:hover:from-amber-700 dark:hover:to-amber-600 transition flex items-center gap-1 mx-auto"
               >
                 <Undo2 size={14} />
                 Повернути
@@ -410,8 +410,8 @@ export default function SupplierBalance() {
     <div className="h-full flex flex-col p-4 max-w-[98%] mx-auto">
       <div className="flex-1 overflow-auto space-y-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-          <div className="p-4 border-b bg-blue-50">
-            <h3 className="text-lg font-bold text-blue-900">Активні баланси</h3>
+          <div className="p-4 border-b bg-blue-50 dark:bg-gradient-to-br dark:from-blue-950 dark:to-blue-900 dark:border-blue-800">
+            <h3 className="text-lg font-bold text-blue-900 dark:text-blue-200">Активні баланси</h3>
           </div>
 
           {activeReceipts.length === 0 && (
@@ -423,16 +423,16 @@ export default function SupplierBalance() {
           {sentForSettlementReceipts.length > 0 && (
             <>
               <div
-                className="px-4 py-3 bg-amber-50 cursor-pointer hover:bg-amber-100 transition border-b"
+                className="px-4 py-3 bg-amber-50 dark:bg-gradient-to-br dark:from-amber-950 dark:to-amber-900 cursor-pointer hover:bg-amber-100 dark:hover:from-amber-900 dark:hover:to-amber-800 transition border-b dark:border-amber-800"
                 onClick={() => setIsSentForSettlementExpanded(!isSentForSettlementExpanded)}
               >
                 <div className="flex items-center gap-2">
                   {isSentForSettlementExpanded ? (
-                    <ChevronUp size={20} className="text-amber-700" />
+                    <ChevronUp size={20} className="text-amber-700 dark:text-amber-300" />
                   ) : (
-                    <ChevronDown size={20} className="text-amber-700" />
+                    <ChevronDown size={20} className="text-amber-700 dark:text-amber-300" />
                   )}
-                  <h4 className="text-md font-bold text-amber-900">Передані на розрахунок ({sentForSettlementReceipts.length})</h4>
+                  <h4 className="text-md font-bold text-amber-900 dark:text-amber-200">Передані на розрахунок ({sentForSettlementReceipts.length})</h4>
                 </div>
               </div>
               {isSentForSettlementExpanded && (
@@ -451,13 +451,13 @@ export default function SupplierBalance() {
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {sentForSettlementReceipts.map((receipt) => renderReceiptRow(receipt))}
-                    <tr className="bg-amber-100 font-bold">
-                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">Підсумок</td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(sentForSettlementTotal.parts)}</td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(sentForSettlementTotal.delivery)}</td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(sentForSettlementTotal.receipt)}</td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(sentForSettlementTotal.cash)}</td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(sentForSettlementTotal.transport)}</td>
+                    <tr className="bg-amber-100 dark:bg-amber-900/50 font-bold text-gray-900 dark:text-amber-200">
+                      <td className="px-4 py-3 text-sm">Підсумок</td>
+                      <td className="px-4 py-3 text-sm text-right">{formatNumber(sentForSettlementTotal.parts)}</td>
+                      <td className="px-4 py-3 text-sm text-right">{formatNumber(sentForSettlementTotal.delivery)}</td>
+                      <td className="px-4 py-3 text-sm text-right">{formatNumber(sentForSettlementTotal.receipt)}</td>
+                      <td className="px-4 py-3 text-sm text-right">{formatNumber(sentForSettlementTotal.cash)}</td>
+                      <td className="px-4 py-3 text-sm text-right">{formatNumber(sentForSettlementTotal.transport)}</td>
                       <td className="px-4 py-3"></td>
                       <td className="px-4 py-3"></td>
                     </tr>
@@ -470,16 +470,16 @@ export default function SupplierBalance() {
           {notSentReceipts.length > 0 && (
             <>
               <div
-                className="px-4 py-3 bg-green-50 cursor-pointer hover:bg-green-100 transition border-b"
+                className="px-4 py-3 bg-green-50 dark:bg-gradient-to-br dark:from-green-950 dark:to-green-900 cursor-pointer hover:bg-green-100 dark:hover:from-green-900 dark:hover:to-green-800 transition border-b dark:border-green-800"
                 onClick={() => setIsNotSentExpanded(!isNotSentExpanded)}
               >
                 <div className="flex items-center gap-2">
                   {isNotSentExpanded ? (
-                    <ChevronUp size={20} className="text-green-700" />
+                    <ChevronUp size={20} className="text-green-700 dark:text-green-300" />
                   ) : (
-                    <ChevronDown size={20} className="text-green-700" />
+                    <ChevronDown size={20} className="text-green-700 dark:text-green-300" />
                   )}
-                  <h4 className="text-md font-bold text-green-900">Не передані ({notSentReceipts.length})</h4>
+                  <h4 className="text-md font-bold text-green-900 dark:text-green-200">Не передані ({notSentReceipts.length})</h4>
                 </div>
               </div>
               {isNotSentExpanded && (
@@ -498,13 +498,13 @@ export default function SupplierBalance() {
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {notSentReceipts.map((receipt) => renderReceiptRow(receipt))}
-                    <tr className="bg-green-100 font-bold">
-                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">Підсумок</td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(notSentTotal.parts)}</td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(notSentTotal.delivery)}</td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(notSentTotal.receipt)}</td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(notSentTotal.cash)}</td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{formatNumber(notSentTotal.transport)}</td>
+                    <tr className="bg-green-100 dark:bg-green-900/50 font-bold text-gray-900 dark:text-green-200">
+                      <td className="px-4 py-3 text-sm">Підсумок</td>
+                      <td className="px-4 py-3 text-sm text-right">{formatNumber(notSentTotal.parts)}</td>
+                      <td className="px-4 py-3 text-sm text-right">{formatNumber(notSentTotal.delivery)}</td>
+                      <td className="px-4 py-3 text-sm text-right">{formatNumber(notSentTotal.receipt)}</td>
+                      <td className="px-4 py-3 text-sm text-right">{formatNumber(notSentTotal.cash)}</td>
+                      <td className="px-4 py-3 text-sm text-right">{formatNumber(notSentTotal.transport)}</td>
                       <td className="px-4 py-3"></td>
                       <td className="px-4 py-3"></td>
                     </tr>
@@ -528,53 +528,53 @@ export default function SupplierBalance() {
                     <td className="px-4 py-3"></td>
                     <td className="px-4 py-3"></td>
                   </tr>
-                  <tr className="bg-blue-50 font-bold">
-                    <td className="px-4 py-4 text-sm text-gray-900 dark:text-gray-100" colSpan={2}>
+                  <tr className="bg-blue-50 dark:bg-gradient-to-br dark:from-blue-950 dark:to-blue-900 font-bold">
+                    <td className="px-4 py-4 text-sm text-gray-900 dark:text-blue-200" colSpan={2}>
                       <div className="flex items-center gap-2">
                         <div className="w-[18px]"></div>
                         Прийом і побраня (PLN)
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-lg text-right text-blue-900" colSpan={6}>{formatNumber(activeTotal.receipt + activeTotal.cash)} zł</td>
+                    <td className="px-4 py-4 text-lg text-right text-blue-900 dark:text-blue-200" colSpan={6}>{formatNumber(activeTotal.receipt + activeTotal.cash)} zł</td>
                   </tr>
-                  <tr className="bg-green-50 font-bold">
-                    <td className="px-4 py-4 text-sm text-gray-900 dark:text-gray-100" colSpan={2}>
+                  <tr className="bg-green-50 dark:bg-gradient-to-br dark:from-green-950 dark:to-green-900 font-bold">
+                    <td className="px-4 py-4 text-sm text-gray-900 dark:text-green-200" colSpan={2}>
                       <div className="flex items-center gap-2">
                         <div className="w-[18px]"></div>
                         Перевезення (USD)
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-lg text-right text-green-900" colSpan={6}>{formatNumber(activeTotal.transport)} $</td>
+                    <td className="px-4 py-4 text-lg text-right text-green-900 dark:text-green-200" colSpan={6}>{formatNumber(activeTotal.transport)} $</td>
                   </tr>
                   <tr
-                    className="bg-amber-50 font-bold cursor-pointer hover:bg-amber-100 transition"
+                    className="bg-amber-50 dark:bg-gradient-to-br dark:from-amber-950 dark:to-amber-900 font-bold cursor-pointer hover:bg-amber-100 dark:hover:from-amber-900 dark:hover:to-amber-800 transition"
                     onClick={() => setIsPartsBalanceExpanded(!isPartsBalanceExpanded)}
                   >
-                    <td className="px-4 py-4 text-sm text-gray-900 dark:text-gray-100" colSpan={2}>
+                    <td className="px-4 py-4 text-sm text-gray-900 dark:text-amber-200" colSpan={2}>
                       <div className="flex items-center gap-2">
                         {isPartsBalanceExpanded ? (
-                          <ChevronUp size={18} className="text-amber-700" />
+                          <ChevronUp size={18} className="text-amber-700 dark:text-amber-300" />
                         ) : (
-                          <ChevronDown size={18} className="text-amber-700" />
+                          <ChevronDown size={18} className="text-amber-700 dark:text-amber-300" />
                         )}
                         Запчастини + доставка (PLN)
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-lg text-right text-amber-900" colSpan={6}>{formatNumber(activeTotal.parts + activeTotal.delivery)} zł</td>
+                    <td className="px-4 py-4 text-lg text-right text-amber-900 dark:text-amber-200" colSpan={6}>{formatNumber(activeTotal.parts + activeTotal.delivery)} zł</td>
                   </tr>
                   {isPartsBalanceExpanded && (
                     <>
-                      <tr className="bg-amber-50">
-                        <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200" colSpan={2}>
+                      <tr className="bg-amber-50 dark:bg-gradient-to-br dark:from-amber-950 dark:to-amber-900">
+                        <td className="px-4 py-2 text-sm text-gray-700 dark:text-amber-200" colSpan={2}>
                           <div className="ml-6">→ Запчастини</div>
                         </td>
-                        <td className="px-4 py-2 text-sm text-right text-gray-900 dark:text-gray-100" colSpan={6}>{formatNumber(activeTotal.parts)} zł</td>
+                        <td className="px-4 py-2 text-sm text-right text-gray-900 dark:text-amber-200" colSpan={6}>{formatNumber(activeTotal.parts)} zł</td>
                       </tr>
-                      <tr className="bg-amber-50">
-                        <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200" colSpan={2}>
+                      <tr className="bg-amber-50 dark:bg-gradient-to-br dark:from-amber-950 dark:to-amber-900">
+                        <td className="px-4 py-2 text-sm text-gray-700 dark:text-amber-200" colSpan={2}>
                           <div className="ml-6">→ Доставка</div>
                         </td>
-                        <td className="px-4 py-2 text-sm text-right text-gray-900 dark:text-gray-100" colSpan={6}>{formatNumber(activeTotal.delivery)} zł</td>
+                        <td className="px-4 py-2 text-sm text-right text-gray-900 dark:text-amber-200" colSpan={6}>{formatNumber(activeTotal.delivery)} zł</td>
                       </tr>
                     </>
                   )}
