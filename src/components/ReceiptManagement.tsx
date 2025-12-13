@@ -846,17 +846,17 @@ export default function ReceiptManagement() {
                     <tbody className="divide-y">
                       {filteredAvailableOrders.map(order => (
                         <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
-                          <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.title || '-'}</td>
-                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{formatNumber(order.part_price)}</td>
-                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{formatNumber(order.delivery_cost)}</td>
-                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{formatNumber(order.received_pln || 0)}</td>
+                          <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.title || '***'}</td>
+                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{order.part_price ? formatNumber(order.part_price) : '***'}</td>
+                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{order.delivery_cost ? formatNumber(order.delivery_cost) : '***'}</td>
+                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{order.received_pln ? formatNumber(order.received_pln) : '***'}</td>
                           <td className={`px-2 py-2 text-right tabular-nums ${
                             order.payment_type?.toLowerCase().includes('оплачено') && (order.cash_on_delivery || 0) !== 0
                               ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 font-semibold'
                               : 'text-gray-900 dark:text-gray-100'
-                          }`}>{formatNumber(order.cash_on_delivery || 0)}</td>
-                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{formatNumber(order.transport_cost_usd || 0)}</td>
-                          <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.payment_type}</td>
+                          }`}>{order.cash_on_delivery ? formatNumber(order.cash_on_delivery) : '***'}</td>
+                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{order.transport_cost_usd ? formatNumber(order.transport_cost_usd) : '***'}</td>
+                          <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.payment_type || '***'}</td>
                           <td className="px-2 py-2 text-center">
                             <button
                               onClick={() => addOrderToReceipt(receipt.id, order.id)}
@@ -901,8 +901,8 @@ export default function ReceiptManagement() {
                 <tbody className="divide-y">
                   {orders[receipt.id].map(order => (
                     <tr key={order.id} className={hasChanges(order) ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}>
-                      <td className="px-2 py-2 text-gray-900 dark:text-gray-100">{order.client_id}</td>
-                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.part_number}</td>
+                      <td className="px-2 py-2 text-gray-900 dark:text-gray-100">{order.client_id || '***'}</td>
+                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.part_number || '***'}</td>
                       <td className="px-2 py-2 text-right">
                         <input
                           type="number"
@@ -963,14 +963,14 @@ export default function ReceiptManagement() {
                           className={`w-full px-1 py-1 border rounded text-right tabular-nums bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isFieldChanged(order, 'editableTransport') ? 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-400 dark:border-yellow-500' : 'border-gray-300 dark:border-gray-600'}`}
                         />
                       </td>
-                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.title}</td>
+                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.title || '***'}</td>
                       <td className="px-2 py-2">
-                        {order.link && <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">Посилання</a>}
+                        {order.link ? <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">Посилання</a> : <span className="text-gray-900 dark:text-gray-100">***</span>}
                       </td>
-                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.tracking_pl}</td>
-                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.payment_type}</td>
-                      <td className="px-2 py-2 text-gray-900 dark:text-gray-100">{order.order_date}</td>
-                      <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{formatNumber(order.total_cost)}</td>
+                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.tracking_pl || '***'}</td>
+                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.payment_type || '***'}</td>
+                      <td className="px-2 py-2 text-gray-900 dark:text-gray-100">{order.order_date || '***'}</td>
+                      <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{order.total_cost ? formatNumber(order.total_cost) : '***'}</td>
                       <td className="px-2 py-2 text-center">
                         <button
                           onClick={() => removeOrderFromReceipt(receipt.id, order.id)}
@@ -1055,17 +1055,17 @@ export default function ReceiptManagement() {
                     <tbody className="divide-y">
                       {filteredAvailableOrders.map(order => (
                         <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
-                          <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.title || '-'}</td>
-                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{formatNumber(order.part_price)}</td>
-                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{formatNumber(order.delivery_cost)}</td>
-                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{formatNumber(order.received_pln || 0)}</td>
+                          <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.title || '***'}</td>
+                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{order.part_price ? formatNumber(order.part_price) : '***'}</td>
+                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{order.delivery_cost ? formatNumber(order.delivery_cost) : '***'}</td>
+                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{order.received_pln ? formatNumber(order.received_pln) : '***'}</td>
                           <td className={`px-2 py-2 text-right tabular-nums ${
                             order.payment_type?.toLowerCase().includes('оплачено') && (order.cash_on_delivery || 0) !== 0
                               ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 font-semibold'
                               : 'text-gray-900 dark:text-gray-100'
-                          }`}>{formatNumber(order.cash_on_delivery || 0)}</td>
-                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{formatNumber(order.transport_cost_usd || 0)}</td>
-                          <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.payment_type}</td>
+                          }`}>{order.cash_on_delivery ? formatNumber(order.cash_on_delivery) : '***'}</td>
+                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{order.transport_cost_usd ? formatNumber(order.transport_cost_usd) : '***'}</td>
+                          <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.payment_type || '***'}</td>
                           <td className="px-2 py-2 text-center">
                             <button
                               onClick={() => addOrderToReceipt(receipt.id, order.id)}
@@ -1110,8 +1110,8 @@ export default function ReceiptManagement() {
                 <tbody className="divide-y">
                   {orders[receipt.id].map(order => (
                     <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <td className="px-2 py-2 text-gray-900 dark:text-gray-100">{order.client_id}</td>
-                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.part_number}</td>
+                      <td className="px-2 py-2 text-gray-900 dark:text-gray-100">{order.client_id || '***'}</td>
+                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.part_number || '***'}</td>
                       <td className="px-2 py-2 text-right">
                         <input
                           type="number"
@@ -1170,14 +1170,14 @@ export default function ReceiptManagement() {
                           className="w-full px-1 py-1 border border-gray-300 dark:border-gray-600 rounded text-right tabular-nums bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 cursor-not-allowed"
                         />
                       </td>
-                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.title}</td>
+                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.title || '***'}</td>
                       <td className="px-2 py-2">
-                        {order.link && <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">Посилання</a>}
+                        {order.link ? <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">Посилання</a> : <span className="text-gray-900 dark:text-gray-100">***</span>}
                       </td>
-                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.tracking_pl}</td>
-                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.payment_type}</td>
-                      <td className="px-2 py-2 text-gray-900 dark:text-gray-100">{order.order_date}</td>
-                      <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{formatNumber(order.total_cost)}</td>
+                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.tracking_pl || '***'}</td>
+                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.payment_type || '***'}</td>
+                      <td className="px-2 py-2 text-gray-900 dark:text-gray-100">{order.order_date || '***'}</td>
+                      <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{order.total_cost ? formatNumber(order.total_cost) : '***'}</td>
                       <td className="px-2 py-2 text-center">
                         <span className="text-gray-400 dark:text-gray-500 text-xs">Заблоковано</span>
                       </td>
