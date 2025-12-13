@@ -320,16 +320,15 @@ export default function ReceiptManagement() {
       }
 
       const orderIds = receiptOrders.map((ro: any) => ro.order_id);
-      const { error: statusError } = await supabase
+      const { error: deleteError } = await supabase
         .from('orders')
-        .update({
-          status: 'прийнято',
-          archived: true
-        })
+        .delete()
         .in('id', orderIds);
 
-      if (statusError) {
-        console.error('Помилка оновлення статусу замовлень:', statusError);
+      if (deleteError) {
+        console.error('Помилка видалення замовлень:', deleteError);
+        alert('Помилка при видаленні замовлень з основної таблиці');
+        return;
       }
     }
 
@@ -342,7 +341,7 @@ export default function ReceiptManagement() {
       .eq('id', receiptId);
 
     if (!error) {
-      alert('Прийомку затверджено, замовлення переміщено в прийняті та архів');
+      alert('Прийомку затверджено! Замовлення переміщено до прийнятих та видалено з активних');
       loadReceipts();
     }
   }
