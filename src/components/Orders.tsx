@@ -16,6 +16,10 @@ type AcceptedOrder = {
   transport_cost_usd: number;
   payment_type: string | null;
   accepted_at: string;
+  title?: string | null;
+  client_id?: string | null;
+  part_number?: string | null;
+  link?: string | null;
   supplier?: Supplier;
 };
 
@@ -304,6 +308,30 @@ export default function Orders() {
       .eq('id', orderId);
 
     if (!error) {
+      if (newStatus === 'прийнято') {
+        const order = orders.find(o => o.id === orderId);
+        if (order) {
+          await supabase.from('accepted_orders').insert({
+            order_id: orderId,
+            receipt_number: 'прийнято без документу',
+            order_number: order.order_number,
+            tracking_number: order.tracking_pl,
+            supplier_id: order.supplier_id,
+            weight_kg: order.weight_kg || 0,
+            part_price: order.part_price || 0,
+            delivery_cost: order.delivery_cost || 0,
+            received_pln: order.received_pln || 0,
+            cash_on_delivery: order.cash_on_delivery || 0,
+            transport_cost_usd: order.transport_cost_usd || 0,
+            payment_type: order.payment_type,
+            title: order.title,
+            client_id: order.client_id,
+            part_number: order.part_number,
+            link: order.link
+          });
+          loadAcceptedOrders();
+        }
+      }
       loadOrders();
       setOpenDropdown(null);
     }
