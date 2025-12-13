@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase, Order, Supplier } from '../lib/supabase';
 import { ChevronRight, Send, X, AlertCircle, ExternalLink } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 
 type OrderWithSupplier = Order & { supplier: Supplier };
 
@@ -20,6 +21,7 @@ type ActiveReceiptsProps = {
 };
 
 export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceiptsProps) {
+  const { showSuccess, showError, showWarning } = useToast();
   const [availableOrders, setAvailableOrders] = useState<OrderWithSupplier[]>([]);
   const [cashOnDeliveryOrders, setCashOnDeliveryOrders] = useState<EditableOrder[]>([]);
   const [paidOrders, setPaidOrders] = useState<EditableOrder[]>([]);
@@ -168,7 +170,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
 
     if (error) {
       console.error('Помилка оновлення статусу:', error);
-      alert('Помилка оновлення статусу замовлення');
+      showError('Помилка оновлення статусу замовлення');
       return;
     }
 
@@ -228,12 +230,12 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
       const receiptNumber = group === 'cash_on_delivery' ? cashOnDeliveryReceiptNumber : paidReceiptNumber;
 
       if (orders.length === 0) {
-        alert('Додайте замовлення до прійомки');
+        showWarning('Додайте замовлення до прійомки');
         return;
       }
 
       if (!receiptNumber || receiptNumber.trim() === '') {
-        alert('Номер прійомки порожній. Спробуйте перезавантажити сторінку.');
+        showWarning('Номер прійомки порожній. Спробуйте перезавантажити сторінку.');
         return;
       }
 
@@ -249,7 +251,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
         if (orderData && orderData.supplier) {
           supplier = orderData.supplier;
         } else {
-          alert('Помилка: замовлення не має інформації про постачальника. Спробуйте перезавантажити сторінку.');
+          showError('Помилка: замовлення не має інформації про постачальника. Спробуйте перезавантажити сторінку.');
           return;
         }
       }
@@ -294,7 +296,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
 
       if (error || !receipt) {
         console.error('Помилка створення прійомки:', error);
-        alert('Помилка створення прійомки: ' + (error?.message || 'невідома помилка'));
+        showError('Помилка створення прійомки: ' + (error?.message || 'невідома помилка'));
         return;
       }
 
@@ -354,11 +356,11 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
 
       loadAvailableOrders();
 
-      alert('Прійомку передано постачальнику на звірку.');
+      showSuccess('Прійомку передано постачальнику на звірку.');
       onNavigateToManagement();
     } catch (error) {
       console.error('Помилка в handleSaveReceipt:', error);
-      alert('Помилка збереження прійомки: ' + (error instanceof Error ? error.message : 'невідома помилка'));
+      showError('Помилка збереження прійомки: ' + (error instanceof Error ? error.message : 'невідома помилка'));
     }
   }
 

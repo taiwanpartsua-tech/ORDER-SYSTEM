@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase, Supplier, ActiveReceipt, Order } from '../lib/supabase';
 import { ChevronDown, ChevronUp, Send, CheckCircle2, Undo2, Archive } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 
 export default function SupplierBalance() {
+  const { showSuccess, showError, confirm } = useToast();
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [receipts, setReceipts] = useState<ActiveReceipt[]>([]);
   const [expandedReceipts, setExpandedReceipts] = useState<Set<string>>(new Set());
@@ -84,7 +86,7 @@ export default function SupplierBalance() {
 
   async function sendToSettlement(receipt: ActiveReceipt) {
     if (!supplier) {
-      alert('Помилка: постачальник не знайдений');
+      showError('Помилка: постачальник не знайдений');
       return;
     }
 
@@ -98,7 +100,7 @@ export default function SupplierBalance() {
       .eq('id', receipt.id);
 
     if (receiptError) {
-      alert('Помилка переведення на розрахунок');
+      showError('Помилка переведення на розрахунок');
       return;
     }
 
@@ -177,16 +179,16 @@ export default function SupplierBalance() {
       })
       .eq('id', supplier.id);
 
-    alert('Прийомку передано на розрахунок! Баланс оновлено.');
+    showSuccess('Прийомку передано на розрахунок! Баланс оновлено.');
     loadData();
   }
 
   async function returnFromSettlement(receipt: ActiveReceipt) {
-    const confirmed = confirm('Ви впевнені, що хочете повернути цю прийомку назад?');
+    const confirmed = await confirm('Ви впевнені, що хочете повернути цю прийомку назад?');
     if (!confirmed) return;
 
     if (!supplier) {
-      alert('Помилка: постачальник не знайдений');
+      showError('Помилка: постачальник не знайдений');
       return;
     }
 
@@ -199,7 +201,7 @@ export default function SupplierBalance() {
       .eq('id', receipt.id);
 
     if (receiptError) {
-      alert('Помилка повернення прийомки');
+      showSuccess('Помилка повернення прийомки');
       return;
     }
 
@@ -218,7 +220,7 @@ export default function SupplierBalance() {
       .update({ is_reversed: true })
       .eq('receipt_id', receipt.id);
 
-    alert('Прийомку повернуто назад.');
+    showSuccess('Прийомку повернуто назад.');
     loadData();
   }
 

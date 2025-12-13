@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase, Transaction, CardTransaction, ActiveReceipt, Order } from '../lib/supabase';
 import { Plus, TrendingDown, TrendingUp, CheckCircle2, XCircle, Undo2 } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 
 type SettlementType = 'cash' | 'card';
 
 export default function CombinedSettlement() {
+  const { showSuccess, showError, showWarning, confirm } = useToast();
   const [settlementType, setSettlementType] = useState<SettlementType>('cash');
   const [cashTransactions, setCashTransactions] = useState<Transaction[]>([]);
   const [cardTransactions, setCardTransactions] = useState<CardTransaction[]>([]);
@@ -200,7 +202,7 @@ export default function CombinedSettlement() {
 
     const amount = parseFloat(cashFormData.amount);
     if (isNaN(amount) || amount <= 0) {
-      alert('Введіть коректну суму');
+      showWarning('Введіть коректну суму');
       return;
     }
 
@@ -228,7 +230,7 @@ export default function CombinedSettlement() {
 
     if (error) {
       console.error('Error adding payment:', error);
-      alert('Помилка при додаванні платежу');
+      showError('Помилка при додаванні платежу');
       return;
     }
 
@@ -247,12 +249,12 @@ export default function CombinedSettlement() {
 
     const amount = parseFloat(cashChargeData.amount);
     if (isNaN(amount) || amount <= 0) {
-      alert('Введіть коректну суму');
+      showWarning('Введіть коректну суму');
       return;
     }
 
     if (!cashChargeData.description.trim()) {
-      alert('Вкажіть причину нарахування');
+      showWarning('Вкажіть причину нарахування');
       return;
     }
 
@@ -282,7 +284,7 @@ export default function CombinedSettlement() {
 
     if (error) {
       console.error('Error adding charge:', error);
-      alert('Помилка при додаванні нарахування');
+      showError('Помилка при додаванні нарахування');
       return;
     }
 
@@ -301,7 +303,7 @@ export default function CombinedSettlement() {
 
     const amount = parseFloat(cardFormData.amount);
     if (isNaN(amount) || amount <= 0) {
-      alert('Введіть коректну суму');
+      showWarning('Введіть коректну суму');
       return;
     }
 
@@ -319,7 +321,7 @@ export default function CombinedSettlement() {
 
     if (error) {
       console.error('Error adding payment:', error);
-      alert('Помилка при додаванні платежу');
+      showError('Помилка при додаванні платежу');
       return;
     }
 
@@ -337,12 +339,12 @@ export default function CombinedSettlement() {
 
     const amount = parseFloat(cardChargeData.amount);
     if (isNaN(amount) || amount <= 0) {
-      alert('Введіть коректну суму');
+      showWarning('Введіть коректну суму');
       return;
     }
 
     if (!cardChargeData.description.trim()) {
-      alert('Вкажіть причину нарахування');
+      showWarning('Вкажіть причину нарахування');
       return;
     }
 
@@ -360,7 +362,7 @@ export default function CombinedSettlement() {
 
     if (error) {
       console.error('Error adding charge:', error);
-      alert('Помилка при додаванні нарахування');
+      showError('Помилка при додаванні нарахування');
       return;
     }
 
@@ -396,7 +398,7 @@ export default function CombinedSettlement() {
       });
 
     if (cashTxError) {
-      alert('Помилка при створенні готівкової транзакції');
+      showError('Помилка при створенні готівкової транзакції');
       console.error(cashTxError);
       return;
     }
@@ -418,7 +420,7 @@ export default function CombinedSettlement() {
         });
 
       if (cardTxError) {
-        alert('Помилка при створенні карткової транзакції');
+        showError('Помилка при створенні карткової транзакції');
         console.error(cardTxError);
         return;
       }
@@ -434,11 +436,11 @@ export default function CombinedSettlement() {
       .eq('id', receiptId);
 
     if (error) {
-      alert('Помилка при позначенні як розраховано');
+      showError('Помилка при позначенні як розраховано');
       return;
     }
 
-    alert('Накладну розраховано синхронно по обох рахунках. Транзакції додано в історію.');
+    showSuccess('Накладну розраховано синхронно по обох рахунках. Транзакції додано в історію.');
     loadCashReceipts();
     loadCardReceipts();
     loadCashTransactions();
@@ -446,7 +448,7 @@ export default function CombinedSettlement() {
   }
 
   async function returnToActive(receiptId: string) {
-    const confirmed = confirm('Ви впевнені, що хочете повернути накладну в активні?');
+    const confirmed = await confirm('Ви впевнені, що хочете повернути накладну в активні?');
     if (!confirmed) return;
 
     const { error } = await supabase
@@ -460,7 +462,7 @@ export default function CombinedSettlement() {
       .eq('id', receiptId);
 
     if (error) {
-      alert('Помилка при поверненні накладної');
+      showError('Помилка при поверненні накладної');
       console.error(error);
       return;
     }
@@ -506,7 +508,7 @@ export default function CombinedSettlement() {
         .in('id', orderIds);
     }
 
-    alert('Накладну повернуто в активні. Обидві транзакції сторновано.');
+    showSuccess('Накладну повернуто в активні. Обидві транзакції сторновано.');
     loadCashReceipts();
     loadCardReceipts();
     loadCashTransactions();
@@ -515,13 +517,13 @@ export default function CombinedSettlement() {
 
   async function reverseCashTransaction(tx: Transaction) {
     if (tx.is_reversed) {
-      alert('Ця транзакція вже сторнована');
+      showWarning('Ця транзакція вже сторнована');
       return;
     }
 
     const totalPln = tx.cash_on_delivery_pln || 0;
     const totalUsd = tx.transport_cost_usd || 0;
-    const confirmed = confirm(`Ви впевнені, що хочете сторнувати цю операцію?\n\nОпис: ${tx.description}\nСума: ${formatNumber(totalPln)} zl / ${formatNumber(totalUsd)} $\n\nТранзакція залишиться в історії з позначкою "сторновано".\n\nТакож буде сторновано пов'язану карткову транзакцію.`);
+    const confirmed = await confirm(`Ви впевнені, що хочете сторнувати цю операцію?\n\nОпис: ${tx.description}\nСума: ${formatNumber(totalPln)} zl / ${formatNumber(totalUsd)} $\n\nТранзакція залишиться в історії з позначкою "сторновано".\n\nТакож буде сторновано пов'язану карткову транзакцію.`);
     if (!confirmed) return;
 
     if (tx.receipt_id) {
@@ -587,12 +589,12 @@ export default function CombinedSettlement() {
       .eq('id', tx.id);
 
     if (error) {
-      alert('Помилка при сторнуванні транзакції');
+      showError('Помилка при сторнуванні транзакції');
       console.error(error);
       return;
     }
 
-    alert('Операцію успішно сторновано синхронно по обох рахунках. Транзакції залишаються в історії.');
+    showSuccess('Операцію успішно сторновано синхронно по обох рахунках. Транзакції залишаються в історії.');
     loadCashReceipts();
     loadCardReceipts();
     loadCashTransactions();
@@ -601,11 +603,11 @@ export default function CombinedSettlement() {
 
   async function reverseCardTransaction(tx: CardTransaction) {
     if (tx.is_reversed) {
-      alert('Ця транзакція вже сторнована');
+      showWarning('Ця транзакція вже сторнована');
       return;
     }
 
-    const confirmed = confirm(`Ви впевнені, що хочете сторнувати цю операцію?\n\nОпис: ${tx.description}\nСума: ${formatNumber(tx.amount)} zł\n\nТранзакція залишиться в історії з позначкою "сторновано".\n\nТакож буде сторновано пов'язану готівкову транзакцію.`);
+    const confirmed = await confirm(`Ви впевнені, що хочете сторнувати цю операцію?\n\nОпис: ${tx.description}\nСума: ${formatNumber(tx.amount)} zł\n\nТранзакція залишиться в історії з позначкою "сторновано".\n\nТакож буде сторновано пов'язану готівкову транзакцію.`);
     if (!confirmed) return;
 
     if (tx.receipt_id) {
@@ -671,12 +673,12 @@ export default function CombinedSettlement() {
       .eq('id', tx.id);
 
     if (error) {
-      alert('Помилка при сторнуванні транзакції');
+      showError('Помилка при сторнуванні транзакції');
       console.error(error);
       return;
     }
 
-    alert('Операцію успішно сторновано синхронно по обох рахунках. Транзакції залишаються в історії.');
+    showSuccess('Операцію успішно сторновано синхронно по обох рахунках. Транзакції залишаються в історії.');
     loadCashReceipts();
     loadCardReceipts();
     loadCashTransactions();
@@ -684,7 +686,7 @@ export default function CombinedSettlement() {
   }
 
   async function returnSettledToSettlement(receiptId: string) {
-    const confirmed = confirm('Ви впевнені, що хочете повернути накладну назад на розрахунок?\n\nОбидві транзакції будуть сторновані.');
+    const confirmed = await confirm('Ви впевнені, що хочете повернути накладну назад на розрахунок?\n\nОбидві транзакції будуть сторновані.');
     if (!confirmed) return;
 
     const { data: cashTxData } = await supabase
@@ -725,12 +727,12 @@ export default function CombinedSettlement() {
       .eq('id', receiptId);
 
     if (error) {
-      alert('Помилка при поверненні накладної');
+      showError('Помилка при поверненні накладної');
       console.error(error);
       return;
     }
 
-    alert('Накладну повернуто назад на розрахунок. Обидві транзакції сторновано.');
+    showSuccess('Накладну повернуто назад на розрахунок. Обидві транзакції сторновано.');
     loadCashReceipts();
     loadCardReceipts();
     loadCashTransactions();

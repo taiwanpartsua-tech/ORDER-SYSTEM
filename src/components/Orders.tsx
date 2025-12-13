@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase, Order, Supplier } from '../lib/supabase';
 import { Plus, CreditCard as Edit, Archive, X, ExternalLink, ChevronDown, Layers, ChevronUp, Check, RotateCcw, Printer, Download } from 'lucide-react';
 import Returns from './Returns';
+import { useToast } from '../contexts/ToastContext';
 
 type AcceptedOrder = {
   id: string;
@@ -27,6 +28,7 @@ type AcceptedOrder = {
 };
 
 export default function Orders() {
+  const { showSuccess, showError, showWarning, confirm } = useToast();
   const [orders, setOrders] = useState<(Order & { supplier: Supplier })[]>([]);
   const [acceptedOrders, setAcceptedOrders] = useState<AcceptedOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -246,7 +248,7 @@ export default function Orders() {
     if (!error && data) {
       openReceiptDetails(data.receipt_number);
     } else {
-      alert('Документ прийому не знайдено для цього замовлення');
+      showWarning('Документ прийому не знайдено для цього замовлення');
     }
   }
 
@@ -270,42 +272,42 @@ export default function Orders() {
 
     if (!editingOrder) {
       if (!dataToSubmit.client_id || dataToSubmit.client_id.trim() === '') {
-        alert('ID клієнта є обов\'язковим полем!');
+        showWarning('ID клієнта є обов\'язковим полем!');
         return;
       }
 
       if (!dataToSubmit.title || dataToSubmit.title.trim() === '') {
-        alert('Назва є обов\'язковим полем!');
+        showWarning('Назва є обов\'язковим полем!');
         return;
       }
 
       if (!dataToSubmit.link || dataToSubmit.link.trim() === '') {
-        alert('Посилання є обов\'язковим полем!');
+        showWarning('Посилання є обов\'язковим полем!');
         return;
       }
 
       if (!dataToSubmit.part_price || dataToSubmit.part_price <= 0) {
-        alert('Вартість запчастини є обов\'язковим полем і повинна бути більше 0!');
+        showWarning('Вартість запчастини є обов\'язковим полем і повинна бути більше 0!');
         return;
       }
 
       if (!dataToSubmit.part_number || dataToSubmit.part_number.trim() === '') {
-        alert('Номер запчастини є обов\'язковим полем!');
+        showWarning('Номер запчастини є обов\'язковим полем!');
         return;
       }
 
       if (!dataToSubmit.payment_type || dataToSubmit.payment_type === 'не обрано') {
-        alert('Необхідно обрати тип оплати!');
+        showWarning('Необхідно обрати тип оплати!');
         return;
       }
 
       if (dataToSubmit.payment_type === 'оплачено' && dataToSubmit.cash_on_delivery > 0) {
-        alert('Якщо оплата "Оплачено", наложка повинна дорівнювати 0!');
+        showWarning('Якщо оплата "Оплачено", наложка повинна дорівнювати 0!');
         return;
       }
 
       if ((dataToSubmit.payment_type === 'побранє' || dataToSubmit.payment_type === 'самовивіз pl') && (!dataToSubmit.cash_on_delivery || dataToSubmit.cash_on_delivery <= 0)) {
-        alert('Якщо тип оплати "Побранє" або "Самовивіз PL", наложка є обов\'язковою і повинна бути більше 0!');
+        showWarning('Якщо тип оплати "Побранє" або "Самовивіз PL", наложка є обов\'язковою і повинна бути більше 0!');
         return;
       }
     }
@@ -326,16 +328,18 @@ export default function Orders() {
           .eq('id', editingOrder.id);
         if (error) {
           console.error('Error updating order:', error);
-          alert('Помилка при оновленні замовлення: ' + error.message);
+          showError('Помилка при оновленні замовлення: ' + error.message);
           return;
         }
+        showSuccess('Замовлення успішно оновлено!');
       } else {
         const { error } = await supabase.from('orders').insert([dataToSubmit]);
         if (error) {
           console.error('Error inserting order:', error);
-          alert('Помилка при створенні замовлення: ' + error.message);
+          showError('Помилка при створенні замовлення: ' + error.message);
           return;
         }
+        showSuccess('Замовлення успішно створено!');
       }
 
       setIsModalOpen(false);
@@ -344,7 +348,7 @@ export default function Orders() {
       loadOrders();
     } catch (err) {
       console.error('Network error:', err);
-      alert('Помилка мережі: Перевірте підключення до інтернету та налаштування Supabase.\n\nДеталі: ' + (err instanceof Error ? err.message : String(err)));
+      showError('Помилка мережі: Перевірте підключення до інтернету');
     }
   }
 
@@ -352,7 +356,8 @@ export default function Orders() {
     const order = orders.find(o => o.id === id);
     const isArchived = order?.archived || false;
     const action = isArchived ? 'розархівувати' : 'архівувати';
-    if (confirm(`Ви впевнені що хочете ${action} це замовлення?`)) {
+    const confirmed = await confirm(`Ви впевнені що хочете ${action} це замовлення?`);
+    if (confirmed) {
       await supabase
         .from('orders')
         .update({
@@ -360,12 +365,14 @@ export default function Orders() {
           archived_at: !isArchived ? new Date().toISOString() : null
         })
         .eq('id', id);
+      showSuccess(`Замовлення успішно ${isArchived ? 'розархівовано' : 'архівовано'}!`);
       loadOrders();
     }
   }
 
   async function handleReturn(order: Order & { supplier: Supplier }) {
-    if (confirm('Створити повернення з цього замовлення?')) {
+    const confirmed = await confirm('Створити повернення з цього замовлення?');
+    if (confirmed) {
       const { error } = await supabase.from('returns').insert({
         status: 'повернення',
         substatus: 'В Арта в хелмі',
@@ -384,8 +391,10 @@ export default function Orders() {
       });
 
       if (!error) {
-        alert('Повернення створено успішно!');
+        showSuccess('Повернення створено успішно!');
         loadReturnsCount();
+      } else {
+        showError('Помилка при створенні повернення');
       }
     }
   }
@@ -830,42 +839,42 @@ export default function Orders() {
 
   async function saveNewRow() {
     if (!newRowData.client_id || newRowData.client_id.trim() === '') {
-      alert('ID клієнта є обов\'язковим полем!');
+      showWarning('ID клієнта є обов\'язковим полем!');
       return;
     }
 
     if (!newRowData.title || newRowData.title.trim() === '') {
-      alert('Назва є обов\'язковим полем!');
+      showWarning('Назва є обов\'язковим полем!');
       return;
     }
 
     if (!newRowData.link || newRowData.link.trim() === '') {
-      alert('Посилання є обов\'язковим полем!');
+      showWarning('Посилання є обов\'язковим полем!');
       return;
     }
 
     if (!newRowData.part_price || newRowData.part_price <= 0) {
-      alert('Вартість запчастини є обов\'язковим полем і повинна бути більше 0!');
+      showWarning('Вартість запчастини є обов\'язковим полем і повинна бути більше 0!');
       return;
     }
 
     if (!newRowData.part_number || newRowData.part_number.trim() === '') {
-      alert('Номер запчастини є обов\'язковим полем!');
+      showWarning('Номер запчастини є обов\'язковим полем!');
       return;
     }
 
     if (!newRowData.payment_type || newRowData.payment_type === 'не обрано') {
-      alert('Необхідно обрати тип оплати!');
+      showWarning('Необхідно обрати тип оплати!');
       return;
     }
 
     if (newRowData.payment_type === 'оплачено' && newRowData.cash_on_delivery > 0) {
-      alert('Якщо оплата "Оплачено", наложка повинна дорівнювати 0!');
+      showWarning('Якщо оплата "Оплачено", наложка повинна дорівнювати 0!');
       return;
     }
 
     if ((newRowData.payment_type === 'побранє' || newRowData.payment_type === 'самовивіз pl') && (!newRowData.cash_on_delivery || newRowData.cash_on_delivery <= 0)) {
-      alert('Якщо тип оплати "Побранє" або "Самовивіз PL", наложка є обов\'язковою і повинна бути більше 0!');
+      showWarning('Якщо тип оплати "Побранє" або "Самовивіз PL", наложка є обов\'язковою і повинна бути більше 0!');
       return;
     }
 
@@ -879,15 +888,16 @@ export default function Orders() {
       const { error } = await supabase.from('orders').insert([dataToSubmit]);
       if (error) {
         console.error('Error inserting order:', error);
-        alert('Помилка при створенні замовлення: ' + error.message);
+        showError('Помилка при створенні замовлення: ' + error.message);
         return;
       }
 
+      showSuccess('Замовлення успішно створено!');
       setIsAddingNewRow(false);
       loadOrders();
     } catch (err) {
       console.error('Network error:', err);
-      alert('Помилка мережі: Перевірте підключення до інтернету та налаштування Supabase.\n\nДеталі: ' + (err instanceof Error ? err.message : String(err)));
+      showError('Помилка мережі: Перевірте підключення до інтернету');
     }
   }
 

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase, CardTransaction, ActiveReceipt, Order } from '../lib/supabase';
 import { Plus, TrendingDown, TrendingUp, CheckCircle2, XCircle, Undo2, ArrowLeft } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 
 export default function CardMutualSettlement() {
+  const { showSuccess, showError, showWarning, confirm } = useToast();
   const [transactions, setTransactions] = useState<CardTransaction[]>([]);
   const [receipts, setReceipts] = useState<ActiveReceipt[]>([]);
   const [receiptOrders, setReceiptOrders] = useState<Record<string, Order[]>>({});
@@ -122,7 +124,7 @@ export default function CardMutualSettlement() {
 
     const amount = parseFloat(formData.amount);
     if (isNaN(amount) || amount <= 0) {
-      alert('Введіть коректну суму');
+      showWarning('Введіть коректну суму');
       return;
     }
 
@@ -140,10 +142,11 @@ export default function CardMutualSettlement() {
 
     if (error) {
       console.error('Error adding payment:', error);
-      alert('Помилка при додаванні платежу');
+      showError('Помилка при додаванні платежу');
       return;
     }
 
+    showSuccess('Платіж успішно додано');
     setFormData({
       balanceType: 'parts',
       amount: '',
@@ -159,12 +162,12 @@ export default function CardMutualSettlement() {
 
     const amount = parseFloat(chargeData.amount);
     if (isNaN(amount) || amount <= 0) {
-      alert('Введіть коректну суму');
+      showWarning('Введіть коректну суму');
       return;
     }
 
     if (!chargeData.description.trim()) {
-      alert('Вкажіть причину нарахування');
+      showWarning('Вкажіть причину нарахування');
       return;
     }
 
@@ -182,10 +185,11 @@ export default function CardMutualSettlement() {
 
     if (error) {
       console.error('Error adding charge:', error);
-      alert('Помилка при додаванні нарахування');
+      showError('Помилка при додаванні нарахування');
       return;
     }
 
+    showSuccess('Нарахування успішно додано');
     setChargeData({
       balanceType: 'parts',
       amount: '',
@@ -227,7 +231,7 @@ export default function CardMutualSettlement() {
       });
 
     if (txError) {
-      alert('Помилка при створенні транзакції нарахування');
+      showError('Помилка при створенні транзакції нарахування');
       console.error(txError);
       return;
     }
@@ -242,11 +246,11 @@ export default function CardMutualSettlement() {
       .eq('id', receiptId);
 
     if (error) {
-      alert('Помилка при позначенні як розраховано');
+      showError('Помилка при позначенні як розраховано');
       return;
     }
 
-    alert('Накладну розраховано. Транзакцію додано в історію.');
+    showSuccess('Накладну розраховано. Транзакцію додано в історію.');
     loadReceipts();
     loadTransactions();
   }
@@ -255,7 +259,8 @@ export default function CardMutualSettlement() {
     const receipt = receipts.find(r => r.id === receiptId);
     if (!receipt) return;
 
-    if (!confirm(`Повернути накладну №${receipt.receipt_number} з розрахунку назад в активні?`)) {
+    const confirmed = await confirm(`Повернути накладну №${receipt.receipt_number} з розрахунку назад в активні?`);
+    if (!confirmed) {
       return;
     }
 
@@ -270,7 +275,7 @@ export default function CardMutualSettlement() {
       .eq('id', receiptId);
 
     if (error) {
-      alert('Помилка при поверненні накладної');
+      showError('Помилка при поверненні накладної');
       console.error(error);
       return;
     }
@@ -318,17 +323,17 @@ export default function CardMutualSettlement() {
       }
     }
 
-    alert('Накладну повернуто в активні');
+    showSuccess('Накладну повернуто в активні');
     loadReceipts();
   }
 
   async function reverseTransaction(tx: CardTransaction) {
     if (tx.is_reversed) {
-      alert('Ця транзакція вже сторнована');
+      showWarning('Ця транзакція вже сторнована');
       return;
     }
 
-    const confirmed = confirm(`Ви впевнені, що хочете сторнувати цю операцію?\n\nОпис: ${tx.description}\nСума: ${formatNumber(tx.amount)} zł\n\nТранзакція залишиться в історії з позначкою "сторновано".`);
+    const confirmed = await confirm(`Ви впевнені, що хочете сторнувати цю операцію?\n\nОпис: ${tx.description}\nСума: ${formatNumber(tx.amount)} zł\n\nТранзакція залишиться в історії з позначкою "сторновано".`);
     if (!confirmed) return;
 
     if (tx.receipt_id) {
@@ -388,12 +393,12 @@ export default function CardMutualSettlement() {
       .eq('id', tx.id);
 
     if (error) {
-      alert('Помилка при сторнуванні транзакції');
+      showError('Помилка при сторнуванні транзакції');
       console.error(error);
       return;
     }
 
-    alert('Операцію успішно сторновано. Транзакція залишається в історії.');
+    showSuccess('Операцію успішно сторновано. Транзакція залишається в історії.');
     loadReceipts();
     loadTransactions();
   }
@@ -630,7 +635,8 @@ export default function CardMutualSettlement() {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={async () => {
-                          if (confirm(`Повернути накладну №${receipt.receipt_number} назад в "на розрахунку"?`)) {
+                          const confirmed = await confirm(`Повернути накладну №${receipt.receipt_number} назад в "на розрахунку"?`);
+                          if (confirmed) {
                             await supabase
                               .from('transactions')
                               .update({ is_reversed: true })

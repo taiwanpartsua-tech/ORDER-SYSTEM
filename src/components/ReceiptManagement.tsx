@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Send, Check, ChevronDown, ChevronRight, Plus, X, FileText } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 
 type Receipt = {
   id: string;
@@ -77,6 +78,7 @@ type AvailableOrder = {
 };
 
 export default function ReceiptManagement() {
+  const { showSuccess, showError, showWarning, confirm } = useToast();
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [expandedReceipt, setExpandedReceipt] = useState<string | null>(null);
   const [orders, setOrders] = useState<{ [receiptId: string]: EditableOrder[] }>({});
@@ -243,7 +245,7 @@ export default function ReceiptManagement() {
       }
 
       if (!reason || reason.trim() === '') {
-        const confirmed = confirm(
+        const confirmed = await confirm(
           'Ви не вказали причину. Ви впевнені, що хочете продовжити без пояснення?'
         );
         if (!confirmed) {
@@ -297,7 +299,7 @@ export default function ReceiptManagement() {
       })
       .eq('id', receiptId);
 
-    alert('Зміни збережено');
+    showSuccess('Зміни збережено');
     loadReceipts();
   }
 
@@ -311,7 +313,7 @@ export default function ReceiptManagement() {
       .single();
 
     if (!receipt) {
-      alert('Помилка: прийомку не знайдено');
+      showError('Помилка: прийомку не знайдено');
       return;
     }
 
@@ -350,7 +352,7 @@ export default function ReceiptManagement() {
 
       if (acceptedError) {
         console.error('Помилка створення прийнятих замовлень:', acceptedError);
-        alert('Помилка при збереженні прийнятих замовлень');
+        showError('Помилка при збереженні прийнятих замовлень');
         return;
       }
 
@@ -362,7 +364,7 @@ export default function ReceiptManagement() {
 
       if (statusError) {
         console.error('Помилка оновлення статусу замовлень:', statusError);
-        alert('Помилка при оновленні статусу замовлень');
+        showError('Помилка при оновленні статусу замовлень');
         return;
       }
     }
@@ -376,7 +378,7 @@ export default function ReceiptManagement() {
       .eq('id', receiptId);
 
     if (!error) {
-      alert('Прийомку затверджено! Замовлення переміщено до вкладки "Прийняті"');
+      showSuccess('Прийомку затверджено! Замовлення переміщено до вкладки "Прийняті"');
       loadReceipts();
     }
   }
@@ -389,7 +391,7 @@ export default function ReceiptManagement() {
       .single();
 
     if (!supplierData) {
-      alert('Помилка: постачальник не знайдений');
+      showError('Помилка: постачальник не знайдений');
       return;
     }
 
@@ -428,7 +430,7 @@ export default function ReceiptManagement() {
       .eq('id', receipt.id);
 
     if (receiptError) {
-      alert('Помилка переведення на розрахунок');
+      showError('Помилка переведення на розрахунок');
       return;
     }
 
@@ -535,7 +537,7 @@ export default function ReceiptManagement() {
       })
       .eq('id', receipt.supplier_id);
 
-    alert('Прийомку передано на розрахунок!');
+    showSuccess('Прійомку передано на розрахунок!');
     loadReceipts();
   }
 
@@ -551,12 +553,12 @@ export default function ReceiptManagement() {
         .single();
 
       if (!receiptData) {
-        alert('Прийомку не знайдено');
+        showError('Прійомку не знайдено');
         return;
       }
 
       if (receiptData.status === 'sent_for_settlement' || receiptData.status === 'settled') {
-        alert('Неможливо додати замовлення до прийомки, яка вже на розрахунку');
+        showWarning('Неможливо додати замовлення до прийомки, яка вже на розрахунку');
         return;
       }
 
@@ -570,12 +572,12 @@ export default function ReceiptManagement() {
 
       if (orderError) {
         console.error('Помилка при отриманні замовлення:', orderError);
-        alert(`Помилка при отриманні замовлення: ${orderError.message}`);
+        showError(`Помилка при отриманні замовлення: ${orderError.message}`);
         return;
       }
 
       if (!orderData) {
-        alert('Замовлення не знайдено');
+        showError('Замовлення не знайдено');
         return;
       }
 
@@ -596,7 +598,7 @@ export default function ReceiptManagement() {
 
       if (receiptOrderError) {
         console.error('Помилка при додаванні зв\'язку:', receiptOrderError);
-        alert(`Помилка при додаванні зв'язку: ${receiptOrderError.message}`);
+        showError(`Помилка при додаванні зв'язку: ${receiptOrderError.message}`);
         return;
       }
 
@@ -614,18 +616,18 @@ export default function ReceiptManagement() {
 
       if (snapshotError) {
         console.error('Помилка при створенні snapshot:', snapshotError);
-        alert(`Помилка при створенні snapshot: ${snapshotError.message}`);
+        showError(`Помилка при створенні snapshot: ${snapshotError.message}`);
         return;
       }
 
       console.log('Замовлення успішно додано!');
-      alert('Замовлення додано до прийомки');
+      showSuccess('Замовлення додано до прийомки');
       setShowAddOrders(null);
       loadOrdersForReceipt(receiptId);
       loadReceipts();
     } catch (err) {
       console.error('Помилка при створенні замовлення (catch):', err);
-      alert(`Помилка при створенні замовлення: ${err instanceof Error ? err.message : String(err)}`);
+      showError(`Помилка при створенні замовлення: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
@@ -638,7 +640,7 @@ export default function ReceiptManagement() {
         .single();
 
       if (!receiptData) {
-        alert('Прийомку не знайдено');
+        showError('Прійомку не знайдено');
         return;
       }
 
@@ -649,7 +651,7 @@ export default function ReceiptManagement() {
         .single();
 
       if (!orderData) {
-        alert('Замовлення не знайдено');
+        showError('Замовлення не знайдено');
         return;
       }
 
@@ -699,7 +701,7 @@ export default function ReceiptManagement() {
       }
     } catch (err) {
       console.error('Помилка при видаленні замовлення:', err);
-      alert(`Помилка при видаленні замовлення: ${err instanceof Error ? err.message : String(err)}`);
+      showError(`Помилка при видаленні замовлення: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase, Return, Manager } from '../lib/supabase';
 import { Plus, Trash2, ExternalLink, ChevronDown, ChevronUp, Check, X, Edit, RotateCcw } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 
 export default function Returns() {
+  const { showSuccess, showError, confirm } = useToast();
   const [returns, setReturns] = useState<Return[]>([]);
   const [managers, setManagers] = useState<Manager[]>([]);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -190,7 +192,7 @@ export default function Returns() {
     const { error } = await supabase.from('returns').insert([dataToSubmit]);
     if (error) {
       console.error('Error inserting return:', error);
-      alert('Помилка при створенні повернення: ' + error.message);
+      showError('Помилка при створенні повернення: ' + error.message);
       return;
     }
 
@@ -215,13 +217,15 @@ export default function Returns() {
   }
 
   async function deleteReturn(id: string) {
-    if (confirm('Ви впевнені що хочете видалити це повернення?')) {
+    const confirmed = await confirm('Ви впевнені що хочете видалити це повернення?');
+    if (confirmed) {
       const { error } = await supabase
         .from('returns')
         .delete()
         .eq('id', id);
 
       if (!error) {
+        showSuccess('Повернення видалено');
         loadReturns();
       }
     }
@@ -386,7 +390,8 @@ export default function Returns() {
   }
 
   async function handleReturnToOrders(returnItem: Return) {
-    if (confirm('Повернути це замовлення назад в список замовлень?')) {
+    const confirmed = await confirm('Повернути це замовлення назад в список замовлень?');
+    if (confirmed) {
       const { error } = await supabase.from('orders').insert({
         status: 'в роботі на сьогодні',
         order_number: '',
@@ -411,7 +416,7 @@ export default function Returns() {
 
       if (!error) {
         await supabase.from('returns').delete().eq('id', returnItem.id);
-        alert('Замовлення успішно повернено!');
+        showSuccess('Замовлення успішно повернено!');
         loadReturns();
       }
     }
