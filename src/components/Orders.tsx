@@ -1511,7 +1511,7 @@ export default function Orders() {
                   <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">V</th>
                   <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ID клієнта</th>
                   <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Назва</th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Посилання</th>
+                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"><ExternalLink size={16} className="inline-block" /></th>
                   <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Трекінг PL</th>
                   <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Вартість запч.</th>
                   <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Доставка</th>
@@ -1918,7 +1918,7 @@ export default function Orders() {
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">V</th>
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ID клієнта</th>
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Назва</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Посилання</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"><ExternalLink size={16} className="inline-block" /></th>
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Трекінг PL</th>
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Вартість запч.</th>
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Доставка</th>
@@ -2190,7 +2190,7 @@ export default function Orders() {
                     <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">Назва</th>
                     <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">ID Клієнта</th>
                     <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">№ Запчастини</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">Посилання</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-center text-sm font-semibold text-white"><ExternalLink size={16} className="inline-block" /></th>
                     <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">ТТН</th>
                     <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Вага (кг)</th>
                     <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Запчастини</th>
@@ -2227,12 +2227,12 @@ export default function Orders() {
                       <td className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100">{order.title || '-'}</td>
                       <td className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100">{order.client_id || '-'}</td>
                       <td className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100">{order.part_number || '-'}</td>
-                      <td className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100">
+                      <td className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100 text-center">
                         {order.link ? (
-                          <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
-                            Посилання
+                          <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400">
+                            <ExternalLink size={16} className="inline-block" />
                           </a>
-                        ) : '-'}
+                        ) : <span className="text-gray-400 dark:text-gray-600"><ExternalLink size={16} className="inline-block" /></span>}
                       </td>
                       <td className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100">{order.tracking_number || '-'}</td>
                       <td className="border border-green-500 dark:border-green-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-100 text-right">{order.weight_kg.toFixed(2)}</td>
