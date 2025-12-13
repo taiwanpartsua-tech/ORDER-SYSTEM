@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase, Order, Supplier } from '../lib/supabase';
-import { ChevronRight, Send, X, AlertCircle } from 'lucide-react';
+import { ChevronRight, Send, X, AlertCircle, RotateCcw } from 'lucide-react';
 
 type OrderWithSupplier = Order & { supplier: Supplier };
 
@@ -65,10 +65,20 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
     if (savedDraft) {
       try {
         const draft = JSON.parse(savedDraft);
-        setCashOnDeliveryOrders(draft.cashOnDeliveryOrders || []);
-        setPaidOrders(draft.paidOrders || []);
+        const restoredCashOrders = draft.cashOnDeliveryOrders || [];
+        const restoredPaidOrders = draft.paidOrders || [];
+
+        setCashOnDeliveryOrders(restoredCashOrders);
+        setPaidOrders(restoredPaidOrders);
         setCashOnDeliveryReceiptNumber(draft.cashOnDeliveryReceiptNumber || '');
         setPaidReceiptNumber(draft.paidReceiptNumber || '');
+
+        const restoredOrderIds = [
+          ...restoredCashOrders.map((o: EditableOrder) => o.id),
+          ...restoredPaidOrders.map((o: EditableOrder) => o.id)
+        ];
+
+        setAvailableOrders(prev => prev.filter(order => !restoredOrderIds.includes(order.id)));
         setShowRestorePrompt(false);
       } catch (error) {
         console.error('Помилка відновлення чернетки:', error);
@@ -78,8 +88,20 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
   }
 
   function discardDraft() {
-    clearDraft();
     setShowRestorePrompt(false);
+  }
+
+  function hasDraft(): boolean {
+    const savedDraft = localStorage.getItem('activeReceiptDraft');
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft);
+        return (draft.cashOnDeliveryOrders?.length > 0 || draft.paidOrders?.length > 0);
+      } catch {
+        return false;
+      }
+    }
+    return false;
   }
 
   useEffect(() => {
@@ -364,19 +386,30 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
             <p className="text-gray-600 dark:text-gray-300 mb-6">
               Виявлено незавершену прийомку. Бажаєте відновити дані?
             </p>
-            <div className="flex gap-3 justify-end">
+            <div className="flex gap-3 justify-between">
               <button
-                onClick={discardDraft}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                onClick={() => {
+                  clearDraft();
+                  setShowRestorePrompt(false);
+                }}
+                className="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition"
               >
-                Відхилити
+                Видалити чернетку
               </button>
-              <button
-                onClick={restoreDraft}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-              >
-                Відновити
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={discardDraft}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                >
+                  Пізніше
+                </button>
+                <button
+                  onClick={restoreDraft}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                >
+                  Відновити
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -384,8 +417,18 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
 
       <div className="grid gap-4 flex-1 overflow-hidden min-h-0" style={{ gridTemplateColumns: '380px 1fr' }}>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow flex flex-col overflow-hidden">
-          <div className="p-4 border-b flex-shrink-0">
+          <div className="p-4 border-b flex-shrink-0 flex justify-between items-center">
             <h3 className="font-semibold text-gray-800 dark:text-gray-100">Доступні замовлення ({availableOrders.length})</h3>
+            {hasDraft() && cashOnDeliveryOrders.length === 0 && paidOrders.length === 0 && (
+              <button
+                onClick={restoreDraft}
+                className="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                title="Відновити збережену чернетку"
+              >
+                <RotateCcw size={16} />
+                Відновити чернетку
+              </button>
+            )}
           </div>
           <div className="flex-1 overflow-y-auto">
             {availableCashOnDeliveryOrders.length > 0 && (
