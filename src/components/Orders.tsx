@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase, Order, Supplier } from '../lib/supabase';
+import { supabase, Order, Supplier, TariffSettings } from '../lib/supabase';
 import { Plus, CreditCard as Edit, Archive, X, ExternalLink, ChevronDown, Layers, ChevronUp, Check, RotateCcw, Printer, Download, Search, XCircle } from 'lucide-react';
 import Returns from './Returns';
 import { useToast } from '../contexts/ToastContext';
@@ -59,6 +59,7 @@ export default function Orders() {
   const [selectedReceiptNumber, setSelectedReceiptNumber] = useState<string | null>(null);
   const [receiptDetails, setReceiptDetails] = useState<AcceptedOrder[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [tariffSettings, setTariffSettings] = useState<TariffSettings | null>(null);
   const [newRowData, setNewRowData] = useState({
     order_number: '',
     supplier_id: '',
@@ -113,6 +114,7 @@ export default function Orders() {
     loadSuppliers();
     loadArtTransId();
     loadReturnsCount();
+    loadTariffSettings();
   }, []);
 
   useEffect(() => {
@@ -164,6 +166,13 @@ export default function Orders() {
   }, [formData.payment_type]);
 
   useEffect(() => {
+    if (tariffSettings && isModalOpen) {
+      const calculatedTransportCost = formData.weight_kg * tariffSettings.default_transport_cost_per_kg_usd;
+      setFormData(prev => ({ ...prev, transport_cost_usd: calculatedTransportCost }));
+    }
+  }, [formData.weight_kg, tariffSettings, isModalOpen]);
+
+  useEffect(() => {
     if (editingCell && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.select();
@@ -180,6 +189,13 @@ export default function Orders() {
       setNewRowData(prev => ({ ...prev, cash_on_delivery: 0 }));
     }
   }, [newRowData.payment_type]);
+
+  useEffect(() => {
+    if (tariffSettings) {
+      const calculatedTransportCost = newRowData.weight_kg * tariffSettings.default_transport_cost_per_kg_usd;
+      setNewRowData(prev => ({ ...prev, transport_cost_usd: calculatedTransportCost }));
+    }
+  }, [newRowData.weight_kg, tariffSettings]);
 
   async function loadArtTransId() {
     const { data } = await supabase
@@ -201,6 +217,32 @@ export default function Orders() {
 
     if (count !== null) {
       setReturnsCount(count);
+    }
+  }
+
+  async function loadTariffSettings() {
+    const { data, error } = await supabase
+      .from('tariff_settings')
+      .select('*')
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error loading tariff settings:', error);
+      return;
+    }
+
+    if (data) {
+      setTariffSettings(data);
+      setNewRowData(prev => ({
+        ...prev,
+        received_pln: data.default_received_pln,
+        transport_cost_usd: prev.weight_kg * data.default_transport_cost_per_kg_usd
+      }));
+      setFormData(prev => ({
+        ...prev,
+        received_pln: data.default_received_pln,
+        transport_cost_usd: prev.weight_kg * data.default_transport_cost_per_kg_usd
+      }));
     }
   }
 
@@ -808,6 +850,10 @@ export default function Orders() {
   }
 
   function resetForm() {
+    const defaultWeight = 1;
+    const receivedPln = tariffSettings?.default_received_pln || 15;
+    const transportCostUsd = tariffSettings ? defaultWeight * tariffSettings.default_transport_cost_per_kg_usd : 0;
+
     setFormData({
       order_number: '',
       supplier_id: artTransId,
@@ -824,15 +870,19 @@ export default function Orders() {
       payment_type: 'не обрано',
       cash_on_delivery: 0,
       client_id: '',
-      received_pln: 15,
-      transport_cost_usd: 0,
-      weight_kg: 1,
+      received_pln: receivedPln,
+      transport_cost_usd: transportCostUsd,
+      weight_kg: defaultWeight,
       verified: false
     });
   }
 
   function startAddingNewRow() {
     setIsAddingNewRow(true);
+    const defaultWeight = 1;
+    const receivedPln = tariffSettings?.default_received_pln || 15;
+    const transportCostUsd = tariffSettings ? defaultWeight * tariffSettings.default_transport_cost_per_kg_usd : 0;
+
     setNewRowData({
       order_number: '',
       supplier_id: artTransId,
@@ -849,9 +899,9 @@ export default function Orders() {
       payment_type: 'не обрано',
       cash_on_delivery: 0,
       client_id: '',
-      received_pln: 15,
-      transport_cost_usd: 0,
-      weight_kg: 1,
+      received_pln: receivedPln,
+      transport_cost_usd: transportCostUsd,
+      weight_kg: defaultWeight,
       verified: false
     });
   }

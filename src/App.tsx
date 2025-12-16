@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Package, ClipboardCheck, TrendingUp, FileCheck, DollarSign, Moon, Sun } from 'lucide-react';
+import { Package, ClipboardCheck, TrendingUp, FileCheck, DollarSign, Moon, Sun, Settings } from 'lucide-react';
 import Orders from './components/Orders';
 import ActiveReceipts from './components/ActiveReceipts';
 import SupplierBalance from './components/SupplierBalance';
 import ReceiptManagement from './components/ReceiptManagement';
 import CombinedSettlement from './components/CombinedSettlement';
+import TariffSettings from './components/TariffSettings';
 import { useTheme } from './contexts/ThemeContext';
 
-type Tab = 'orders' | 'receipts' | 'management' | 'balance' | 'settlement';
+type Tab = 'orders' | 'receipts' | 'management' | 'balance' | 'settlement' | 'settings';
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>(() => {
@@ -93,6 +94,17 @@ function App() {
               <DollarSign size={20} />
               Взаєморозрахунок
             </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`flex items-center gap-2 px-6 py-4 font-medium transition border-b-2 ${
+                activeTab === 'settings'
+                  ? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-400'
+                  : 'border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600'
+              }`}
+            >
+              <Settings size={20} />
+              Налаштування
+            </button>
           </div>
         </div>
       </nav>
@@ -103,6 +115,7 @@ function App() {
         {activeTab === 'management' && <ReceiptManagement />}
         {activeTab === 'balance' && <SupplierBalance />}
         {activeTab === 'settlement' && <CombinedSettlement />}
+        {activeTab === 'settings' && <TariffSettings />}
       </main>
     </div>
   );

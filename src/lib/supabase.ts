@@ -171,3 +171,11 @@ export type CardTransaction = {
   created_by?: string;
   created_at: string;
 };
+
+export type TariffSettings = {
+  id: string;
+  default_received_pln: number;
+  default_transport_cost_per_kg_usd: number;
+  created_at: string;
+  updated_at: string;
+};
