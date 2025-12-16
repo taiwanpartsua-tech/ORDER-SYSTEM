@@ -1564,10 +1564,6 @@ export default function Orders() {
                   <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">№ запчастини</th>
                   <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Тип оплати</th>
                   <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Побранє</th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Дата</th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Прийом zl</th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Перевезення $</th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Вага кг</th>
                   <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Дії</th>
                 </tr>
               </thead>
@@ -1712,48 +1708,6 @@ export default function Orders() {
                       />
                     </td>
                     <td className="px-3 py-3 min-h-[48px]">
-                      <input
-                        type="date"
-                        value={newRowData.order_date}
-                        onChange={(e) => setNewRowData({ ...newRowData, order_date: e.target.value })}
-                        onKeyDown={handleNewRowKeyDown}
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={newRowData.received_pln}
-                        onChange={(e) => setNewRowData({ ...newRowData, received_pln: Number(e.target.value) })}
-                        onKeyDown={handleNewRowKeyDown}
-                        placeholder="0"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={newRowData.transport_cost_usd}
-                        onChange={(e) => setNewRowData({ ...newRowData, transport_cost_usd: Number(e.target.value) })}
-                        onKeyDown={handleNewRowKeyDown}
-                        placeholder="0"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={newRowData.weight_kg}
-                        onChange={(e) => setNewRowData({ ...newRowData, weight_kg: Number(e.target.value) })}
-                        onKeyDown={handleNewRowKeyDown}
-                        placeholder="0"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
                       <div className="flex gap-2 justify-start">
                         <button
                           onClick={saveNewRow}
@@ -1837,10 +1791,6 @@ export default function Orders() {
                   {renderEditableCell(order.id, 'part_number', order.part_number || '', 'text-center', isAccepted)}
                   {renderPaymentTypeCell(order.id, order.payment_type || 'оплачено', isAccepted)}
                   {renderEditableCell(order.id, 'cash_on_delivery', `${formatNumber(order.cash_on_delivery)} zl`, 'text-center', isAccepted)}
-                  {renderDateCell(order.id, order.order_date, 'text-center', isAccepted)}
-                  {renderEditableCell(order.id, 'received_pln', `${formatNumber(order.received_pln)} zl`, 'text-center', isAccepted)}
-                  {renderEditableCell(order.id, 'transport_cost_usd', `${formatNumber(order.transport_cost_usd)} $`, 'text-center', isAccepted)}
-                  {renderEditableCell(order.id, 'weight_kg', `${formatNumber(order.weight_kg)} кг`, 'text-center', isAccepted)}
                   <td className="px-3 py-3 min-h-[48px]">
                     <div className="flex gap-2 justify-center">
                       {!isAccepted && (
@@ -1971,10 +1921,6 @@ export default function Orders() {
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">№ запчастини</th>
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Тип оплати</th>
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Побранє</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Дата</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Прийом zl</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Перевезення $</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Вага кг</th>
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Дії</th>
                       </tr>
                     </thead>
@@ -2043,10 +1989,6 @@ export default function Orders() {
                           {renderEditableCell(order.id, 'part_number', order.part_number || '', 'text-gray-600 text-center', isAccepted)}
                           {renderPaymentTypeCell(order.id, order.payment_type || 'оплачено', isAccepted)}
                           {renderEditableCell(order.id, 'cash_on_delivery', `${formatNumber(order.cash_on_delivery)} zl`, 'text-gray-900 text-center', isAccepted)}
-                          {renderDateCell(order.id, order.order_date, 'text-gray-600 text-center', isAccepted)}
-                          {renderEditableCell(order.id, 'received_pln', `${formatNumber(order.received_pln)} zl`, 'text-gray-900 text-center', isAccepted)}
-                          {renderEditableCell(order.id, 'transport_cost_usd', `${formatNumber(order.transport_cost_usd)} $`, 'text-gray-900 text-center', isAccepted)}
-                          {renderEditableCell(order.id, 'weight_kg', `${formatNumber(order.weight_kg)} кг`, 'text-gray-900 text-center', isAccepted)}
                           <td className="px-3 py-3 min-h-[48px]">
                             <div className="flex gap-2 justify-center">
                               {!isAccepted && (
