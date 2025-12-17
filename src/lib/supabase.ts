@@ -3,8 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
+console.log('🔧 Ініціалізація Supabase...');
+console.log('URL:', supabaseUrl ? '✅ OK' : '❌ MISSING');
+console.log('Key:', supabaseAnonKey ? '✅ OK' : '❌ MISSING');
+
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables!', {
+  console.error('❌ Missing Supabase environment variables!', {
     url: supabaseUrl ? 'OK' : 'MISSING',
     key: supabaseAnonKey ? 'OK' : 'MISSING'
   });

@@ -249,17 +249,26 @@ export default function Orders() {
   }
 
   async function loadOrders() {
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*, supplier:suppliers(*)')
-      .order('created_at', { ascending: false });
+    try {
+      console.log('🔄 Починаємо завантаження замовлень...');
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, supplier:suppliers(*)')
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Помилка завантаження замовлень:', error);
-      showError(`Помилка завантаження замовлень: ${error.message}`);
-    } else if (data) {
-      console.log('Замовлення завантажено:', data.length);
-      setOrders(data as any);
+      if (error) {
+        console.error('❌ Помилка завантаження замовлень:', error);
+        showError(`Помилка: ${error.message}`);
+      } else if (data) {
+        console.log('✅ Замовлення завантажено:', data.length, 'шт.');
+        console.log('Перші 3 записи:', data.slice(0, 3));
+        setOrders(data as any);
+      } else {
+        console.warn('⚠️ Дані пусті (null або undefined)');
+      }
+    } catch (err) {
+      console.error('💥 Критична помилка:', err);
+      showError('Критична помилка підключення');
     }
   }
 
