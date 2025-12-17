@@ -8,6 +8,7 @@ type AuthContextType = {
   profile: UserProfile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<void>;
   signOut: () => Promise<void>;
   isSuper: boolean;
   isSupplier: boolean;
@@ -65,6 +66,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await logAction('login');
   }
 
+  async function signUp(email: string, password: string, fullName?: string) {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password
+    });
+
+    if (error) throw error;
+
+    if (data.user && fullName) {
+      await supabase
+        .from('user_profiles')
+        .update({ full_name: fullName })
+        .eq('id', data.user.id);
+    }
+  }
+
   async function signOut() {
     await logAction('logout');
     const { error } = await supabase.auth.signOut();
@@ -81,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       loading,
       signIn,
+      signUp,
       signOut,
       isSuper,
       isSupplier,
