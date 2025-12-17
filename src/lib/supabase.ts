@@ -179,3 +179,25 @@ export type TariffSettings = {
   created_at: string;
   updated_at: string;
 };
+
+export type UserProfile = {
+  id: string;
+  email: string;
+  full_name: string | null;
+  role: 'super_admin' | 'supplier' | 'customer';
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AuditLog = {
+  id: string;
+  user_id: string | null;
+  action: 'create' | 'update' | 'delete' | 'login' | 'logout' | 'export' | 'approve' | 'send' | 'settle' | 'reverse';
+  entity_type: 'order' | 'return' | 'receipt' | 'transaction' | 'card_transaction' | 'user' | 'tariff' | null;
+  entity_id: string | null;
+  details: Record<string, any>;
+  ip_address: string | null;
+  created_at: string;
+  user_profile?: UserProfile;
+};
