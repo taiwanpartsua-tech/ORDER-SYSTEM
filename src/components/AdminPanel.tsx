@@ -39,7 +39,10 @@ export default function AdminPanel() {
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: formData.email,
         password: formData.password,
-        email_confirm: true
+        email_confirm: true,
+        user_metadata: {
+          full_name: formData.full_name
+        }
       });
 
       if (authError) throw authError;
@@ -47,10 +50,7 @@ export default function AdminPanel() {
       if (authData.user) {
         const { error: profileError } = await supabase
           .from('user_profiles')
-          .update({
-            full_name: formData.full_name,
-            role: formData.role
-          })
+          .update({ role: formData.role })
           .eq('id', authData.user.id);
 
         if (profileError) throw profileError;
