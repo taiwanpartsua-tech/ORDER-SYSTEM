@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase, CardTransaction, ActiveReceipt, Order } from '../lib/supabase';
 import { Plus, TrendingDown, TrendingUp, CheckCircle2, XCircle, Undo2, ArrowLeft } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import { ExportButton } from './ExportButton';
+import { exportToCSV } from '../utils/exportData';
 
 export default function CardMutualSettlement() {
   const { showSuccess, showError, showWarning, confirm } = useToast();
@@ -406,11 +408,40 @@ export default function CardMutualSettlement() {
   const sentForSettlementReceipts = receipts.filter(r => r.status === 'sent_for_settlement');
   const settledReceipts = receipts.filter(r => r.status === 'settled');
 
+  const handleExportCardSettlement = () => {
+    const dataToExport = transactions.map(transaction => ({
+      date: transaction.date,
+      type: transaction.type === 'payment' ? 'Платіж' : 'Нарахування',
+      amount_pln: transaction.amount_pln || 0,
+      description: transaction.description || '',
+      charge_type: transaction.charge_type === 'parts' ? 'Деталі' : 'Доставка',
+      parts_balance_after: transaction.parts_balance_after || 0,
+      delivery_balance_after: transaction.delivery_balance_after || 0,
+      settled: transaction.settled ? 'Так' : 'Ні',
+      is_reversed: transaction.is_reversed ? 'Так' : 'Ні'
+    }));
+
+    const headers = {
+      date: 'Дата',
+      type: 'Тип',
+      amount_pln: 'Сума PLN',
+      description: 'Опис',
+      charge_type: 'Тип нарахування',
+      parts_balance_after: 'Баланс деталей після',
+      delivery_balance_after: 'Баланс доставки після',
+      settled: 'Проведено',
+      is_reversed: 'Скасовано'
+    };
+
+    exportToCSV(dataToExport, 'vzayemorozrahunok_kartky', headers);
+  };
+
   return (
     <div className="h-full flex flex-col p-3 max-w-full overflow-hidden">
       <div className="flex justify-between items-center mb-3">
         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Взаєморозрахунок по картках</h2>
         <div className="flex gap-2">
+          <ExportButton onClick={handleExportCardSettlement} disabled={transactions.length === 0} />
           <button
             onClick={() => setShowChargeForm(!showChargeForm)}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-rose-700 text-white rounded-lg hover:bg-rose-800 dark:bg-gradient-to-br dark:from-rose-900 dark:to-rose-800 dark:hover:from-rose-800 dark:hover:to-rose-700 transition-colors"

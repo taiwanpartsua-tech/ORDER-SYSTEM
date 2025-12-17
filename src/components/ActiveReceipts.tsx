@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase, Order, Supplier } from '../lib/supabase';
 import { ChevronRight, Send, X, AlertCircle, ExternalLink, Search, XCircle } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import { ExportButton } from './ExportButton';
+import { exportToCSV } from '../utils/exportData';
 
 type OrderWithSupplier = Order & { supplier: Supplier };
 
@@ -387,12 +389,64 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
 
   const paidTotalPln = paidTotals.parts + paidTotals.delivery + paidTotals.receipt + paidTotals.cash;
 
+  const handleExportReceipts = () => {
+    const allOrders = [
+      ...availableOrders.map(order => ({ ...order, group: 'Доступні' })),
+      ...cashOnDeliveryOrders.map(order => ({ ...order, group: 'Побранє' })),
+      ...paidOrders.map(order => ({ ...order, group: 'Оплачені' }))
+    ];
+
+    const dataToExport = allOrders.map(order => ({
+      group: order.group,
+      client_id: order.client_id || '',
+      order_number: order.order_number || '',
+      supplier: order.supplier?.name || '',
+      title: order.title || '',
+      part_number: order.part_number || '',
+      tracking_pl: order.tracking_pl || '',
+      part_price: order.part_price,
+      delivery_cost: order.delivery_cost,
+      received_pln: order.received_pln,
+      cash_on_delivery: order.cash_on_delivery,
+      transport_cost_usd: order.transport_cost_usd,
+      weight_kg: order.weight_kg,
+      payment_type: order.payment_type || '',
+      status: order.status
+    }));
+
+    const headers = {
+      group: 'Група',
+      client_id: 'ID Клієнта',
+      order_number: '№ Замовлення',
+      supplier: 'Постачальник',
+      title: 'Назва',
+      part_number: 'Артикул',
+      tracking_pl: 'Трекінг PL',
+      part_price: 'Ціна деталі',
+      delivery_cost: 'Доставка',
+      received_pln: 'Отримано PLN',
+      cash_on_delivery: 'Побранє',
+      transport_cost_usd: 'Транспорт USD',
+      weight_kg: 'Вага кг',
+      payment_type: 'Тип оплати',
+      status: 'Статус'
+    };
+
+    exportToCSV(dataToExport, 'aktyvni_priyomky', headers);
+  };
+
   return (
     <div className="h-full flex flex-col p-4 max-w-[98%] mx-auto relative">
       <div className="grid gap-4 flex-1 overflow-hidden min-h-0" style={{ gridTemplateColumns: '600px 1fr' }}>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow flex flex-col overflow-hidden">
           <div className="p-4 border-b flex-shrink-0">
-            <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3">Доступні замовлення ({availableOrders.length})</h3>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100">Доступні замовлення ({availableOrders.length})</h3>
+              <ExportButton
+                onClick={handleExportReceipts}
+                disabled={availableOrders.length === 0 && cashOnDeliveryOrders.length === 0 && paidOrders.length === 0}
+              />
+            </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={18} />
               <input

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Send, Check, ChevronDown, ChevronRight, Plus, X, FileText, ExternalLink, Search, XCircle } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import { ExportButton } from './ExportButton';
+import { exportToCSV } from '../utils/exportData';
 
 type Receipt = {
   id: string;
@@ -763,8 +765,44 @@ export default function ReceiptManagement() {
   const draftReceipts = receipts.filter(r => r.status === 'draft');
   const approvedReceipts = receipts.filter(r => r.status === 'approved');
 
+  const handleExportReceipts = () => {
+    const dataToExport = receipts.map(receipt => ({
+      receipt_number: receipt.receipt_number,
+      receipt_date: receipt.receipt_date,
+      status: receipt.status === 'draft' ? 'Чернетка' : receipt.status === 'approved' ? 'Затверджено' : receipt.status === 'sent_for_settlement' ? 'Відправлено' : 'Розраховано',
+      supplier: receipt.supplier?.name || '',
+      parts_cost_pln: receipt.parts_cost_pln,
+      delivery_cost_pln: receipt.delivery_cost_pln,
+      receipt_cost_pln: receipt.receipt_cost_pln,
+      cash_on_delivery_pln: receipt.cash_on_delivery_pln,
+      transport_cost_usd: receipt.transport_cost_usd,
+      total_pln: receipt.total_pln,
+      total_usd: receipt.total_usd
+    }));
+
+    const headers = {
+      receipt_number: '№ Прийомки',
+      receipt_date: 'Дата',
+      status: 'Статус',
+      supplier: 'Постачальник',
+      parts_cost_pln: 'Деталі PLN',
+      delivery_cost_pln: 'Доставка PLN',
+      receipt_cost_pln: 'Прийомка PLN',
+      cash_on_delivery_pln: 'Побранє PLN',
+      transport_cost_usd: 'Транспорт USD',
+      total_pln: 'Всього PLN',
+      total_usd: 'Всього USD'
+    };
+
+    exportToCSV(dataToExport, 'upravlinnya_priyomkamy', headers);
+  };
+
   return (
     <div className="max-w-[98%] mx-auto px-4 py-6 space-y-6">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Управління прийомками</h2>
+        <ExportButton onClick={handleExportReceipts} disabled={receipts.length === 0} />
+      </div>
       {draftReceipts.map(receipt => (
         <div key={receipt.id} className="bg-white dark:bg-gray-800 rounded-lg shadow">
           <div className="p-4 border-b bg-gray-50 dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-750 dark:border-gray-700">

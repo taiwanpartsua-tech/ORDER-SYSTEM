@@ -4,6 +4,8 @@ import { Plus, CreditCard as Edit, Archive, X, ExternalLink, ChevronDown, Layers
 import Returns from './Returns';
 import { useToast } from '../contexts/ToastContext';
 import { statusColors, paymentTypeColors, verifiedColors, formatEmptyValue } from '../utils/themeColors';
+import { ExportButton } from './ExportButton';
+import { exportToCSV } from '../utils/exportData';
 
 type AcceptedOrder = {
   id: string;
@@ -1139,6 +1141,54 @@ export default function Orders() {
     );
   });
 
+  const handleExportOrders = () => {
+    const dataToExport = filteredOrders.map(order => ({
+      client_id: order.client_id || '',
+      order_number: order.order_number || '',
+      supplier: order.supplier?.name || '',
+      status: order.status,
+      order_date: order.order_date,
+      title: order.title || '',
+      link: order.link || '',
+      tracking_pl: order.tracking_pl || '',
+      part_price: order.part_price,
+      delivery_cost: order.delivery_cost,
+      total_cost: order.total_cost,
+      part_number: order.part_number || '',
+      payment_type: order.payment_type || '',
+      cash_on_delivery: order.cash_on_delivery,
+      received_pln: order.received_pln,
+      transport_cost_usd: order.transport_cost_usd,
+      weight_kg: order.weight_kg,
+      verified: order.verified ? 'Так' : 'Ні',
+      notes: order.notes || ''
+    }));
+
+    const headers = {
+      client_id: 'ID Клієнта',
+      order_number: '№ Замовлення',
+      supplier: 'Постачальник',
+      status: 'Статус',
+      order_date: 'Дата',
+      title: 'Назва',
+      link: 'Посилання',
+      tracking_pl: 'Трекінг PL',
+      part_price: 'Ціна деталі',
+      delivery_cost: 'Доставка',
+      total_cost: 'Загальна вартість',
+      part_number: 'Артикул',
+      payment_type: 'Тип оплати',
+      cash_on_delivery: 'Готівка при отриманні',
+      received_pln: 'Отримано PLN',
+      transport_cost_usd: 'Транспорт USD',
+      weight_kg: 'Вага кг',
+      verified: 'Vortex',
+      notes: 'Примітки'
+    };
+
+    exportToCSV(dataToExport, `zamovlennya_${activeViewTab}`, headers);
+  };
+
   return (
     <div className="h-full flex flex-col p-4 max-w-[98%] mx-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <div className="flex justify-between items-center mb-4 flex-shrink-0">
@@ -1194,6 +1244,7 @@ export default function Orders() {
                 <option value="verified">За Vortex</option>
               </select>
             )}
+            <ExportButton onClick={handleExportOrders} disabled={filteredOrders.length === 0} />
             <button
               onClick={() => setIsModalOpen(!isModalOpen)}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition"

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase, Supplier, ActiveReceipt, Order } from '../lib/supabase';
 import { ChevronDown, ChevronUp, Send, CheckCircle2, Undo2, Archive } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import { ExportButton } from './ExportButton';
+import { exportToCSV } from '../utils/exportData';
 
 export default function SupplierBalance() {
   const { showSuccess, showError, confirm } = useToast();
@@ -406,12 +408,43 @@ export default function SupplierBalance() {
     );
   };
 
+  const handleExportBalance = () => {
+    const dataToExport = receipts.map(receipt => ({
+      receipt_number: receipt.receipt_number,
+      receipt_date: receipt.receipt_date,
+      status: receipt.status === 'sent_for_settlement' ? 'Відправлено' : receipt.status === 'approved' ? 'Не відправлено' : 'Архів',
+      parts_cost_pln: receipt.parts_cost_pln,
+      delivery_cost_pln: receipt.delivery_cost_pln,
+      receipt_cost_pln: receipt.receipt_cost_pln,
+      cash_on_delivery_pln: receipt.cash_on_delivery_pln,
+      transport_cost_usd: receipt.transport_cost_usd,
+      total_pln: receipt.parts_cost_pln + receipt.delivery_cost_pln + receipt.receipt_cost_pln + receipt.cash_on_delivery_pln
+    }));
+
+    const headers = {
+      receipt_number: '№ Прийомки',
+      receipt_date: 'Дата',
+      status: 'Статус',
+      parts_cost_pln: 'Деталі PLN',
+      delivery_cost_pln: 'Доставка PLN',
+      receipt_cost_pln: 'Прийомка PLN',
+      cash_on_delivery_pln: 'Побранє PLN',
+      transport_cost_usd: 'Транспорт USD',
+      total_pln: 'Всього PLN'
+    };
+
+    exportToCSV(dataToExport, 'balans_postachalnika', headers);
+  };
+
   return (
     <div className="h-full flex flex-col p-4 max-w-[98%] mx-auto">
       <div className="flex-1 overflow-auto space-y-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
           <div className="p-4 border-b bg-blue-50 dark:bg-gradient-to-br dark:from-blue-950 dark:to-blue-900 dark:border-blue-800">
-            <h3 className="text-lg font-bold text-blue-900 dark:text-blue-200">Активні баланси</h3>
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-bold text-blue-900 dark:text-blue-200">Активні баланси</h3>
+              <ExportButton onClick={handleExportBalance} disabled={receipts.length === 0} />
+            </div>
           </div>
 
           {activeReceipts.length === 0 && (
