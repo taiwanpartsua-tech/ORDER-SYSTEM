@@ -254,7 +254,11 @@ export default function Orders() {
       .select('*, supplier:suppliers(*)')
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
+    if (error) {
+      console.error('Помилка завантаження замовлень:', error);
+      showError(`Помилка завантаження замовлень: ${error.message}`);
+    } else if (data) {
+      console.log('Замовлення завантажено:', data.length);
       setOrders(data as any);
     }
   }
@@ -265,7 +269,10 @@ export default function Orders() {
       .select('*')
       .order('accepted_at', { ascending: false });
 
-    if (!error && data) {
+    if (error) {
+      console.error('Помилка завантаження прийнятих замовлень:', error);
+    } else if (data) {
+      console.log('Прийняті замовлення завантажено:', data.length);
       setAcceptedOrders(data as any);
     }
   }
@@ -302,12 +309,17 @@ export default function Orders() {
   }
 
   async function loadSuppliers() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('suppliers')
       .select('*')
       .order('name');
 
-    if (data) setSuppliers(data);
+    if (error) {
+      console.error('Помилка завантаження постачальників:', error);
+    } else if (data) {
+      console.log('Постачальники завантажено:', data.length);
+      setSuppliers(data);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
