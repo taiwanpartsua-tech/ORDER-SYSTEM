@@ -22,6 +22,12 @@ function App() {
   const { isDark, toggleTheme } = useTheme();
   const { user, profile, loading, signOut, isSuper } = useAuth();
 
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('activeTab', activeTab);
+    }
+  }, [activeTab, user]);
+
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -33,10 +39,6 @@ function App() {
   if (!user) {
     return <Login />;
   }
-
-  useEffect(() => {
-    localStorage.setItem('activeTab', activeTab);
-  }, [activeTab]);
 
   return (
     <div className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden transition-colors">
