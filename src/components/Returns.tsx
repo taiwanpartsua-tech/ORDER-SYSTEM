@@ -3,8 +3,6 @@ import { supabase, Return, Manager } from '../lib/supabase';
 import { Plus, Trash2, ExternalLink, ChevronDown, ChevronUp, Check, X, CreditCard as Edit, RotateCcw, LayoutGrid } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { paymentTypeColors, substatusColors, refundStatusColors, formatEmptyValue } from '../utils/themeColors';
-import { ExportButton } from './ExportButton';
-import { exportToCSV } from '../utils/exportData';
 import { ColumnViewType, getReturnsColumns, saveReturnsColumnView, loadReturnsColumnView } from '../utils/columnConfigs';
 
 export default function Returns() {
@@ -663,63 +661,9 @@ export default function Returns() {
     }
   }
 
-  const handleExportReturns = () => {
-    const dataToExport = returns.map(returnItem => ({
-      status: returnItem.status,
-      substatus: returnItem.substatus || '',
-      client_id: returnItem.client_id || '',
-      title: returnItem.title || '',
-      link: returnItem.link || '',
-      tracking_pl: returnItem.tracking_pl || '',
-      part_price: returnItem.part_price,
-      delivery_cost: returnItem.delivery_cost,
-      total_cost: returnItem.total_cost,
-      part_number: returnItem.part_number || '',
-      payment_type: returnItem.payment_type || '',
-      cash_on_delivery: returnItem.cash_on_delivery,
-      order_date: returnItem.order_date,
-      return_tracking_to_supplier: returnItem.return_tracking_to_supplier || '',
-      refund_status: returnItem.refund_status || '',
-      discussion_link: returnItem.discussion_link || '',
-      situation_description: returnItem.situation_description || '',
-      manager: returnItem.manager?.name || '',
-      archived: returnItem.archived ? 'Так' : 'Ні'
-    }));
-
-    const headers = {
-      status: 'Статус',
-      substatus: 'Підстатус',
-      client_id: 'ID Клієнта',
-      title: 'Назва',
-      link: 'Посилання',
-      tracking_pl: 'Трекінг PL',
-      part_price: 'Ціна деталі',
-      delivery_cost: 'Доставка',
-      total_cost: 'Загальна вартість',
-      part_number: 'Артикул',
-      payment_type: 'Тип оплати',
-      cash_on_delivery: 'Побранє',
-      order_date: 'Дата',
-      return_tracking_to_supplier: 'Трекінг повернення',
-      refund_status: 'Статус повернення',
-      discussion_link: 'Посилання на обговорення',
-      situation_description: 'Опис ситуації',
-      manager: 'Менеджер',
-      archived: 'Архівний'
-    };
-
-    exportToCSV(dataToExport, `povernennya_${showArchived ? 'archived' : 'active'}`, headers);
-  };
-
   return (
     <div className="h-full flex flex-col p-4 max-w-[98%] mx-auto">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow flex-1 overflow-auto min-h-0 flex flex-col">
-        {!isAddingNewRow && (
-          <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex justify-end items-center">
-            <ExportButton onClick={handleExportReturns} disabled={returns.length === 0} />
-          </div>
-        )}
-
         <div className="flex-1 overflow-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
