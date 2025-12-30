@@ -64,6 +64,28 @@ export default function Orders() {
   const [searchTerm, setSearchTerm] = useState('');
   const [tariffSettings, setTariffSettings] = useState<TariffSettings | null>(null);
   const [columnView, setColumnView] = useState<ColumnViewType>(loadColumnView());
+  const [draftRows, setDraftRows] = useState<Array<{
+    id: string;
+    order_number: string;
+    supplier_id: string;
+    status: string;
+    order_date: string;
+    notes: string;
+    title: string;
+    link: string;
+    tracking_pl: string;
+    part_price: number;
+    delivery_cost: number;
+    total_cost: number;
+    part_number: string;
+    payment_type: string;
+    cash_on_delivery: number;
+    client_id: string;
+    received_pln: number;
+    transport_cost_usd: number;
+    weight_kg: number;
+    verified: boolean;
+  }>>([]);
   const [newRowData, setNewRowData] = useState({
     order_number: '',
     supplier_id: '',
@@ -902,6 +924,127 @@ export default function Orders() {
     });
   }
 
+  function addDraftRows(count: number) {
+    const defaultWeight = 1;
+    const receivedPln = tariffSettings?.default_received_pln || 15;
+    const transportCostUsd = tariffSettings ? defaultWeight * tariffSettings.default_transport_cost_per_kg_usd : 0;
+
+    const newDrafts = Array.from({ length: count }, (_, index) => ({
+      id: `draft-${Date.now()}-${index}`,
+      order_number: '',
+      supplier_id: artTransId,
+      status: 'в роботі на сьогодні',
+      order_date: new Date().toISOString().split('T')[0],
+      notes: '',
+      title: '',
+      link: '',
+      tracking_pl: '',
+      part_price: 0,
+      delivery_cost: 0,
+      total_cost: 0,
+      part_number: '',
+      payment_type: 'не обрано',
+      cash_on_delivery: 0,
+      client_id: '',
+      received_pln: receivedPln,
+      transport_cost_usd: transportCostUsd,
+      weight_kg: defaultWeight,
+      verified: false
+    }));
+
+    setDraftRows(prev => [...prev, ...newDrafts]);
+  }
+
+  function updateDraftRow(draftId: string, field: string, value: any) {
+    setDraftRows(prev => prev.map(draft => {
+      if (draft.id === draftId) {
+        const updated = { ...draft, [field]: value };
+
+        if (field === 'payment_type' && value === 'оплачено') {
+          updated.cash_on_delivery = 0;
+        }
+
+        if (field === 'weight_kg' && tariffSettings) {
+          updated.transport_cost_usd = Number(value) * tariffSettings.default_transport_cost_per_kg_usd;
+        }
+
+        if (field === 'part_price' || field === 'delivery_cost') {
+          updated.total_cost = updated.part_price + updated.delivery_cost;
+        }
+
+        return updated;
+      }
+      return draft;
+    }));
+  }
+
+  async function saveDraftRow(draftId: string) {
+    const draft = draftRows.find(d => d.id === draftId);
+    if (!draft) return;
+
+    if (!draft.client_id || draft.client_id.trim() === '') {
+      showWarning('ID клієнта є обов\'язковим полем!');
+      return;
+    }
+
+    if (!draft.title || draft.title.trim() === '') {
+      showWarning('Назва є обов\'язковим полем!');
+      return;
+    }
+
+    if (!draft.link || draft.link.trim() === '') {
+      showWarning('Посилання є обов\'язковим полем!');
+      return;
+    }
+
+    if (!draft.part_price || draft.part_price <= 0) {
+      showWarning('Вартість запчастини є обов\'язковим полем і повинна бути більше 0!');
+      return;
+    }
+
+    if (!draft.part_number || draft.part_number.trim() === '') {
+      showWarning('Номер запчастини є обов\'язковим полем!');
+      return;
+    }
+
+    if (!draft.payment_type || draft.payment_type === 'не обрано') {
+      showWarning('Необхідно обрати тип оплати!');
+      return;
+    }
+
+    if (draft.cash_on_delivery < 0) {
+      showWarning('Сума наложки не може бути від\'ємною!');
+      return;
+    }
+
+    const dataToSubmit: any = { ...draft };
+    delete dataToSubmit.id;
+
+    if (!dataToSubmit.supplier_id || dataToSubmit.supplier_id === '') {
+      delete dataToSubmit.supplier_id;
+    }
+
+    try {
+      const { error } = await supabase.from('orders').insert([dataToSubmit]);
+      if (error) {
+        console.error('Error inserting order:', error);
+        showError('Помилка при створенні замовлення: ' + error.message);
+        return;
+      }
+
+      showSuccess('Замовлення успішно створено!');
+      setDraftRows(prev => prev.filter(d => d.id !== draftId));
+      loadOrders();
+    } catch (err) {
+      console.error('Network error:', err);
+      showError('Помилка мережі: Перевірте підключення до інтернету');
+    }
+  }
+
+  function deleteDraftRow(draftId: string) {
+    setDraftRows(prev => prev.filter(d => d.id !== draftId));
+  }
+
   function startAddingNewRow() {
     setIsAddingNewRow(true);
     const defaultWeight = 1;
@@ -1696,6 +1839,25 @@ export default function Orders() {
                   <Plus size={18} />
                   Додати рядок
                 </button>
+                <div className="relative group">
+                  <button
+                    className="bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-800 transition text-sm font-medium"
+                  >
+                    <Layers size={18} />
+                    Чернетки
+                  </button>
+                  <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-700 shadow-lg rounded-lg overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-[140px]">
+                    {[1, 2, 3, 4, 5].map(count => (
+                      <button
+                        key={count}
+                        onClick={() => addDraftRows(count)}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-sm"
+                      >
+                        Додати {count} {count === 1 ? 'рядок' : count <= 4 ? 'рядки' : 'рядків'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <button
                   onClick={toggleColumnView}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition text-sm font-medium"
@@ -1946,6 +2108,154 @@ export default function Orders() {
                     </td>
                   </tr>
                 )}
+                {draftRows.map((draft) => (
+                  <tr key={draft.id} className="bg-orange-50 dark:bg-orange-900/30 border-2 border-orange-300 dark:border-orange-700">
+                    <td className="px-3 py-3 text-center min-h-[48px]">
+                      <span className="text-orange-600 dark:text-orange-400 text-xs font-bold">Чернетка</span>
+                    </td>
+                    <td className="p-0 relative">
+                      <select
+                        value={draft.status}
+                        onChange={(e) => updateDraftRow(draft.id, 'status', e.target.value)}
+                        className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100"
+                      >
+                        {statuses.map((status) => (
+                          <option
+                            key={status}
+                            value={status}
+                            className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          >
+                            {statusLabels[status]}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-3 py-3 text-center min-h-[48px]">
+                      <input
+                        type="checkbox"
+                        checked={draft.verified}
+                        onChange={(e) => updateDraftRow(draft.id, 'verified', e.target.checked)}
+                        className="w-5 h-5 rounded cursor-pointer transition text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-600"
+                      />
+                    </td>
+                    <td className="px-3 py-3 min-h-[48px]">
+                      <input
+                        type="text"
+                        value={draft.client_id}
+                        onChange={(e) => updateDraftRow(draft.id, 'client_id', e.target.value)}
+                        placeholder="ID клієнта *"
+                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      />
+                    </td>
+                    <td className="px-3 py-3 min-h-[48px]">
+                      <input
+                        type="text"
+                        value={draft.title}
+                        onChange={(e) => updateDraftRow(draft.id, 'title', e.target.value)}
+                        placeholder="Назва *"
+                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      />
+                    </td>
+                    <td className="px-3 py-3 min-h-[48px]">
+                      <input
+                        type="text"
+                        value={draft.link}
+                        onChange={(e) => updateDraftRow(draft.id, 'link', e.target.value)}
+                        placeholder="Посилання *"
+                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      />
+                    </td>
+                    <td className="px-3 py-3 min-h-[48px]">
+                      <input
+                        type="text"
+                        value={draft.tracking_pl}
+                        onChange={(e) => updateDraftRow(draft.id, 'tracking_pl', e.target.value)}
+                        placeholder="Трекінг"
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      />
+                    </td>
+                    <td className="px-3 py-3 min-h-[48px]">
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={draft.part_price}
+                        onChange={(e) => updateDraftRow(draft.id, 'part_price', Number(e.target.value))}
+                        placeholder="0"
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      />
+                    </td>
+                    <td className="px-3 py-3 min-h-[48px]">
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={draft.delivery_cost}
+                        onChange={(e) => updateDraftRow(draft.id, 'delivery_cost', Number(e.target.value))}
+                        placeholder="0"
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      />
+                    </td>
+                    <td className="px-3 py-3 text-center text-gray-900 dark:text-gray-100 font-bold bg-orange-50 dark:bg-orange-900/20 min-h-[48px]">
+                      {formatNumber(draft.total_cost)} zl
+                    </td>
+                    <td className="px-3 py-3 min-h-[48px]">
+                      <input
+                        type="text"
+                        value={draft.part_number}
+                        onChange={(e) => updateDraftRow(draft.id, 'part_number', e.target.value)}
+                        placeholder="№"
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      />
+                    </td>
+                    <td className="p-0 relative">
+                      <select
+                        value={draft.payment_type}
+                        onChange={(e) => updateDraftRow(draft.id, 'payment_type', e.target.value)}
+                        className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100"
+                      >
+                        {paymentTypes.map((type) => (
+                          <option
+                            key={type}
+                            value={type}
+                            className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          >
+                            {paymentTypeLabels[type]}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-3 py-3 min-h-[48px]">
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={draft.cash_on_delivery}
+                        onChange={(e) => updateDraftRow(draft.id, 'cash_on_delivery', Number(e.target.value))}
+                        disabled={draft.payment_type === 'оплачено'}
+                        placeholder="0"
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                    </td>
+                    <td className="px-3 py-3 min-h-[48px]">
+                      <div className="flex gap-2 justify-start">
+                        <button
+                          onClick={() => saveDraftRow(draft.id)}
+                          className="px-3 py-2 bg-green-700 text-white rounded text-xs font-semibold hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition flex items-center gap-1"
+                          title="Зберегти замовлення"
+                        >
+                          <Check size={14} />
+                          Зберегти
+                        </button>
+                        <button
+                          onClick={() => deleteDraftRow(draft.id)}
+                          className="px-3 py-2 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 transition flex items-center gap-1"
+                          title="Видалити чернетку"
+                        >
+                          <X size={14} />
+                          Видалити
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
                 {filteredOrders.map((order) => {
                 const isAccepted = order.status === 'прийнято';
                 return (
