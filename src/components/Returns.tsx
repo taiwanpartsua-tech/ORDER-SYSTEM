@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase, Return, Manager } from '../lib/supabase';
-import { Plus, Trash2, ExternalLink, ChevronDown, ChevronUp, Check, X, Edit, RotateCcw, LayoutGrid } from 'lucide-react';
+import { Plus, Trash2, ExternalLink, ChevronDown, ChevronUp, Check, X, CreditCard as Edit, RotateCcw, LayoutGrid } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { paymentTypeColors, substatusColors, refundStatusColors, formatEmptyValue } from '../utils/themeColors';
 import { ExportButton } from './ExportButton';
