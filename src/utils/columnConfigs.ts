@@ -4,7 +4,7 @@ export interface ColumnConfig {
   key: string;
   label: string;
   isEditable?: boolean;
-  renderType?: 'text' | 'number' | 'link' | 'tracking' | 'status' | 'verified' | 'payment' | 'date' | 'actions';
+  renderType?: 'text' | 'number' | 'link' | 'tracking' | 'status' | 'verified' | 'payment' | 'date' | 'actions' | 'substatus';
 }
 
 export const paskaColumns: ColumnConfig[] = [
@@ -38,15 +38,52 @@ export const mondayColumns: ColumnConfig[] = [
   { key: 'actions', label: 'Дії', renderType: 'actions' }
 ];
 
+export const returnsPaskaColumns: ColumnConfig[] = [
+  { key: 'status', label: 'Статус', renderType: 'status' },
+  { key: 'substatus', label: 'Підстатус', renderType: 'substatus' },
+  { key: 'client_id', label: 'ID клієнта', isEditable: true, renderType: 'text' },
+  { key: 'title', label: 'Назва', isEditable: true, renderType: 'text' },
+  { key: 'link', label: '', renderType: 'link' },
+  { key: 'tracking_pl', label: 'Трекінг PL', isEditable: true, renderType: 'tracking' },
+  { key: 'part_number', label: '№ запчастини', isEditable: true, renderType: 'text' },
+  { key: 'order_date', label: 'Дата', isEditable: true, renderType: 'date' },
+  { key: 'actions', label: 'Дії', renderType: 'actions' }
+];
+
+export const returnsMondayColumns: ColumnConfig[] = [
+  { key: 'title', label: 'Назва', isEditable: true, renderType: 'text' },
+  { key: 'link', label: '', renderType: 'link' },
+  { key: 'status', label: 'Статус', renderType: 'status' },
+  { key: 'substatus', label: 'Підстатус', renderType: 'substatus' },
+  { key: 'tracking_pl', label: 'Трекінг', isEditable: true, renderType: 'tracking' },
+  { key: 'part_number', label: 'Номер запчастини', isEditable: true, renderType: 'text' },
+  { key: 'client_id', label: 'Клієнт', isEditable: true, renderType: 'text' },
+  { key: 'order_date', label: 'Дата оформлення', isEditable: true, renderType: 'date' },
+  { key: 'actions', label: 'Дії', renderType: 'actions' }
+];
+
 export function getColumns(viewType: ColumnViewType): ColumnConfig[] {
   return viewType === 'paska' ? paskaColumns : mondayColumns;
+}
+
+export function getReturnsColumns(viewType: ColumnViewType): ColumnConfig[] {
+  return viewType === 'paska' ? returnsPaskaColumns : returnsMondayColumns;
 }
 
 export function saveColumnView(viewType: ColumnViewType): void {
   localStorage.setItem('ordersColumnView', viewType);
 }
 
+export function saveReturnsColumnView(viewType: ColumnViewType): void {
+  localStorage.setItem('returnsColumnView', viewType);
+}
+
 export function loadColumnView(): ColumnViewType {
   const saved = localStorage.getItem('ordersColumnView');
+  return (saved === 'monday' ? 'monday' : 'paska') as ColumnViewType;
+}
+
+export function loadReturnsColumnView(): ColumnViewType {
+  const saved = localStorage.getItem('returnsColumnView');
   return (saved === 'monday' ? 'monday' : 'paska') as ColumnViewType;
 }

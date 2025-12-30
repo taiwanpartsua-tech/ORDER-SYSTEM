@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase, Return, Manager } from '../lib/supabase';
-import { Plus, Trash2, ExternalLink, ChevronDown, ChevronUp, Check, X, Edit, RotateCcw } from 'lucide-react';
+import { Plus, Trash2, ExternalLink, ChevronDown, ChevronUp, Check, X, Edit, RotateCcw, LayoutGrid } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { paymentTypeColors, substatusColors, refundStatusColors, formatEmptyValue } from '../utils/themeColors';
 import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
+import { ColumnViewType, getReturnsColumns, saveReturnsColumnView, loadReturnsColumnView } from '../utils/columnConfigs';
 
 export default function Returns() {
   const { showSuccess, showError, confirm, showWarning } = useToast();
@@ -15,6 +16,7 @@ export default function Returns() {
   const [editingCell, setEditingCell] = useState<{ returnId: string; field: string } | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [showArchived, setShowArchived] = useState(false);
+  const [columnView, setColumnView] = useState<ColumnViewType>(loadReturnsColumnView());
   const [newRowData, setNewRowData] = useState({
     status: 'повернення',
     substatus: 'В Арта в хелмі',
@@ -435,6 +437,232 @@ export default function Returns() {
     saveEdit();
   }
 
+  function handleColumnViewChange(newView: ColumnViewType) {
+    setColumnView(newView);
+    saveReturnsColumnView(newView);
+  }
+
+  function renderNewRowCell(column: any) {
+    const { key, renderType } = column;
+
+    switch (renderType) {
+      case 'status':
+        return (
+          <td key={key} className="px-3 py-2">
+            <select
+              value={newRowData.status}
+              onChange={(e) => setNewRowData({ ...newRowData, status: e.target.value })}
+              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
+            >
+              {statuses.map((status) => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+          </td>
+        );
+
+      case 'substatus':
+        return (
+          <td key={key} className="px-3 py-2">
+            <select
+              value={newRowData.substatus}
+              onChange={(e) => setNewRowData({ ...newRowData, substatus: e.target.value })}
+              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
+            >
+              {substatuses.map((substatus) => (
+                <option key={substatus} value={substatus}>{substatus}</option>
+              ))}
+            </select>
+          </td>
+        );
+
+      case 'link':
+        return (
+          <td key={key} className="px-3 py-2">
+            <input
+              type="text"
+              value={newRowData.link}
+              onChange={(e) => setNewRowData({ ...newRowData, link: e.target.value })}
+              placeholder="Посилання *"
+              className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
+            />
+          </td>
+        );
+
+      case 'tracking':
+        return (
+          <td key={key} className="px-3 py-2">
+            <input
+              type="text"
+              value={newRowData.tracking_pl}
+              onChange={(e) => setNewRowData({ ...newRowData, tracking_pl: e.target.value })}
+              placeholder="Трекінг"
+              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
+            />
+          </td>
+        );
+
+      case 'date':
+        return (
+          <td key={key} className="px-3 py-2">
+            <input
+              type="date"
+              value={newRowData.order_date}
+              onChange={(e) => setNewRowData({ ...newRowData, order_date: e.target.value })}
+              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
+            />
+          </td>
+        );
+
+      case 'actions':
+        return (
+          <td key={key} className="px-3 py-2">
+            <div className="flex gap-2 justify-center">
+              <button
+                onClick={saveNewRow}
+                className="px-3 py-2 bg-green-700 text-white rounded text-xs font-semibold hover:bg-green-800 dark:bg-green-800 dark:hover:bg-green-700 transition flex items-center gap-1"
+              >
+                <Check size={14} />
+                Зберегти
+              </button>
+              <button
+                onClick={cancelNewRow}
+                className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded text-xs font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition flex items-center gap-1"
+              >
+                <X size={14} />
+                Скасувати
+              </button>
+            </div>
+          </td>
+        );
+
+      case 'text':
+      default:
+        const isRequired = key === 'client_id' || key === 'title' || key === 'part_number';
+        return (
+          <td key={key} className="px-3 py-2">
+            <input
+              type="text"
+              value={(newRowData as any)[key] || ''}
+              onChange={(e) => setNewRowData({ ...newRowData, [key]: e.target.value })}
+              placeholder={column.label + (isRequired ? ' *' : '')}
+              className={`w-full px-2 py-1 border ${isRequired ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'} rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400`}
+            />
+          </td>
+        );
+    }
+  }
+
+  function renderCellByType(returnItem: Return, column: any) {
+    const { key, renderType } = column;
+
+    switch (renderType) {
+      case 'status':
+        return (
+          <td key={key} className="p-0 relative">
+            <select
+              value={returnItem.status}
+              onChange={async (e) => {
+                const newStatus = e.target.value;
+                const shouldArchive = newStatus === 'проблемні' || newStatus === 'анульовано';
+                await supabase
+                  .from('returns')
+                  .update({
+                    status: newStatus,
+                    archived: shouldArchive,
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', returnItem.id);
+                loadReturns();
+              }}
+              className={`w-full h-full px-3 py-2 text-xs font-semibold border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 ${statusColors[returnItem.status]}`}
+            >
+              {statuses.map((status) => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+          </td>
+        );
+
+      case 'substatus':
+        return (
+          <td key={key} className="p-0 relative">
+            <select
+              value={returnItem.substatus}
+              onChange={async (e) => {
+                const newSubstatus = e.target.value;
+                await supabase
+                  .from('returns')
+                  .update({ substatus: newSubstatus, updated_at: new Date().toISOString() })
+                  .eq('id', returnItem.id);
+                loadReturns();
+              }}
+              className={`w-full h-full px-3 py-2 text-xs font-semibold border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 ${substatusColors[returnItem.substatus]}`}
+            >
+              {substatuses.map((substatus) => (
+                <option key={substatus} value={substatus}>{substatus}</option>
+              ))}
+            </select>
+          </td>
+        );
+
+      case 'link':
+        return renderLinkCell(returnItem.id, returnItem.link || '');
+
+      case 'tracking':
+        return renderEditableCell(returnItem.id, key, (returnItem as any)[key] || '', 'text-gray-600 dark:text-gray-300 text-center');
+
+      case 'date':
+        return (
+          <td
+            key={key}
+            className="px-3 py-2 text-center text-gray-600 dark:text-gray-300 text-sm cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/30 transition"
+            onClick={() => startEditing(returnItem.id, key, (returnItem as any)[key])}
+          >
+            {editingCell?.returnId === returnItem.id && editingCell?.field === key ? (
+              <input
+                type="date"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={saveInlineEdit}
+                onKeyDown={handleKeyDown}
+                autoFocus
+                className="w-full px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 dark:border-blue-400 dark:focus:ring-blue-400 text-sm"
+              />
+            ) : (
+              formatDate((returnItem as any)[key])
+            )}
+          </td>
+        );
+
+      case 'actions':
+        return (
+          <td key={key} className="px-3 py-2">
+            <div className="flex gap-2 justify-center">
+              <button
+                onClick={() => handleReturnToOrders(returnItem)}
+                className="px-3 py-2 bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
+              >
+                <RotateCcw size={14} />
+                Повернути в замовлення
+              </button>
+              <button
+                onClick={() => handleDelete(returnItem.id)}
+                className="px-3 py-2 bg-red-100 dark:bg-red-800/50 text-red-800 dark:text-red-200 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
+              >
+                <Trash2 size={14} />
+                Вид.
+              </button>
+            </div>
+          </td>
+        );
+
+      case 'text':
+      default:
+        return renderEditableCell(returnItem.id, key, (returnItem as any)[key], 'text-gray-900 dark:text-gray-100 text-center');
+    }
+  }
+
   const handleExportReturns = () => {
     const dataToExport = returns.map(returnItem => ({
       status: returnItem.status,
@@ -497,6 +725,32 @@ export default function Returns() {
             </button>
             <div className="flex gap-2">
               <ExportButton onClick={handleExportReturns} disabled={returns.length === 0} />
+              <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                <button
+                  onClick={() => handleColumnViewChange('paska')}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition flex items-center gap-1 ${
+                    columnView === 'paska'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  }`}
+                  title="Переключити на вид Паска"
+                >
+                  <LayoutGrid size={14} />
+                  Паска
+                </button>
+                <button
+                  onClick={() => handleColumnViewChange('monday')}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition flex items-center gap-1 ${
+                    columnView === 'monday'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  }`}
+                  title="Переключити на вид Мандей"
+                >
+                  <LayoutGrid size={14} />
+                  Мандей
+                </button>
+              </div>
               <button
                 onClick={() => setShowArchived(false)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
@@ -526,15 +780,18 @@ export default function Returns() {
             <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
               <tr>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase w-10"></th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Статус</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Підстатус</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ID клієнта</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Назва</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"><ExternalLink size={16} className="inline-block" /></th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Трекінг PL</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">№ запчастини</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Дата</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Дії</th>
+                {getReturnsColumns(columnView).map((column) => (
+                  <th
+                    key={column.key}
+                    className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                  >
+                    {column.renderType === 'link' ? (
+                      <ExternalLink size={16} className="inline-block" />
+                    ) : (
+                      column.label
+                    )}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -542,102 +799,10 @@ export default function Returns() {
                 <>
                   <tr className="bg-green-50 dark:bg-green-900/30">
                     <td className="px-3 py-2"></td>
-                    <td className="px-3 py-2">
-                      <select
-                        value={newRowData.status}
-                        onChange={(e) => setNewRowData({ ...newRowData, status: e.target.value })}
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
-                      >
-                        {statuses.map((status) => (
-                          <option key={status} value={status}>{status}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-3 py-2">
-                      <select
-                        value={newRowData.substatus}
-                        onChange={(e) => setNewRowData({ ...newRowData, substatus: e.target.value })}
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
-                      >
-                        {substatuses.map((substatus) => (
-                          <option key={substatus} value={substatus}>{substatus}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="text"
-                        value={newRowData.client_id}
-                        onChange={(e) => setNewRowData({ ...newRowData, client_id: e.target.value })}
-                        placeholder="ID клієнта *"
-                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="text"
-                        value={newRowData.title}
-                        onChange={(e) => setNewRowData({ ...newRowData, title: e.target.value })}
-                        placeholder="Назва *"
-                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="text"
-                        value={newRowData.link}
-                        onChange={(e) => setNewRowData({ ...newRowData, link: e.target.value })}
-                        placeholder="Посилання *"
-                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="text"
-                        value={newRowData.tracking_pl}
-                        onChange={(e) => setNewRowData({ ...newRowData, tracking_pl: e.target.value })}
-                        placeholder="Трекінг"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="text"
-                        value={newRowData.part_number}
-                        onChange={(e) => setNewRowData({ ...newRowData, part_number: e.target.value })}
-                        placeholder="№ *"
-                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="date"
-                        value={newRowData.order_date}
-                        onChange={(e) => setNewRowData({ ...newRowData, order_date: e.target.value })}
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100 dark:focus:ring-green-400"
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex gap-2 justify-center">
-                        <button
-                          onClick={saveNewRow}
-                          className="px-3 py-2 bg-green-700 text-white rounded text-xs font-semibold hover:bg-green-800 dark:bg-green-800 dark:hover:bg-green-700 transition flex items-center gap-1"
-                        >
-                          <Check size={14} />
-                          Зберегти
-                        </button>
-                        <button
-                          onClick={cancelNewRow}
-                          className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded text-xs font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition flex items-center gap-1"
-                        >
-                          <X size={14} />
-                          Скасувати
-                        </button>
-                      </div>
-                    </td>
+                    {getReturnsColumns(columnView).map((column) => renderNewRowCell(column))}
                   </tr>
                   <tr className="bg-green-50 dark:bg-green-900/30">
-                    <td colSpan={10} className="px-3 py-3">
+                    <td colSpan={getReturnsColumns(columnView).length + 1} className="px-3 py-3">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                           <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Вартість запчастини (zl) *</label>
@@ -766,92 +931,11 @@ export default function Returns() {
                         {expandedRows.has(returnItem.id) ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                       </button>
                     </td>
-                    <td className="p-0 relative">
-                      <select
-                        value={returnItem.status}
-                        onChange={async (e) => {
-                          const newStatus = e.target.value;
-                          const shouldArchive = newStatus === 'проблемні' || newStatus === 'анульовано';
-                          await supabase
-                            .from('returns')
-                            .update({
-                              status: newStatus,
-                              archived: shouldArchive,
-                              updated_at: new Date().toISOString()
-                            })
-                            .eq('id', returnItem.id);
-                          loadReturns();
-                        }}
-                        className={`w-full h-full px-3 py-2 text-xs font-semibold border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 ${statusColors[returnItem.status]}`}
-                      >
-                        {statuses.map((status) => (
-                          <option key={status} value={status}>{status}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="p-0 relative">
-                      <select
-                        value={returnItem.substatus}
-                        onChange={async (e) => {
-                          const newSubstatus = e.target.value;
-                          await supabase
-                            .from('returns')
-                            .update({ substatus: newSubstatus, updated_at: new Date().toISOString() })
-                            .eq('id', returnItem.id);
-                          loadReturns();
-                        }}
-                        className={`w-full h-full px-3 py-2 text-xs font-semibold border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 ${substatusColors[returnItem.substatus]}`}
-                      >
-                        {substatuses.map((substatus) => (
-                          <option key={substatus} value={substatus}>{substatus}</option>
-                        ))}
-                      </select>
-                    </td>
-                    {renderEditableCell(returnItem.id, 'client_id', returnItem.client_id, 'text-gray-900 dark:text-gray-100 text-center')}
-                    {renderEditableCell(returnItem.id, 'title', returnItem.title, 'text-gray-900 dark:text-gray-100 text-center')}
-                    {renderLinkCell(returnItem.id, returnItem.link || '')}
-                    {renderEditableCell(returnItem.id, 'tracking_pl', returnItem.tracking_pl || '', 'text-gray-600 dark:text-gray-300 text-center')}
-                    {renderEditableCell(returnItem.id, 'part_number', returnItem.part_number || '', 'text-gray-600 dark:text-gray-300 text-center')}
-                    <td
-                      className="px-3 py-2 text-center text-gray-600 dark:text-gray-300 text-sm cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/30 transition"
-                      onClick={() => startEditing(returnItem.id, 'order_date', returnItem.order_date)}
-                    >
-                      {editingCell?.returnId === returnItem.id && editingCell?.field === 'order_date' ? (
-                        <input
-                          type="date"
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          onBlur={saveInlineEdit}
-                          onKeyDown={handleKeyDown}
-                          autoFocus
-                          className="w-full px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 dark:border-blue-400 dark:focus:ring-blue-400 text-sm"
-                        />
-                      ) : (
-                        formatDate(returnItem.order_date)
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex gap-2 justify-center">
-                        <button
-                          onClick={() => handleReturnToOrders(returnItem)}
-                          className="px-3 py-2 bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
-                        >
-                          <RotateCcw size={14} />
-                          Повернути в замовлення
-                        </button>
-                        <button
-                          onClick={() => handleDelete(returnItem.id)}
-                          className="px-3 py-2 bg-red-100 dark:bg-red-800/50 text-red-800 dark:text-red-200 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
-                        >
-                          <Trash2 size={14} />
-                          Вид.
-                        </button>
-                      </div>
-                    </td>
+                    {getReturnsColumns(columnView).map((column) => renderCellByType(returnItem, column))}
                   </tr>
                   {expandedRows.has(returnItem.id) && (
                     <tr className="bg-gray-50 dark:bg-gray-800/50">
-                      <td colSpan={10} className="px-3 py-3 border-t border-gray-200 dark:border-gray-700">
+                      <td colSpan={getReturnsColumns(columnView).length + 1} className="px-3 py-3 border-t border-gray-200 dark:border-gray-700">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           <div>
                             <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Вартість запчастини (zl)</label>
