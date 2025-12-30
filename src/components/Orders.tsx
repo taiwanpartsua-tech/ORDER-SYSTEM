@@ -2113,147 +2113,170 @@ export default function Orders() {
                     <td className="px-3 py-3 text-center min-h-[48px]">
                       <span className="text-orange-600 dark:text-orange-400 text-xs font-bold">Чернетка</span>
                     </td>
-                    <td className="p-0 relative">
-                      <select
-                        value={draft.status}
-                        onChange={(e) => updateDraftRow(draft.id, 'status', e.target.value)}
-                        className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100"
-                      >
-                        {statuses.map((status) => (
-                          <option
-                            key={status}
-                            value={status}
-                            className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                          >
-                            {statusLabels[status]}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-3 py-3 text-center min-h-[48px]">
-                      <input
-                        type="checkbox"
-                        checked={draft.verified}
-                        onChange={(e) => updateDraftRow(draft.id, 'verified', e.target.checked)}
-                        className="w-5 h-5 rounded cursor-pointer transition text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-600"
-                      />
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <input
-                        type="text"
-                        value={draft.client_id}
-                        onChange={(e) => updateDraftRow(draft.id, 'client_id', e.target.value)}
-                        placeholder="ID клієнта *"
-                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <input
-                        type="text"
-                        value={draft.title}
-                        onChange={(e) => updateDraftRow(draft.id, 'title', e.target.value)}
-                        placeholder="Назва *"
-                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <input
-                        type="text"
-                        value={draft.link}
-                        onChange={(e) => updateDraftRow(draft.id, 'link', e.target.value)}
-                        placeholder="Посилання *"
-                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <input
-                        type="text"
-                        value={draft.tracking_pl}
-                        onChange={(e) => updateDraftRow(draft.id, 'tracking_pl', e.target.value)}
-                        placeholder="Трекінг"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={draft.part_price}
-                        onChange={(e) => updateDraftRow(draft.id, 'part_price', Number(e.target.value))}
-                        placeholder="0"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={draft.delivery_cost}
-                        onChange={(e) => updateDraftRow(draft.id, 'delivery_cost', Number(e.target.value))}
-                        placeholder="0"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </td>
-                    <td className="px-3 py-3 text-center text-gray-900 dark:text-gray-100 font-bold bg-orange-50 dark:bg-orange-900/20 min-h-[48px]">
-                      {formatNumber(draft.total_cost)} zl
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <input
-                        type="text"
-                        value={draft.part_number}
-                        onChange={(e) => updateDraftRow(draft.id, 'part_number', e.target.value)}
-                        placeholder="№"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </td>
-                    <td className="p-0 relative">
-                      <select
-                        value={draft.payment_type}
-                        onChange={(e) => updateDraftRow(draft.id, 'payment_type', e.target.value)}
-                        className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100"
-                      >
-                        {paymentTypes.map((type) => (
-                          <option
-                            key={type}
-                            value={type}
-                            className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                          >
-                            {paymentTypeLabels[type]}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={draft.cash_on_delivery}
-                        onChange={(e) => updateDraftRow(draft.id, 'cash_on_delivery', Number(e.target.value))}
-                        disabled={draft.payment_type === 'оплачено'}
-                        placeholder="0"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                      />
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <div className="flex gap-2 justify-start">
-                        <button
-                          onClick={() => saveDraftRow(draft.id)}
-                          className="px-3 py-2 bg-green-700 text-white rounded text-xs font-semibold hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition flex items-center gap-1"
-                          title="Зберегти замовлення"
-                        >
-                          <Check size={14} />
-                          Зберегти
-                        </button>
-                        <button
-                          onClick={() => deleteDraftRow(draft.id)}
-                          className="px-3 py-2 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 transition flex items-center gap-1"
-                          title="Видалити чернетку"
-                        >
-                          <X size={14} />
-                          Видалити
-                        </button>
-                      </div>
-                    </td>
+                    {getColumns(columnView).map((col) => {
+                      if (col.key === 'actions') {
+                        return (
+                          <td key="actions" className="px-3 py-3 min-h-[48px]">
+                            <div className="flex gap-2 justify-start">
+                              <button
+                                onClick={() => saveDraftRow(draft.id)}
+                                className="px-3 py-2 bg-green-700 text-white rounded text-xs font-semibold hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition flex items-center gap-1"
+                                title="Зберегти замовлення"
+                              >
+                                <Check size={14} />
+                                Зберегти
+                              </button>
+                              <button
+                                onClick={() => deleteDraftRow(draft.id)}
+                                className="px-3 py-2 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 transition flex items-center gap-1"
+                                title="Видалити чернетку"
+                              >
+                                <X size={14} />
+                                Видалити
+                              </button>
+                            </div>
+                          </td>
+                        );
+                      }
+
+                      const value = (draft as any)[col.key];
+                      const isRequired = ['client_id', 'title', 'link'].includes(col.key);
+
+                      if (col.key === 'status') {
+                        return (
+                          <td key={col.key} className="p-0 relative">
+                            <select
+                              value={draft.status}
+                              onChange={(e) => updateDraftRow(draft.id, 'status', e.target.value)}
+                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100"
+                            >
+                              {statuses.map((status) => (
+                                <option
+                                  key={status}
+                                  value={status}
+                                  className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                >
+                                  {statusLabels[status]}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                        );
+                      }
+
+                      if (col.key === 'verified') {
+                        return (
+                          <td key={col.key} className="px-3 py-3 text-center min-h-[48px]">
+                            <input
+                              type="checkbox"
+                              checked={draft.verified}
+                              onChange={(e) => updateDraftRow(draft.id, 'verified', e.target.checked)}
+                              className="w-5 h-5 rounded cursor-pointer transition text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-600"
+                            />
+                          </td>
+                        );
+                      }
+
+                      if (col.key === 'link') {
+                        return (
+                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
+                            <input
+                              type="text"
+                              value={draft.link}
+                              onChange={(e) => updateDraftRow(draft.id, 'link', e.target.value)}
+                              placeholder="Посилання *"
+                              className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                            />
+                          </td>
+                        );
+                      }
+
+                      if (col.key === 'payment_type') {
+                        return (
+                          <td key={col.key} className="p-0 relative">
+                            <select
+                              value={draft.payment_type}
+                              onChange={(e) => updateDraftRow(draft.id, 'payment_type', e.target.value)}
+                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100"
+                            >
+                              {paymentTypes.map((type) => (
+                                <option
+                                  key={type}
+                                  value={type}
+                                  className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                >
+                                  {paymentTypeLabels[type]}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                        );
+                      }
+
+                      if (col.key === 'total_cost') {
+                        return (
+                          <td key={col.key} className="px-3 py-3 text-center text-gray-900 dark:text-gray-100 font-bold bg-orange-50 dark:bg-orange-900/20 min-h-[48px]">
+                            {formatNumber(draft.total_cost)} zl
+                          </td>
+                        );
+                      }
+
+                      if (col.key === 'cash_on_delivery') {
+                        return (
+                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={draft.cash_on_delivery}
+                              onChange={(e) => updateDraftRow(draft.id, 'cash_on_delivery', Number(e.target.value))}
+                              disabled={draft.payment_type === 'оплачено'}
+                              placeholder="0"
+                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            />
+                          </td>
+                        );
+                      }
+
+                      if (['part_price', 'delivery_cost'].includes(col.key)) {
+                        return (
+                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={value}
+                              onChange={(e) => updateDraftRow(draft.id, col.key, Number(e.target.value))}
+                              placeholder="0"
+                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                            />
+                          </td>
+                        );
+                      }
+
+                      if (col.renderType === 'date') {
+                        return (
+                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
+                            <input
+                              type="date"
+                              value={value || ''}
+                              onChange={(e) => updateDraftRow(draft.id, col.key, e.target.value)}
+                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                            />
+                          </td>
+                        );
+                      }
+
+                      return (
+                        <td key={col.key} className="px-3 py-3 min-h-[48px]">
+                          <input
+                            type="text"
+                            value={value || ''}
+                            onChange={(e) => updateDraftRow(draft.id, col.key, e.target.value)}
+                            placeholder={isRequired ? `${col.label} *` : col.label}
+                            className={`w-full px-2 py-1 border ${isRequired ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'} rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+                          />
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
                 {filteredOrders.map((order) => {
