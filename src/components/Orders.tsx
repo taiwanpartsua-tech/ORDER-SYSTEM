@@ -1294,7 +1294,7 @@ export default function Orders() {
         return renderEditableCell(order.id, 'cash_on_delivery', `${formatNumber(order.cash_on_delivery)} zl`, 'text-center', isAccepted);
 
       case 'order_date':
-        return renderDateCell(order.id, order.order_date, isAccepted);
+        return renderDateCell(order.id, order.order_date, 'text-gray-900 text-center', isAccepted);
 
       case 'order_number':
       case 'client_id':
