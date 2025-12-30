@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase, Order, Supplier, TariffSettings } from '../lib/supabase';
-import { Plus, CreditCard as Edit, Archive, X, ExternalLink, ChevronDown, Layers, ChevronUp, Check, RotateCcw, Printer, Download, Search, XCircle } from 'lucide-react';
+import { Plus, CreditCard as Edit, Archive, X, ExternalLink, ChevronDown, Layers, ChevronUp, Check, RotateCcw, Printer, Download, Search, XCircle, LayoutGrid } from 'lucide-react';
 import Returns from './Returns';
 import { useToast } from '../contexts/ToastContext';
 import { statusColors, paymentTypeColors, verifiedColors, formatEmptyValue } from '../utils/themeColors';
 import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
+import { ColumnViewType, getColumns, saveColumnView, loadColumnView } from '../utils/columnConfigs';
 
 type AcceptedOrder = {
   id: string;
@@ -62,6 +63,7 @@ export default function Orders() {
   const [receiptDetails, setReceiptDetails] = useState<AcceptedOrder[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [tariffSettings, setTariffSettings] = useState<TariffSettings | null>(null);
+  const [columnView, setColumnView] = useState<ColumnViewType>(loadColumnView());
   const [newRowData, setNewRowData] = useState({
     order_number: '',
     supplier_id: '',
@@ -1025,6 +1027,12 @@ export default function Orders() {
     }
   }
 
+  function toggleColumnView() {
+    const newView: ColumnViewType = columnView === 'paska' ? 'monday' : 'paska';
+    setColumnView(newView);
+    saveColumnView(newView);
+  }
+
   async function bulkUpdateStatus(newStatus: string) {
     const updates = Array.from(selectedOrders).map(orderId =>
       supabase.from('orders').update({ status: newStatus }).eq('id', orderId)
@@ -1209,6 +1217,95 @@ export default function Orders() {
 
     exportToCSV(dataToExport, `zamovlennya_${activeViewTab}`, headers);
   };
+
+  function renderColumnCell(order: Order & { supplier: Supplier }, columnKey: string, isAccepted: boolean) {
+    const value = (order as any)[columnKey];
+
+    switch (columnKey) {
+      case 'status':
+        return (
+          <td className="p-0 relative" key="status">
+            <button
+              onClick={(e) => {
+                if (isAccepted) return;
+                e.stopPropagation();
+                const rect = e.currentTarget.getBoundingClientRect();
+                const dropdownHeight = 400;
+                const spaceBelow = window.innerHeight - rect.bottom;
+                const spaceAbove = rect.top;
+
+                const shouldShowAbove = spaceBelow < 200 && spaceAbove > spaceBelow;
+                const top = shouldShowAbove
+                  ? Math.max(20, rect.top + window.scrollY - Math.min(dropdownHeight, spaceAbove - 20))
+                  : rect.bottom + window.scrollY;
+
+                setDropdownPosition({ top, left: rect.left + window.scrollX });
+                setOpenDropdown(openDropdown === order.id ? null : order.id);
+              }}
+              className={`w-full h-full px-3 py-3 text-xs font-semibold ${statusColors[order.status]} ${!isAccepted ? 'hover:opacity-80' : 'cursor-default'} transition flex items-center justify-center gap-1 min-h-[48px]`}
+              disabled={isAccepted}
+            >
+              {statusLabels[order.status]}
+              {!isAccepted && <ChevronDown size={14} />}
+            </button>
+          </td>
+        );
+
+      case 'verified':
+        return (
+          <td className="px-3 py-3 text-center min-h-[48px] bg-white dark:bg-gray-800" key="verified">
+            <input
+              type="checkbox"
+              checked={order.verified}
+              onChange={() => handleVerifiedChange(order.id, order.verified)}
+              className={`w-5 h-5 rounded cursor-pointer transition ${
+                order.verified
+                  ? 'accent-green-700 bg-green-700 dark:accent-green-600 dark:bg-green-600'
+                  : 'border-2 border-gray-800 dark:border-gray-400 accent-gray-800 dark:accent-gray-400 bg-white dark:bg-gray-600'
+              }`}
+              disabled={isAccepted}
+            />
+          </td>
+        );
+
+      case 'link':
+        return renderLinkCell(order.id, order.link || '', isAccepted);
+
+      case 'tracking_pl':
+        return renderTrackingCell(order.id, order, isAccepted);
+
+      case 'part_price':
+        return renderEditableCell(order.id, 'part_price', `${formatNumber(order.part_price)} zl`, 'text-center font-medium', isAccepted);
+
+      case 'delivery_cost':
+        return renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-center', isAccepted);
+
+      case 'total_cost':
+        return (
+          <td className="px-3 py-3 text-center text-gray-900 dark:text-gray-100 font-medium bg-white dark:bg-gray-800 min-h-[48px]" key="total_cost">
+            {formatNumber(order.total_cost)} zl
+          </td>
+        );
+
+      case 'payment_type':
+        return renderPaymentTypeCell(order.id, order.payment_type || 'оплачено', isAccepted);
+
+      case 'cash_on_delivery':
+        return renderEditableCell(order.id, 'cash_on_delivery', `${formatNumber(order.cash_on_delivery)} zl`, 'text-center', isAccepted);
+
+      case 'order_date':
+        return renderDateCell(order.id, order.order_date, isAccepted);
+
+      case 'order_number':
+      case 'client_id':
+      case 'title':
+      case 'part_number':
+        return renderEditableCell(order.id, columnKey, value || '', 'text-gray-900 text-center', isAccepted);
+
+      default:
+        return renderEditableCell(order.id, columnKey, value || '', 'text-gray-900 text-center', isAccepted);
+    }
+  }
 
   return (
     <div className="h-full flex flex-col p-4 max-w-[98%] mx-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
@@ -1599,6 +1696,14 @@ export default function Orders() {
                   <Plus size={18} />
                   Додати рядок
                 </button>
+                <button
+                  onClick={toggleColumnView}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition text-sm font-medium"
+                  title={columnView === 'paska' ? 'Перейти на вид Мандей' : 'Перейти на вид Паска'}
+                >
+                  <LayoutGrid size={18} />
+                  {columnView === 'paska' ? 'Паска' : 'Мандей'}
+                </button>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={18} />
                   <input
@@ -1674,19 +1779,11 @@ export default function Orders() {
                       className="w-4 h-4 rounded cursor-pointer text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600"
                     />
                   </th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Статус</th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">V</th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ID клієнта</th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Назва</th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"><ExternalLink size={16} className="inline-block" /></th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Трекінг PL</th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Вартість запч.</th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Доставка</th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Всього</th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">№ запчастини</th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Тип оплати</th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Побранє</th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Дії</th>
+                  {getColumns(columnView).map((col) => (
+                    <th key={col.key} className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      {col.key === 'link' ? <ExternalLink size={16} className="inline-block" /> : col.label}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
@@ -1863,89 +1960,46 @@ export default function Orders() {
                       disabled={isAccepted}
                     />
                   </td>
-                  <td className="p-0 relative">
-                    <button
-                      onClick={(e) => {
-                        if (isAccepted) return;
-                        e.stopPropagation();
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const dropdownHeight = 400;
-                        const spaceBelow = window.innerHeight - rect.bottom;
-                        const spaceAbove = rect.top;
-
-                        const shouldShowAbove = spaceBelow < 200 && spaceAbove > spaceBelow;
-                        const top = shouldShowAbove
-                          ? Math.max(20, rect.top + window.scrollY - Math.min(dropdownHeight, spaceAbove - 20))
-                          : rect.bottom + window.scrollY;
-
-                        setDropdownPosition({ top, left: rect.left + window.scrollX });
-                        setOpenDropdown(openDropdown === order.id ? null : order.id);
-                      }}
-                      className={`w-full h-full px-3 py-3 text-xs font-semibold ${statusColors[order.status]} ${!isAccepted ? 'hover:opacity-80' : 'cursor-default'} transition flex items-center justify-center gap-1 min-h-[48px]`}
-                      disabled={isAccepted}
-                    >
-                      {statusLabels[order.status]}
-                      {!isAccepted && <ChevronDown size={14} />}
-                    </button>
-                  </td>
-                  <td className="px-3 py-3 text-center min-h-[48px]">
-                    <input
-                      type="checkbox"
-                      checked={order.verified}
-                      onChange={() => handleVerifiedChange(order.id, order.verified)}
-                      className={`w-5 h-5 rounded cursor-pointer transition ${
-                        order.verified
-                          ? 'accent-green-700 bg-green-700 dark:accent-green-600 dark:bg-green-600'
-                          : 'border-2 border-gray-800 dark:border-gray-400 accent-gray-800 dark:accent-gray-400 bg-white dark:bg-gray-600'
-                      }`}
-                      disabled={isAccepted}
-                    />
-                  </td>
-                  {renderEditableCell(order.id, 'client_id', order.client_id, 'text-gray-900 text-center', isAccepted)}
-                  {renderEditableCell(order.id, 'title', order.title, 'text-gray-900 text-center', isAccepted)}
-                  {renderLinkCell(order.id, order.link || '', isAccepted)}
-                  {renderTrackingCell(order.id, order, isAccepted)}
-                  {renderEditableCell(order.id, 'part_price', `${formatNumber(order.part_price)} zl`, 'text-center font-medium', isAccepted)}
-                  {renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-center', isAccepted)}
-                  <td className="px-3 py-3 text-center text-gray-900 dark:text-gray-100 font-medium bg-white dark:bg-gray-800 min-h-[48px]">
-                    {formatNumber(order.total_cost)} zl
-                  </td>
-                  {renderEditableCell(order.id, 'part_number', order.part_number || '', 'text-center', isAccepted)}
-                  {renderPaymentTypeCell(order.id, order.payment_type || 'оплачено', isAccepted)}
-                  {renderEditableCell(order.id, 'cash_on_delivery', `${formatNumber(order.cash_on_delivery)} zl`, 'text-center', isAccepted)}
-                  <td className="px-3 py-3 min-h-[48px]">
-                    <div className="flex gap-2 justify-center">
-                      {!isAccepted && (
-                        <button
-                          onClick={() => openEditModal(order)}
-                          className="px-3 py-2 bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-200 rounded text-xs font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/70 transition flex items-center gap-1"
-                        >
-                          <Edit size={14} />
-                          Ред.
-                        </button>
-                      )}
-                      {!order.archived && !isAccepted && (
-                        <button
-                          onClick={() => handleReturn(order)}
-                          className="px-3 py-2 bg-orange-50 text-orange-700 dark:bg-orange-900/50 dark:text-orange-200 rounded text-xs font-semibold hover:bg-orange-100 dark:hover:bg-orange-900/70 transition flex items-center gap-1"
-                          title="Створити повернення"
-                        >
-                          <RotateCcw size={14} />
-                          Пов.
-                        </button>
-                      )}
-                      {!isAccepted && (
-                        <button
-                          onClick={() => handleArchive(order.id)}
-                          className="px-3 py-2 bg-gray-50 text-gray-700 dark:bg-gray-700/50 dark:text-gray-300 rounded text-xs font-semibold hover:bg-gray-100 dark:hover:bg-gray-700/70 transition flex items-center gap-1"
-                          title={order.archived ? 'Розархівувати' : 'Архівувати'}
-                        >
-                          <Archive size={14} />
-                          {order.archived ? 'Розарх.' : 'Арх.'}
-                        </button>
-                      )}
-                    </div>
-                  </td>
+                  {getColumns(columnView).map((col) => {
+                    if (col.key === 'actions') {
+                      return (
+                        <td key="actions" className="px-3 py-3 min-h-[48px]">
+                          <div className="flex gap-2 justify-center">
+                            {!isAccepted && (
+                              <button
+                                onClick={() => openEditModal(order)}
+                                className="px-3 py-2 bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-200 rounded text-xs font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/70 transition flex items-center gap-1"
+                              >
+                                <Edit size={14} />
+                                Ред.
+                              </button>
+                            )}
+                            {!order.archived && !isAccepted && (
+                              <button
+                                onClick={() => handleReturn(order)}
+                                className="px-3 py-2 bg-orange-50 text-orange-700 dark:bg-orange-900/50 dark:text-orange-200 rounded text-xs font-semibold hover:bg-orange-100 dark:hover:bg-orange-900/70 transition flex items-center gap-1"
+                                title="Створити повернення"
+                              >
+                                <RotateCcw size={14} />
+                                Пов.
+                              </button>
+                            )}
+                            {!isAccepted && (
+                              <button
+                                onClick={() => handleArchive(order.id)}
+                                className="px-3 py-2 bg-gray-50 text-gray-700 dark:bg-gray-700/50 dark:text-gray-300 rounded text-xs font-semibold hover:bg-gray-100 dark:hover:bg-gray-700/70 transition flex items-center gap-1"
+                                title={order.archived ? 'Розархівувати' : 'Архівувати'}
+                              >
+                                <Archive size={14} />
+                                {order.archived ? 'Розарх.' : 'Арх.'}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      );
+                    }
+                    return renderColumnCell(order, col.key, isAccepted);
+                  })}
                 </tr>
                 );
                 })}
