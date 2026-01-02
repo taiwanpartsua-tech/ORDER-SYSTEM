@@ -53,13 +53,13 @@ Deno.serve(async (req: Request) => {
 
     const { data: profile } = await supabase
       .from('user_profiles')
-      .select('role')
+      .select('role, is_admin')
       .eq('id', user.id)
       .single();
 
-    if (profile?.role !== 'super_admin') {
+    if (profile?.role !== 'super_admin' && profile?.is_admin !== true) {
       return new Response(
-        JSON.stringify({ error: 'Доступ заборонено' }),
+        JSON.stringify({ error: 'Доступ заборонено. Тільки адміністратори можуть виконувати обслуговування.' }),
         {
           status: 403,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
