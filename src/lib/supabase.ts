@@ -60,6 +60,20 @@ export type Order = {
   verified: boolean;
   archived: boolean;
   archived_at?: string;
+  supplier_inspection_status?: 'ok' | 'damaged' | null;
+  supplier_notes?: string;
+  inspection_date?: string;
+  inspected_by?: string;
+  created_at: string;
+};
+
+export type OrderPhoto = {
+  id: string;
+  order_id: string;
+  photo_url: string;
+  uploaded_by?: string;
+  uploaded_at: string;
+  notes?: string;
   created_at: string;
 };
 

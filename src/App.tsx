@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Package, ClipboardCheck, TrendingUp, FileCheck, DollarSign, Moon, Sun, Settings, Users, History, LogOut } from 'lucide-react';
+import { Package, ClipboardCheck, TrendingUp, FileCheck, DollarSign, Moon, Sun, Settings, Users, History, LogOut, Camera } from 'lucide-react';
 import Orders from './components/Orders';
 import ActiveReceipts from './components/ActiveReceipts';
 import SupplierBalance from './components/SupplierBalance';
@@ -8,11 +8,12 @@ import CombinedSettlement from './components/CombinedSettlement';
 import TariffSettings from './components/TariffSettings';
 import AdminPanel from './components/AdminPanel';
 import AuditLog from './components/AuditLog';
+import SupplierInspection from './components/SupplierInspection';
 import Login from './components/Login';
 import { useTheme } from './contexts/ThemeContext';
 import { useAuth } from './contexts/AuthContext';
 
-type Tab = 'orders' | 'receipts' | 'management' | 'balance' | 'settlement' | 'settings' | 'admin' | 'audit';
+type Tab = 'orders' | 'receipts' | 'management' | 'balance' | 'settlement' | 'settings' | 'admin' | 'audit' | 'inspection';
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>(() => {
@@ -132,6 +133,17 @@ function App() {
               Взаєморозрахунок
             </button>
             <button
+              onClick={() => setActiveTab('inspection')}
+              className={`flex items-center gap-2 px-6 py-4 font-medium transition border-b-2 ${
+                activeTab === 'inspection'
+                  ? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-400'
+                  : 'border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600'
+              }`}
+            >
+              <Camera size={20} />
+              Перевірка товару
+            </button>
+            <button
               onClick={() => setActiveTab('settings')}
               className={`flex items-center gap-2 px-6 py-4 font-medium transition border-b-2 ${
                 activeTab === 'settings'
@@ -180,6 +192,7 @@ function App() {
         {activeTab === 'management' && <ReceiptManagement />}
         {activeTab === 'balance' && <SupplierBalance />}
         {activeTab === 'settlement' && <CombinedSettlement />}
+        {activeTab === 'inspection' && <SupplierInspection />}
         {activeTab === 'settings' && <TariffSettings />}
         {activeTab === 'admin' && <AdminPanel />}
         {activeTab === 'audit' && <AuditLog />}
