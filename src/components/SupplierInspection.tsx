@@ -85,6 +85,7 @@ export default function SupplierInspection() {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
+  const [inspectorName, setInspectorName] = useState<string>('');
 
   function getPaymentTypeColor(paymentType: string | null): string {
     switch (paymentType) {
@@ -168,6 +169,40 @@ export default function SupplierInspection() {
   useEffect(() => {
     loadOrders();
   }, []);
+
+  useEffect(() => {
+    async function loadInspectorName() {
+      if (selectedOrder?.inspected_by) {
+        const { data } = await supabase
+          .from('user_profiles')
+          .select('full_name')
+          .eq('id', selectedOrder.inspected_by)
+          .maybeSingle();
+
+        if (data?.full_name) {
+          setInspectorName(data.full_name);
+        } else {
+          setInspectorName('Невідомий менеджер');
+        }
+      } else {
+        setInspectorName('');
+      }
+    }
+
+    if (selectedOrder) {
+      loadInspectorName();
+      if (selectedOrder.supplier_inspection_status) {
+        setInspectionStatus(selectedOrder.supplier_inspection_status as 'ok' | 'damaged');
+      } else {
+        setInspectionStatus('ok');
+      }
+      if (selectedOrder.supplier_notes) {
+        setNotes(selectedOrder.supplier_notes);
+      } else {
+        setNotes('');
+      }
+    }
+  }, [selectedOrder]);
 
   async function loadOrders() {
     const { data } = await supabase
@@ -820,6 +855,20 @@ export default function SupplierInspection() {
                     Пошкодження
                   </button>
                 </div>
+                {inspectorName && (
+                  <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Перевірив:</span>
+                      <span className="font-medium text-blue-700 dark:text-blue-300">{inspectorName}</span>
+                    </div>
+                    {selectedOrder?.inspection_date && (
+                      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <span>Дата:</span>
+                        <span>{new Date(selectedOrder.inspection_date).toLocaleString('uk-UA')}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>
