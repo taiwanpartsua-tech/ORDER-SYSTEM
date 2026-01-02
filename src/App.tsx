@@ -20,7 +20,7 @@ function App() {
     return (savedTab as Tab) || 'orders';
   });
   const { isDark, toggleTheme } = useTheme();
-  const { user, profile, loading, signOut, isSuper } = useAuth();
+  const { user, profile, loading, signOut, isSuper, isAdmin } = useAuth();
 
   useEffect(() => {
     if (user) {
@@ -49,6 +49,7 @@ function App() {
             <div className="text-right">
               <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{profile?.full_name || profile?.email}</div>
               <div className="text-xs text-gray-500 dark:text-gray-400">
+                {profile?.is_admin && 'Адміністратор • '}
                 {profile?.role === 'super_admin' && 'Суперадміністратор'}
                 {profile?.role === 'supplier' && 'Постачальник'}
                 {profile?.role === 'customer' && 'Замовник'}
@@ -141,7 +142,7 @@ function App() {
               <Settings size={20} />
               Налаштування
             </button>
-            {isSuper && (
+            {isAdmin && (
               <>
                 <button
                   onClick={() => setActiveTab('admin')}
@@ -152,20 +153,22 @@ function App() {
                   }`}
                 >
                   <Users size={20} />
-                  Користувачі
-                </button>
-                <button
-                  onClick={() => setActiveTab('audit')}
-                  className={`flex items-center gap-2 px-6 py-4 font-medium transition border-b-2 ${
-                    activeTab === 'audit'
-                      ? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-400'
-                      : 'border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
-                >
-                  <History size={20} />
-                  Історія дій
+                  Адміністратор
                 </button>
               </>
+            )}
+            {isSuper && (
+              <button
+                onClick={() => setActiveTab('audit')}
+                className={`flex items-center gap-2 px-6 py-4 font-medium transition border-b-2 ${
+                  activeTab === 'audit'
+                    ? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-400'
+                    : 'border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600'
+                }`}
+              >
+                <History size={20} />
+                Історія дій
+              </button>
             )}
           </div>
         </div>
