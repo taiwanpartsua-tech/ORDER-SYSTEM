@@ -389,6 +389,38 @@ export default function SupplierInspection() {
 
     const inspectorId = selectedInspector || user.id;
 
+    const changes = [];
+
+    if (selectedOrder.inspected_by !== inspectorId) {
+      const oldInspectorName = selectedOrder.inspected_by
+        ? (await supabase
+            .from('user_profiles')
+            .select('full_name')
+            .eq('id', selectedOrder.inspected_by)
+            .maybeSingle()
+          ).data?.full_name || 'Невідомо'
+        : 'Не обрано';
+
+      const newInspectorName = inspectorId
+        ? (await supabase
+            .from('user_profiles')
+            .select('full_name')
+            .eq('id', inspectorId)
+            .maybeSingle()
+          ).data?.full_name || 'Невідомо'
+        : 'Не обрано';
+
+      changes.push({
+        receipt_id: null,
+        order_id: selectedOrder.id,
+        field_name: 'Менеджер (перевіряв)',
+        old_value: oldInspectorName,
+        new_value: newInspectorName,
+        changed_by: user.id,
+        changed_at: new Date().toISOString()
+      });
+    }
+
     const { error } = await supabase
       .from('orders')
       .update({
@@ -403,6 +435,16 @@ export default function SupplierInspection() {
       showError('Помилка збереження перевірки');
       console.error(error);
       return;
+    }
+
+    if (changes.length > 0) {
+      const { error: changesError } = await supabase
+        .from('receipt_field_changes')
+        .insert(changes);
+
+      if (changesError) {
+        console.error('Помилка збереження історії змін:', changesError);
+      }
     }
 
     showSuccess('Перевірку збережено');
