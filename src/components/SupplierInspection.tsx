@@ -9,6 +9,12 @@ type OrderWithPhotos = OrderWithSupplier & {
   photos: OrderPhoto[];
 };
 
+type UserProfile = {
+  id: string;
+  full_name: string;
+  role: string;
+};
+
 type EditableFieldProps = {
   fieldName: string;
   value: any;
@@ -86,6 +92,8 @@ export default function SupplierInspection() {
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [inspectorName, setInspectorName] = useState<string>('');
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [selectedInspector, setSelectedInspector] = useState<string>('');
 
   function getPaymentTypeColor(paymentType: string | null): string {
     switch (paymentType) {
@@ -168,7 +176,19 @@ export default function SupplierInspection() {
 
   useEffect(() => {
     loadOrders();
+    loadUsers();
   }, []);
+
+  async function loadUsers() {
+    const { data } = await supabase
+      .from('user_profiles')
+      .select('id, full_name, role')
+      .order('full_name');
+
+    if (data) {
+      setUsers(data);
+    }
+  }
 
   useEffect(() => {
     async function loadInspectorName() {
@@ -200,6 +220,11 @@ export default function SupplierInspection() {
         setNotes(selectedOrder.supplier_notes);
       } else {
         setNotes('');
+      }
+      if (selectedOrder.inspected_by) {
+        setSelectedInspector(selectedOrder.inspected_by);
+      } else {
+        setSelectedInspector('');
       }
     }
   }, [selectedOrder]);
@@ -362,13 +387,15 @@ export default function SupplierInspection() {
       return;
     }
 
+    const inspectorId = selectedInspector || user.id;
+
     const { error } = await supabase
       .from('orders')
       .update({
         supplier_inspection_status: inspectionStatus,
         supplier_notes: notes,
         inspection_date: new Date().toISOString(),
-        inspected_by: user.id
+        inspected_by: inspectorId
       })
       .eq('id', selectedOrder.id);
 
@@ -383,6 +410,7 @@ export default function SupplierInspection() {
     setSelectedOrder(null);
     setNotes('');
     setPreviewPhotos([]);
+    setSelectedInspector('');
   }
 
   async function deletePhoto(photoId: string, photoUrl: string) {
@@ -590,7 +618,10 @@ export default function SupplierInspection() {
                 Перевірка: {selectedOrder.tracking_pl || 'Трекінг PL'}
               </h3>
               <button
-                onClick={() => setSelectedOrder(null)}
+                onClick={() => {
+                  setSelectedOrder(null);
+                  setSelectedInspector('');
+                }}
                 className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
               >
                 <X size={20} />
@@ -855,18 +886,30 @@ export default function SupplierInspection() {
                     Пошкодження
                   </button>
                 </div>
-                {inspectorName && (
-                  <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">Перевірив:</span>
-                      <span className="font-medium text-blue-700 dark:text-blue-300">{inspectorName}</span>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Менеджер (перевіряв)
+                </label>
+                <select
+                  value={selectedInspector}
+                  onChange={(e) => setSelectedInspector(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="">Не обрано</option>
+                  {users.map(user => (
+                    <option key={user.id} value={user.id}>
+                      {user.full_name} ({user.role})
+                    </option>
+                  ))}
+                </select>
+                {inspectorName && selectedOrder?.inspection_date && (
+                  <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                      <span>Останнє збереження:</span>
+                      <span>{new Date(selectedOrder.inspection_date).toLocaleString('uk-UA')}</span>
                     </div>
-                    {selectedOrder?.inspection_date && (
-                      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        <span>Дата:</span>
-                        <span>{new Date(selectedOrder.inspection_date).toLocaleString('uk-UA')}</span>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
