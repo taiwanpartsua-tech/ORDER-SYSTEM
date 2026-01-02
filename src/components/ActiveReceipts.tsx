@@ -241,6 +241,12 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
         return;
       }
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        showError('Помилка авторизації. Увійдіть знову.');
+        return;
+      }
+
       let supplier = orders[0].supplier;
 
       if (!supplier) {
@@ -291,7 +297,8 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
           cash_on_delivery_pln: totals.cash_on_delivery_pln,
           transport_cost_usd: totals.transport_cost_usd,
           total_pln,
-          total_usd: totals.transport_cost_usd
+          total_usd: totals.transport_cost_usd,
+          created_by: user.id
         }])
         .select()
         .single();

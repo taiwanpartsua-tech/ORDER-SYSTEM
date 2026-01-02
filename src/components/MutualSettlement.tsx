@@ -301,12 +301,19 @@ export default function MutualSettlement() {
     const receipt = receipts.find(r => r.id === receiptId);
     if (!receipt) return;
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      showError('Помилка авторизації. Увійдіть знову.');
+      return;
+    }
+
     const { error } = await supabase
       .from('active_receipts')
       .update({
         status: 'settled',
         settled_date: new Date().toISOString(),
-        settlement_type: 'cash'
+        settlement_type: 'cash',
+        settled_by: user.id
       })
       .eq('id', receiptId);
 

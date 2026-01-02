@@ -379,6 +379,12 @@ export default function CombinedSettlement() {
     const receipt = cashReceipts.find(r => r.id === receiptId) || cardReceipts.find(r => r.id === receiptId);
     if (!receipt) return;
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      showError('Помилка авторизації. Увійдіть знову.');
+      return;
+    }
+
     const receiptCashPln = (receipt.receipt_cost_pln || 0) + (receipt.cash_on_delivery_pln || 0);
     const transportUsd = receipt.transport_cost_usd || 0;
 
@@ -394,7 +400,7 @@ export default function CombinedSettlement() {
         description: `Нарахування за накладну №${receipt.receipt_number}`,
         transaction_date: new Date().toISOString().split('T')[0],
         receipt_id: receipt.id,
-        created_by: 'system'
+        created_by: user.id
       });
 
     if (cashTxError) {
@@ -431,7 +437,8 @@ export default function CombinedSettlement() {
       .update({
         status: 'settled',
         settled_date: new Date().toISOString(),
-        settlement_type: null
+        settlement_type: null,
+        settled_by: user.id
       })
       .eq('id', receiptId);
 

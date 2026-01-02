@@ -206,6 +206,12 @@ export default function CardMutualSettlement() {
     const receipt = receipts.find(r => r.id === receiptId);
     if (!receipt) return;
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      showError('Помилка авторизації. Увійдіть знову.');
+      return;
+    }
+
     const orders = receiptOrders[receiptId] || [];
     const paidOrders = orders.filter(o => o.verified && o.payment_type === 'оплачено');
 
@@ -229,7 +235,7 @@ export default function CardMutualSettlement() {
         description: `Нарахування за накладну №${receipt.receipt_number} (Запчастини: ${totalPartsPln.toFixed(2)} zł, Доставка: ${totalDeliveryPln.toFixed(2)} zł)`,
         transaction_date: new Date().toISOString().split('T')[0],
         receipt_id: receipt.id,
-        created_by: 'system'
+        created_by: user.id
       });
 
     if (txError) {
@@ -243,7 +249,8 @@ export default function CardMutualSettlement() {
       .update({
         status: 'settled',
         settled_date: new Date().toISOString(),
-        settlement_type: 'card'
+        settlement_type: 'card',
+        settled_by: user.id
       })
       .eq('id', receiptId);
 

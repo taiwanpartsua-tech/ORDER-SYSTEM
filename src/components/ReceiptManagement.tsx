@@ -21,8 +21,23 @@ type Receipt = {
   approved_at?: string;
   settlement_date?: string;
   settled_date?: string;
+  created_by?: string;
+  approved_by?: string;
+  settled_by?: string;
   supplier?: {
     name: string;
+  };
+  created_by_profile?: {
+    full_name: string | null;
+    email: string;
+  };
+  approved_by_profile?: {
+    full_name: string | null;
+    email: string;
+  };
+  settled_by_profile?: {
+    full_name: string | null;
+    email: string;
   };
 };
 
@@ -97,7 +112,10 @@ export default function ReceiptManagement() {
       .from('active_receipts')
       .select(`
         *,
-        supplier:suppliers(name)
+        supplier:suppliers(name),
+        created_by_profile:user_profiles!active_receipts_created_by_fkey(full_name, email),
+        approved_by_profile:user_profiles!active_receipts_approved_by_fkey(full_name, email),
+        settled_by_profile:user_profiles!active_receipts_settled_by_fkey(full_name, email)
       `)
       .in('status', ['draft', 'approved'])
       .order('created_at', { ascending: false });
@@ -308,6 +326,12 @@ export default function ReceiptManagement() {
   async function sendToSupplier(receiptId: string) {
     await saveChanges(receiptId);
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      showError('Помилка авторизації. Увійдіть знову.');
+      return;
+    }
+
     const { data: receipt } = await supabase
       .from('active_receipts')
       .select('receipt_number')
@@ -375,7 +399,8 @@ export default function ReceiptManagement() {
       .from('active_receipts')
       .update({
         status: 'approved',
-        approved_at: new Date().toISOString()
+        approved_at: new Date().toISOString(),
+        approved_by: user.id
       })
       .eq('id', receiptId);
 
@@ -818,6 +843,11 @@ export default function ReceiptManagement() {
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
                     PLN: {formatNumber(receipt.total_pln)} | USD: {formatNumber(receipt.total_usd)}
+                    {receipt.created_by_profile && (
+                      <span className="ml-3 text-blue-600 dark:text-blue-400">
+                        Створив: {receipt.created_by_profile.full_name || receipt.created_by_profile.email}
+                      </span>
+                    )}
                   </p>
                 </div>
               </button>
@@ -1051,6 +1081,16 @@ export default function ReceiptManagement() {
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
                     PLN: {formatNumber(receipt.total_pln)} | USD: {formatNumber(receipt.total_usd)}
+                    {receipt.created_by_profile && (
+                      <span className="ml-3 text-blue-600 dark:text-blue-400">
+                        Створив: {receipt.created_by_profile.full_name || receipt.created_by_profile.email}
+                      </span>
+                    )}
+                    {receipt.approved_by_profile && (
+                      <span className="ml-3 text-green-600 dark:text-green-400">
+                        Затвердив: {receipt.approved_by_profile.full_name || receipt.approved_by_profile.email}
+                      </span>
+                    )}
                   </p>
                 </div>
               </button>
