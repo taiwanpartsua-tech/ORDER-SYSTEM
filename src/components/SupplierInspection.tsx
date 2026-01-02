@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase, Order, OrderPhoto, Supplier } from '../lib/supabase';
-import { Search, XCircle, Upload, Camera, Check, AlertTriangle, X, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import { Search, XCircle, Upload, Camera, Check, AlertTriangle, X, ExternalLink, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 
 type OrderWithSupplier = Order & { supplier: Supplier };
@@ -18,6 +18,7 @@ export default function SupplierInspection() {
   const [notes, setNotes] = useState('');
   const [uploading, setUploading] = useState(false);
   const [previewPhotos, setPreviewPhotos] = useState<string[]>([]);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   function getPaymentTypeColor(paymentType: string | null): string {
     switch (paymentType) {
@@ -35,6 +36,25 @@ export default function SupplierInspection() {
         return 'border-l-4 border-l-gray-300 bg-white dark:bg-gray-800';
     }
   }
+
+  function toggleGroupCollapse(groupKey: string) {
+    const newCollapsed = new Set(collapsedGroups);
+    if (newCollapsed.has(groupKey)) {
+      newCollapsed.delete(groupKey);
+    } else {
+      newCollapsed.add(groupKey);
+    }
+    setCollapsedGroups(newCollapsed);
+  }
+
+  const toggleAllGroups = () => {
+    const allTypes = Object.keys(groupedOrders);
+    if (collapsedGroups.size === allTypes.length) {
+      setCollapsedGroups(new Set());
+    } else {
+      setCollapsedGroups(new Set(allTypes));
+    }
+  };
 
   useEffect(() => {
     loadOrders();
@@ -265,40 +285,72 @@ export default function SupplierInspection() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
           <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">Список замовлень</h3>
 
-          <div className="mb-4 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={18} />
-            <input
-              type="text"
-              placeholder="Пошук за №, ID, назвою, трекінгом, артикулом, постачальником, типом оплати або сумою..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-9 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-sm"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition"
-              >
-                <XCircle size={16} />
-              </button>
-            )}
+          <div className="mb-4 space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={18} />
+              <input
+                type="text"
+                placeholder="Пошук за №, ID, назвою, трекінгом, артикулом, постачальником, типом оплати або сумою..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-9 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-sm"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition"
+                >
+                  <XCircle size={16} />
+                </button>
+              )}
+            </div>
+
+            <button
+              onClick={toggleAllGroups}
+              className="w-full px-3 py-2 text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition flex items-center justify-center gap-2"
+            >
+              {collapsedGroups.size === Object.keys(groupedOrders).length ? (
+                <>
+                  <ChevronDown size={16} />
+                  Розгорнути всі
+                </>
+              ) : (
+                <>
+                  <ChevronUp size={16} />
+                  Згорнути всі
+                </>
+              )}
+            </button>
           </div>
 
           <div className="space-y-4 max-h-[600px] overflow-y-auto">
-            {sortedPaymentTypes.map(paymentType => (
-              <div key={paymentType}>
-                <div className="sticky top-0 bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-lg mb-2 z-10">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-gray-800 dark:text-gray-200 text-sm">
-                      {paymentType}
-                    </span>
-                    <span className="text-xs text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 px-2 py-1 rounded">
-                      {groupedOrders[paymentType].length}
-                    </span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  {groupedOrders[paymentType].map(order => (
+            {sortedPaymentTypes.map(paymentType => {
+              const isCollapsed = collapsedGroups.has(paymentType);
+              return (
+                <div key={paymentType}>
+                  <button
+                    onClick={() => toggleGroupCollapse(paymentType)}
+                    className="sticky top-0 w-full bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-lg mb-2 z-10 hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {isCollapsed ? (
+                          <ChevronDown size={18} className="text-gray-600 dark:text-gray-300" />
+                        ) : (
+                          <ChevronUp size={18} className="text-gray-600 dark:text-gray-300" />
+                        )}
+                        <span className="font-semibold text-gray-800 dark:text-gray-200 text-sm">
+                          {paymentType}
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 px-2 py-1 rounded">
+                        {groupedOrders[paymentType].length}
+                      </span>
+                    </div>
+                  </button>
+                  {!isCollapsed && (
+                    <div className="space-y-2">
+                      {groupedOrders[paymentType].map(order => (
                     <div
                       key={order.id}
                       onClick={() => selectOrder(order)}
@@ -379,9 +431,11 @@ export default function SupplierInspection() {
                       </div>
                     </div>
                   ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
