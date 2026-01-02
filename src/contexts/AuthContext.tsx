@@ -8,11 +8,13 @@ type AuthContextType = {
   profile: UserProfile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName?: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string, inviteCode: string) => Promise<void>;
   signOut: () => Promise<void>;
   isSuper: boolean;
   isSupplier: boolean;
   isCustomer: boolean;
+  isAdmin: boolean;
+  isApproved: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -56,28 +58,79 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function signIn(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
 
     if (error) throw error;
 
+    // Check user status
+    if (data.user) {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('status, is_active')
+        .eq('id', data.user.id)
+        .maybeSingle();
+
+      if (profile?.status === 'blocked') {
+        await supabase.auth.signOut();
+        throw new Error('Ваш аккаунт заблоковано. Зв\'яжіться з адміністратором.');
+      }
+
+      if (profile?.status === 'pending') {
+        await supabase.auth.signOut();
+        throw new Error('Ваш аккаунт очікує підтвердження адміністратора.');
+      }
+
+      if (!profile?.is_active) {
+        await supabase.auth.signOut();
+        throw new Error('Ваш аккаунт деактивовано.');
+      }
+    }
+
     await logAction('login');
   }
 
-  async function signUp(email: string, password: string, fullName?: string) {
-    const { error } = await supabase.auth.signUp({
+  async function signUp(email: string, password: string, fullName: string, inviteCode: string) {
+    // Verify invite code
+    const { data: invite, error: inviteError } = await supabase
+      .from('invite_codes')
+      .select('*')
+      .eq('code', inviteCode)
+      .eq('is_used', false)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
+
+    if (inviteError || !invite) {
+      throw new Error('Невірний або прострочений інвайт-код.');
+    }
+
+    // Create user
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          full_name: fullName || ''
+          full_name: fullName,
+          invite_code: inviteCode,
+          invited_by: invite.created_by
         }
       }
     });
 
     if (error) throw error;
+
+    // Mark invite code as used
+    if (data.user) {
+      await supabase
+        .from('invite_codes')
+        .update({
+          is_used: true,
+          used_by: data.user.id
+        })
+        .eq('id', invite.id);
+    }
   }
 
   async function signOut() {
@@ -89,6 +142,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isSuper = profile?.role === 'super_admin';
   const isSupplier = profile?.role === 'supplier';
   const isCustomer = profile?.role === 'customer';
+  const isAdmin = profile?.is_admin === true;
+  const isApproved = profile?.status === 'approved';
 
   return (
     <AuthContext.Provider value={{
@@ -100,7 +155,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut,
       isSuper,
       isSupplier,
-      isCustomer
+      isCustomer,
+      isAdmin,
+      isApproved
     }}>
       {children}
     </AuthContext.Provider>

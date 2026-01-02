@@ -8,6 +8,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,15 +21,26 @@ export default function Login() {
 
     try {
       if (isSignUp) {
-        await signUp(email, password, fullName);
-        setSuccess('Реєстрацію успішно завершено! Тепер ви можете увійти.');
+        if (!inviteCode.trim()) {
+          setError('Введіть інвайт-код для реєстрації.');
+          setLoading(false);
+          return;
+        }
+        if (!fullName.trim()) {
+          setError('Введіть ваше ім\'я.');
+          setLoading(false);
+          return;
+        }
+        await signUp(email, password, fullName, inviteCode);
+        setSuccess('Реєстрацію успішно завершено! Очікуйте підтвердження адміністратора.');
         setEmail('');
         setPassword('');
         setFullName('');
+        setInviteCode('');
         setTimeout(() => {
           setIsSignUp(false);
           setSuccess('');
-        }, 2000);
+        }, 3000);
       } else {
         await signIn(email, password);
       }
@@ -83,18 +95,34 @@ export default function Login() {
           </div>
 
           {isSignUp && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Ім'я (необов'язково)
-              </label>
-              <input
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                placeholder="Ваше ім'я"
-              />
-            </div>
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Ім'я
+                </label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  placeholder="Ваше ім'я"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Інвайт-код
+                </label>
+                <input
+                  type="text"
+                  value={inviteCode}
+                  onChange={(e) => setInviteCode(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  placeholder="Код запрошення"
+                />
+              </div>
+            </>
           )}
 
           <div>

@@ -194,8 +194,21 @@ export type UserProfile = {
   full_name: string | null;
   role: 'super_admin' | 'supplier' | 'customer';
   is_active: boolean;
+  status: 'pending' | 'approved' | 'blocked';
+  is_admin: boolean;
+  invited_by: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type InviteCode = {
+  id: string;
+  code: string;
+  created_by: string | null;
+  used_by: string | null;
+  is_used: boolean;
+  expires_at: string;
+  created_at: string;
 };
 
 export type AuditLog = {
