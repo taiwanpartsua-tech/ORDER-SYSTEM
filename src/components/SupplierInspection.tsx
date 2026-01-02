@@ -340,18 +340,28 @@ export default function SupplierInspection() {
                           <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             {order.title || order.part_number}
                           </div>
-                          {(order.cash_on_delivery || order.total_cost) && (
+                          {(order.part_price || order.delivery_cost || order.total_cost || order.cash_on_delivery) && (
                             <div className="text-xs text-gray-600 dark:text-gray-300 mt-1 space-y-0.5">
-                              {order.cash_on_delivery && (
+                              {order.part_price ? (
                                 <div>
-                                  Накладений платіж: <span className="font-medium">{order.cash_on_delivery} грн</span>
+                                  Запчастина: <span className="font-medium">{order.part_price} zl</span>
                                 </div>
-                              )}
-                              {order.total_cost && (
+                              ) : null}
+                              {order.delivery_cost ? (
                                 <div>
-                                  Загальна вартість: <span className="font-medium">{order.total_cost} грн</span>
+                                  Доставка: <span className="font-medium">{order.delivery_cost} zl</span>
                                 </div>
-                              )}
+                              ) : null}
+                              {order.total_cost ? (
+                                <div>
+                                  Всього: <span className="font-medium">{order.total_cost} zl</span>
+                                </div>
+                              ) : null}
+                              {order.cash_on_delivery ? (
+                                <div>
+                                  Побранє: <span className="font-medium">{order.cash_on_delivery} zl</span>
+                                </div>
+                              ) : null}
                             </div>
                           )}
                         </div>
@@ -402,30 +412,60 @@ export default function SupplierInspection() {
                   <span className="font-medium text-gray-900 dark:text-gray-100">{selectedOrder.supplier.name}</span>
                 </div>
               )}
-              {selectedOrder.payment_type && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-300">Тип оплати:</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">{selectedOrder.payment_type}</span>
-                </div>
-              )}
-              {selectedOrder.cash_on_delivery && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-300">Накладений платіж:</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">{selectedOrder.cash_on_delivery} грн</span>
-                </div>
-              )}
-              {selectedOrder.total_cost && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-300">Загальна вартість:</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">{selectedOrder.total_cost} грн</span>
-                </div>
-              )}
               {(selectedOrder.title || selectedOrder.part_number) && (
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-300">Товар:</span>
                   <span className="font-medium text-gray-900 dark:text-gray-100">{selectedOrder.title || selectedOrder.part_number}</span>
                 </div>
               )}
+              {selectedOrder.payment_type && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-300">Тип оплати:</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">{selectedOrder.payment_type}</span>
+                </div>
+              )}
+              {selectedOrder.part_price ? (
+                <div className="flex justify-between border-t pt-2 dark:border-gray-600">
+                  <span className="text-gray-600 dark:text-gray-300">Вартість запчастини:</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">{selectedOrder.part_price} zl</span>
+                </div>
+              ) : null}
+              {selectedOrder.delivery_cost ? (
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-300">Вартість доставки:</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">{selectedOrder.delivery_cost} zl</span>
+                </div>
+              ) : null}
+              {selectedOrder.total_cost ? (
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-300">Всього:</span>
+                  <span className="font-bold text-gray-900 dark:text-gray-100">{selectedOrder.total_cost} zl</span>
+                </div>
+              ) : null}
+              {selectedOrder.cash_on_delivery ? (
+                <div className="flex justify-between border-t pt-2 dark:border-gray-600">
+                  <span className="text-gray-600 dark:text-gray-300">Побранє (Накладений платіж):</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">{selectedOrder.cash_on_delivery} zl</span>
+                </div>
+              ) : null}
+              {selectedOrder.received_pln ? (
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-300">Отримано PLN:</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">{selectedOrder.received_pln} zl</span>
+                </div>
+              ) : null}
+              {selectedOrder.transport_cost_usd ? (
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-300">Транспорт:</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">{selectedOrder.transport_cost_usd} $</span>
+                </div>
+              ) : null}
+              {selectedOrder.weight_kg ? (
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-300">Вага:</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">{selectedOrder.weight_kg} кг</span>
+                </div>
+              ) : null}
             </div>
 
             <div className="space-y-4">
