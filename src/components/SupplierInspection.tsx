@@ -19,6 +19,23 @@ export default function SupplierInspection() {
   const [uploading, setUploading] = useState(false);
   const [previewPhotos, setPreviewPhotos] = useState<string[]>([]);
 
+  function getPaymentTypeColor(paymentType: string | null): string {
+    switch (paymentType) {
+      case 'накладений платіж':
+        return 'border-l-4 border-l-orange-500 bg-orange-50/50 dark:bg-orange-900/10';
+      case 'оплачено':
+        return 'border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-900/10';
+      case 'оплачено карткою':
+        return 'border-l-4 border-l-blue-500 bg-blue-50/50 dark:bg-blue-900/10';
+      case 'оплачено переказом':
+        return 'border-l-4 border-l-teal-500 bg-teal-50/50 dark:bg-teal-900/10';
+      case 'не обрано':
+        return 'border-l-4 border-l-gray-400 bg-gray-50/50 dark:bg-gray-900/10';
+      default:
+        return 'border-l-4 border-l-gray-300 bg-white dark:bg-gray-800';
+    }
+  }
+
   useEffect(() => {
     loadOrders();
   }, []);
@@ -64,6 +81,33 @@ export default function SupplierInspection() {
       (order.cash_on_delivery && order.cash_on_delivery.toString().includes(searchLower)) ||
       (order.total_cost && order.total_cost.toString().includes(searchLower))
     );
+  });
+
+  const groupedOrders = filteredOrders.reduce((groups, order) => {
+    const paymentType = order.payment_type || 'Не вказано';
+    if (!groups[paymentType]) {
+      groups[paymentType] = [];
+    }
+    groups[paymentType].push(order);
+    return groups;
+  }, {} as Record<string, OrderWithPhotos[]>);
+
+  const paymentTypeOrder = [
+    'накладений платіж',
+    'оплачено карткою',
+    'оплачено переказом',
+    'оплачено',
+    'не обрано',
+    'Не вказано'
+  ];
+
+  const sortedPaymentTypes = Object.keys(groupedOrders).sort((a, b) => {
+    const indexA = paymentTypeOrder.indexOf(a);
+    const indexB = paymentTypeOrder.indexOf(b);
+    if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
   });
 
   function selectOrder(order: OrderWithPhotos) {
@@ -240,80 +284,91 @@ export default function SupplierInspection() {
             )}
           </div>
 
-          <div className="space-y-2 max-h-[600px] overflow-y-auto">
-            {filteredOrders.map(order => (
-              <div
-                key={order.id}
-                onClick={() => selectOrder(order)}
-                className={`p-3 border rounded-lg cursor-pointer transition ${
-                  selectedOrder?.id === order.id
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                } ${
-                  order.supplier_inspection_status === 'ok'
-                    ? 'bg-green-50 dark:bg-green-900/10'
-                    : order.supplier_inspection_status === 'damaged'
-                    ? 'bg-red-50 dark:bg-red-900/10'
-                    : ''
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900 dark:text-gray-100">
-                        {order.tracking_pl || 'Трекінг PL'}
-                      </span>
-                      {order.supplier_inspection_status === 'ok' && (
-                        <Check size={16} className="text-green-600" />
-                      )}
-                      {order.supplier_inspection_status === 'damaged' && (
-                        <AlertTriangle size={16} className="text-red-600" />
-                      )}
-                      {order.photos.length > 0 && (
-                        <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
-                          <Camera size={14} />
-                          {order.photos.length}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                      {order.client_id && <span>ID: {order.client_id}</span>}
-                      {order.supplier && <span className="ml-2">• {order.supplier.name}</span>}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {order.title || order.part_number}
-                    </div>
-                    {(order.payment_type || order.cash_on_delivery || order.total_cost) && (
-                      <div className="text-xs text-gray-600 dark:text-gray-300 mt-1 space-y-0.5">
-                        {order.payment_type && (
-                          <div>
-                            Оплата: <span className="font-medium">{order.payment_type}</span>
+          <div className="space-y-4 max-h-[600px] overflow-y-auto">
+            {sortedPaymentTypes.map(paymentType => (
+              <div key={paymentType}>
+                <div className="sticky top-0 bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-lg mb-2 z-10">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-gray-800 dark:text-gray-200 text-sm">
+                      {paymentType}
+                    </span>
+                    <span className="text-xs text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 px-2 py-1 rounded">
+                      {groupedOrders[paymentType].length}
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {groupedOrders[paymentType].map(order => (
+                    <div
+                      key={order.id}
+                      onClick={() => selectOrder(order)}
+                      className={`p-3 rounded-lg cursor-pointer transition ${getPaymentTypeColor(order.payment_type)} ${
+                        selectedOrder?.id === order.id
+                          ? 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-800'
+                          : 'hover:shadow-md'
+                      } ${
+                        order.supplier_inspection_status === 'ok'
+                          ? 'ring-1 ring-green-500'
+                          : order.supplier_inspection_status === 'damaged'
+                          ? 'ring-1 ring-red-500'
+                          : ''
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-900 dark:text-gray-100">
+                              {order.tracking_pl || 'Трекінг PL'}
+                            </span>
+                            {order.supplier_inspection_status === 'ok' && (
+                              <Check size={16} className="text-green-600" />
+                            )}
+                            {order.supplier_inspection_status === 'damaged' && (
+                              <AlertTriangle size={16} className="text-red-600" />
+                            )}
+                            {order.photos.length > 0 && (
+                              <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+                                <Camera size={14} />
+                                {order.photos.length}
+                              </span>
+                            )}
                           </div>
-                        )}
-                        {order.cash_on_delivery && (
-                          <div>
-                            Накладений платіж: <span className="font-medium">{order.cash_on_delivery} грн</span>
+                          <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                            {order.client_id && <span>ID: {order.client_id}</span>}
+                            {order.supplier && <span className="ml-2">• {order.supplier.name}</span>}
                           </div>
-                        )}
-                        {order.total_cost && (
-                          <div>
-                            Загальна вартість: <span className="font-medium">{order.total_cost} грн</span>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {order.title || order.part_number}
                           </div>
+                          {(order.cash_on_delivery || order.total_cost) && (
+                            <div className="text-xs text-gray-600 dark:text-gray-300 mt-1 space-y-0.5">
+                              {order.cash_on_delivery && (
+                                <div>
+                                  Накладений платіж: <span className="font-medium">{order.cash_on_delivery} грн</span>
+                                </div>
+                              )}
+                              {order.total_cost && (
+                                <div>
+                                  Загальна вартість: <span className="font-medium">{order.total_cost} грн</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        {order.link && (
+                          <a
+                            href={order.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-900 p-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <ExternalLink size={16} />
+                          </a>
                         )}
                       </div>
-                    )}
-                  </div>
-                  {order.link && (
-                    <a
-                      href={order.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-900 p-1"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <ExternalLink size={16} />
-                    </a>
-                  )}
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
