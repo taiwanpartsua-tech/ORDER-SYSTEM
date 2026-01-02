@@ -36,6 +36,7 @@ export default function Orders() {
   const [orders, setOrders] = useState<(Order & { supplier: Supplier })[]>([]);
   const [acceptedOrders, setAcceptedOrders] = useState<AcceptedOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [managers, setManagers] = useState<Array<{ id: string; full_name: string; email: string }>>([]);
   const [returnsCount, setReturnsCount] = useState<number>(0);
   const [artTransId, setArtTransId] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -89,6 +90,7 @@ export default function Orders() {
   const [newRowData, setNewRowData] = useState({
     order_number: '',
     supplier_id: '',
+    manager_id: '',
     status: 'в роботі на сьогодні',
     order_date: new Date().toISOString().split('T')[0],
     notes: '',
@@ -115,6 +117,7 @@ export default function Orders() {
   const [formData, setFormData] = useState({
     order_number: '',
     supplier_id: '',
+    manager_id: '',
     status: 'в роботі на сьогодні',
     order_date: new Date().toISOString().split('T')[0],
     notes: '',
@@ -138,6 +141,7 @@ export default function Orders() {
     loadOrders();
     loadAcceptedOrders();
     loadSuppliers();
+    loadManagers();
     loadArtTransId();
     loadReturnsCount();
     loadTariffSettings();
@@ -277,7 +281,7 @@ export default function Orders() {
       console.log('🔄 Починаємо завантаження замовлень...');
       const { data, error } = await supabase
         .from('orders')
-        .select('*, supplier:suppliers(*)')
+        .select('*, supplier:suppliers(*), manager:user_profiles!manager_id(id, full_name, email)')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -352,6 +356,20 @@ export default function Orders() {
     } else if (data) {
       console.log('Постачальники завантажено:', data.length);
       setSuppliers(data);
+    }
+  }
+
+  async function loadManagers() {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('id, full_name, email')
+      .order('full_name');
+
+    if (error) {
+      console.error('Помилка завантаження менеджерів:', error);
+    } else if (data) {
+      console.log('Менеджерів завантажено:', data.length);
+      setManagers(data);
     }
   }
 
@@ -875,6 +893,7 @@ export default function Orders() {
     setFormData({
       order_number: order.order_number,
       supplier_id: order.supplier_id,
+      manager_id: order.manager_id || '',
       status: order.status,
       order_date: order.order_date,
       notes: order.notes,
@@ -904,6 +923,7 @@ export default function Orders() {
     setFormData({
       order_number: '',
       supplier_id: artTransId,
+      manager_id: '',
       status: 'в роботі на сьогодні',
       order_date: new Date().toISOString().split('T')[0],
       notes: '',
@@ -1314,32 +1334,37 @@ export default function Orders() {
   });
 
   const handleExportOrders = () => {
-    const dataToExport = filteredOrders.map(order => ({
-      client_id: order.client_id || '',
-      order_number: order.order_number || '',
-      supplier: order.supplier?.name || '',
-      status: order.status,
-      order_date: order.order_date,
-      title: order.title || '',
-      link: order.link || '',
-      tracking_pl: order.tracking_pl || '',
-      part_price: order.part_price,
-      delivery_cost: order.delivery_cost,
-      total_cost: order.total_cost,
-      part_number: order.part_number || '',
-      payment_type: order.payment_type || '',
-      cash_on_delivery: order.cash_on_delivery,
-      received_pln: order.received_pln,
-      transport_cost_usd: order.transport_cost_usd,
-      weight_kg: order.weight_kg,
-      verified: order.verified ? 'Так' : 'Ні',
-      notes: order.notes || ''
-    }));
+    const dataToExport = filteredOrders.map(order => {
+      const manager = (order as any).manager;
+      return {
+        client_id: order.client_id || '',
+        order_number: order.order_number || '',
+        supplier: order.supplier?.name || '',
+        manager: manager ? (manager.full_name || manager.email) : '',
+        status: order.status,
+        order_date: order.order_date,
+        title: order.title || '',
+        link: order.link || '',
+        tracking_pl: order.tracking_pl || '',
+        part_price: order.part_price,
+        delivery_cost: order.delivery_cost,
+        total_cost: order.total_cost,
+        part_number: order.part_number || '',
+        payment_type: order.payment_type || '',
+        cash_on_delivery: order.cash_on_delivery,
+        received_pln: order.received_pln,
+        transport_cost_usd: order.transport_cost_usd,
+        weight_kg: order.weight_kg,
+        verified: order.verified ? 'Так' : 'Ні',
+        notes: order.notes || ''
+      };
+    });
 
     const headers = {
       client_id: 'ID Клієнта',
       order_number: '№ Замовлення',
       supplier: 'Постачальник',
+      manager: 'Менеджер',
       status: 'Статус',
       order_date: 'Дата',
       title: 'Назва',
@@ -1444,6 +1469,15 @@ export default function Orders() {
       case 'title':
       case 'part_number':
         return renderEditableCell(order.id, columnKey, value || '', 'text-gray-900 text-center', isAccepted);
+
+      case 'manager':
+        const manager = (order as any).manager;
+        const managerName = manager ? (manager.full_name || manager.email) : '';
+        return (
+          <td className="px-3 py-3 text-center text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 min-h-[48px]" key="manager">
+            {managerName || '-'}
+          </td>
+        );
 
       default:
         return renderEditableCell(order.id, columnKey, value || '', 'text-gray-900 text-center', isAccepted);
@@ -1638,6 +1672,26 @@ export default function Orders() {
                   <option value="повернення" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Повернення</option>
                   <option value="проблемні" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Проблемні</option>
                   <option value="анульовано" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Анульовано</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Менеджер</label>
+                <select
+                  value={formData.manager_id}
+                  onChange={(e) => setFormData({ ...formData, manager_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Не обрано</option>
+                  {managers.map((manager) => (
+                    <option
+                      key={manager.id}
+                      value={manager.id}
+                      className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    >
+                      {manager.full_name || manager.email}
+                    </option>
+                  ))}
                 </select>
               </div>
 

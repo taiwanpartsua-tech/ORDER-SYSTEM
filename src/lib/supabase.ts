@@ -64,6 +64,7 @@ export type Order = {
   supplier_notes?: string;
   inspection_date?: string;
   inspected_by?: string;
+  manager_id?: string;
   created_at: string;
 };
 

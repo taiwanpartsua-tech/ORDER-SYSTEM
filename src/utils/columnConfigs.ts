@@ -11,6 +11,7 @@ export const paskaColumns: ColumnConfig[] = [
   { key: 'status', label: 'Статус', renderType: 'status' },
   { key: 'verified', label: 'V', renderType: 'verified' },
   { key: 'client_id', label: 'ID клієнта', isEditable: true, renderType: 'text' },
+  { key: 'manager', label: 'Менеджер', renderType: 'text' },
   { key: 'title', label: 'Назва', isEditable: true, renderType: 'text' },
   { key: 'link', label: '', renderType: 'link' },
   { key: 'tracking_pl', label: 'Трекінг PL', isEditable: true, renderType: 'tracking' },
@@ -34,6 +35,7 @@ export const mondayColumns: ColumnConfig[] = [
   { key: 'total_cost', label: 'Сума', renderType: 'number' },
   { key: 'part_number', label: 'Номер запчастини', isEditable: true, renderType: 'text' },
   { key: 'client_id', label: 'Клієнт', isEditable: true, renderType: 'text' },
+  { key: 'manager', label: 'Менеджер', renderType: 'text' },
   { key: 'order_date', label: 'Дата оформлення', isEditable: true, renderType: 'date' },
   { key: 'actions', label: 'Дії', renderType: 'actions' }
 ];
