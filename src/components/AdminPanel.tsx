@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase, UserProfile, InviteCode } from '../lib/supabase';
-import { Users, Plus, X, Check, Ban, Key, Copy, UserCheck, UserX, Shield } from 'lucide-react';
+import { Users, Plus, X, Check, Ban, Key, Copy, UserCheck, UserX, Shield, Edit2 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import { logAction } from '../utils/auditLog';
@@ -15,6 +15,8 @@ export default function AdminPanel() {
   const [invites, setInvites] = useState<InviteCode[]>([]);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteDays, setInviteDays] = useState(7);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
 
   useEffect(() => {
     if (isAdmin) {
@@ -184,6 +186,40 @@ export default function AdminPanel() {
     }
   }
 
+  function startEditingName(userId: string, currentName: string) {
+    setEditingUserId(userId);
+    setEditingName(currentName || '');
+  }
+
+  function cancelEditingName() {
+    setEditingUserId(null);
+    setEditingName('');
+  }
+
+  async function saveUserName(userId: string) {
+    if (!editingName.trim()) {
+      showError('Ім\'я не може бути порожнім');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ full_name: editingName.trim() })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      await logAction('update', 'user', userId, { full_name: editingName.trim() });
+      showSuccess('Ім\'я користувача оновлено!');
+      setEditingUserId(null);
+      setEditingName('');
+      loadUsers();
+    } catch (error: any) {
+      showError(error.message || 'Помилка оновлення імені');
+    }
+  }
+
   const statusColors = {
     pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
     approved: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
@@ -261,7 +297,48 @@ export default function AdminPanel() {
               {users.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-4 py-3 text-gray-900 dark:text-gray-100">{user.email}</td>
-                  <td className="px-4 py-3 text-gray-900 dark:text-gray-100">{user.full_name || '-'}</td>
+                  <td className="px-4 py-3">
+                    {editingUserId === user.id ? (
+                      <div className="flex gap-2 items-center">
+                        <input
+                          type="text"
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveUserName(user.id);
+                            if (e.key === 'Escape') cancelEditingName();
+                          }}
+                          className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => saveUserName(user.id)}
+                          className="p-1 rounded bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300 transition"
+                          title="Зберегти"
+                        >
+                          <Check size={16} />
+                        </button>
+                        <button
+                          onClick={cancelEditingName}
+                          className="p-1 rounded bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300 transition"
+                          title="Скасувати"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2 items-center group">
+                        <span className="text-gray-900 dark:text-gray-100">{user.full_name || '-'}</span>
+                        <button
+                          onClick={() => startEditingName(user.id, user.full_name)}
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30 transition"
+                          title="Редагувати ім'я"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <select
                       value={user.role}
