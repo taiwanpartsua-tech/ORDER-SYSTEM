@@ -69,6 +69,7 @@ export default function Orders() {
     id: string;
     order_number: string;
     supplier_id: string;
+    manager_id: string;
     status: string;
     order_date: string;
     notes: string;
@@ -422,6 +423,10 @@ export default function Orders() {
 
     if (!dataToSubmit.supplier_id || dataToSubmit.supplier_id === '') {
       delete dataToSubmit.supplier_id;
+    }
+
+    if (!dataToSubmit.manager_id || dataToSubmit.manager_id === '') {
+      delete dataToSubmit.manager_id;
     }
 
     if (dataToSubmit.client_id === '') {
@@ -953,6 +958,7 @@ export default function Orders() {
       id: `draft-${Date.now()}-${index}`,
       order_number: '',
       supplier_id: artTransId,
+      manager_id: '',
       status: 'в роботі на сьогодні',
       order_date: new Date().toISOString().split('T')[0],
       notes: '',
@@ -1042,6 +1048,10 @@ export default function Orders() {
 
     if (!dataToSubmit.supplier_id || dataToSubmit.supplier_id === '') {
       delete dataToSubmit.supplier_id;
+    }
+
+    if (!dataToSubmit.manager_id || dataToSubmit.manager_id === '') {
+      delete dataToSubmit.manager_id;
     }
 
     try {
@@ -2315,6 +2325,29 @@ export default function Orders() {
                               onChange={(e) => updateDraftRow(draft.id, col.key, e.target.value)}
                               className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                             />
+                          </td>
+                        );
+                      }
+
+                      if (col.key === 'manager') {
+                        return (
+                          <td key={col.key} className="p-0 relative">
+                            <select
+                              value={draft.manager_id || ''}
+                              onChange={(e) => updateDraftRow(draft.id, 'manager_id', e.target.value)}
+                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100"
+                            >
+                              <option value="" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Не обрано</option>
+                              {managers.map((manager) => (
+                                <option
+                                  key={manager.id}
+                                  value={manager.id}
+                                  className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                >
+                                  {manager.full_name || manager.email}
+                                </option>
+                              ))}
+                            </select>
                           </td>
                         );
                       }
