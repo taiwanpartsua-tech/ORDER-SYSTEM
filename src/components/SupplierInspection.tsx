@@ -258,7 +258,7 @@ export default function SupplierInspection() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-gray-900 dark:text-gray-100">
-                        {order.order_number || 'Без номера'}
+                        {order.tracking_pl || 'Трекінг PL'}
                       </span>
                       {order.supplier_inspection_status === 'ok' && (
                         <Check size={16} className="text-green-600" />
@@ -302,7 +302,7 @@ export default function SupplierInspection() {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-800 dark:text-gray-200">
-                Перевірка: {selectedOrder.order_number || 'Без номера'}
+                Перевірка: {selectedOrder.tracking_pl || 'Трекінг PL'}
               </h3>
               <button
                 onClick={() => setSelectedOrder(null)}
