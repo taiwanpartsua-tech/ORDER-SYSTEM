@@ -157,7 +157,7 @@ function App() {
                 </button>
               </>
             )}
-            {isSuper && (
+            {isAdmin && (
               <button
                 onClick={() => setActiveTab('audit')}
                 className={`flex items-center gap-2 px-6 py-4 font-medium transition border-b-2 ${
