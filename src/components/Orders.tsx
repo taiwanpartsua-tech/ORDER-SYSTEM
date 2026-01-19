@@ -3,7 +3,6 @@ import { supabase, Order, Supplier, TariffSettings } from '../lib/supabase';
 import { Plus, CreditCard as Edit, Archive, X, ExternalLink, ChevronDown, Layers, ChevronUp, Check, RotateCcw, Printer, Download, Search, XCircle, LayoutGrid } from 'lucide-react';
 import Returns from './Returns';
 import { useToast } from '../contexts/ToastContext';
-import { useProject } from '../contexts/ProjectContext';
 import { statusColors, paymentTypeColors, verifiedColors, formatEmptyValue } from '../utils/themeColors';
 import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
@@ -34,7 +33,6 @@ type AcceptedOrder = {
 
 export default function Orders() {
   const { showSuccess, showError, showWarning, confirm } = useToast();
-  const { currentProject } = useProject();
   const [orders, setOrders] = useState<(Order & { supplier: Supplier })[]>([]);
   const [acceptedOrders, setAcceptedOrders] = useState<AcceptedOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -382,12 +380,6 @@ export default function Orders() {
     const dataToSubmit: any = { ...formData };
 
     if (!editingOrder) {
-      if (!currentProject) {
-        showError('Не обрано проект');
-        return;
-      }
-      dataToSubmit.project_id = currentProject.id;
-
       if (!dataToSubmit.client_id || dataToSubmit.client_id.trim() === '') {
         showWarning('ID клієнта є обов\'язковим полем!');
         return;
@@ -494,13 +486,7 @@ export default function Orders() {
   async function handleReturn(order: Order & { supplier: Supplier }) {
     const confirmed = await confirm('Створити повернення з цього замовлення?');
     if (confirmed) {
-      if (!currentProject) {
-        showError('Не обрано проект');
-        return;
-      }
-
       const { error } = await supabase.from('returns').insert({
-        project_id: currentProject.id,
         status: 'повернення',
         substatus: 'В Арта в хелмі',
         client_id: order.client_id || '',
@@ -580,9 +566,8 @@ export default function Orders() {
 
     if (!error) {
       const order = orders.find(o => o.id === acceptingOrderId);
-      if (order && currentProject) {
+      if (order) {
         await supabase.from('accepted_orders').insert({
-          project_id: currentProject.id,
           order_id: acceptingOrderId,
           receipt_number: 'прийнято без документу',
           order_number: order.order_number,
@@ -1061,12 +1046,6 @@ export default function Orders() {
     const dataToSubmit: any = { ...draft };
     delete dataToSubmit.id;
 
-    if (!currentProject) {
-      showError('Не обрано проект');
-      return;
-    }
-    dataToSubmit.project_id = currentProject.id;
-
     if (!dataToSubmit.supplier_id || dataToSubmit.supplier_id === '') {
       delete dataToSubmit.supplier_id;
     }
@@ -1167,12 +1146,6 @@ export default function Orders() {
     }
 
     const dataToSubmit: any = { ...newRowData };
-
-    if (!currentProject) {
-      showError('Не обрано проект');
-      return;
-    }
-    dataToSubmit.project_id = currentProject.id;
 
     if (!dataToSubmit.supplier_id || dataToSubmit.supplier_id === '') {
       delete dataToSubmit.supplier_id;
