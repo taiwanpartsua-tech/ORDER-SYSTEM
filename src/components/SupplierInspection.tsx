@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase, Order, OrderPhoto, Supplier } from '../lib/supabase';
 import { Search, XCircle, Upload, Camera, Check, AlertTriangle, X, ExternalLink, Image as ImageIcon, ChevronDown, ChevronUp, Edit2, Save } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import { getCurrentProjectId } from '../utils/projectAccess';
 
 type OrderWithSupplier = Order & { supplier: Supplier };
 
@@ -319,6 +320,12 @@ export default function SupplierInspection() {
         return;
       }
 
+      const projectId = await getCurrentProjectId();
+      if (!projectId) {
+        showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
+        return;
+      }
+
       const uploadPromises = Array.from(files).map(async (file) => {
         const fileExt = file.name.split('.').pop();
         const fileName = `${selectedOrder.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -343,7 +350,8 @@ export default function SupplierInspection() {
             order_id: selectedOrder.id,
             photo_url: publicUrl,
             uploaded_by: user.id,
-            notes: ''
+            notes: '',
+            project_id: projectId
           });
 
         if (dbError) {
@@ -387,6 +395,12 @@ export default function SupplierInspection() {
       return;
     }
 
+    const projectId = await getCurrentProjectId();
+    if (!projectId) {
+      showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
+      return;
+    }
+
     const inspectorId = selectedInspector || user.id;
 
     const changes = [];
@@ -417,7 +431,8 @@ export default function SupplierInspection() {
         old_value: oldInspectorName,
         new_value: newInspectorName,
         changed_by: user.id,
-        changed_at: new Date().toISOString()
+        changed_at: new Date().toISOString(),
+        project_id: projectId
       });
     }
 
