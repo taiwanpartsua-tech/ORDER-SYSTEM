@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { LogIn, UserPlus } from 'lucide-react';
+import { useProject } from '../contexts/ProjectContext';
+import { LogIn, UserPlus, Briefcase } from 'lucide-react';
+import { supabase, Project, UserProjectAccess } from '../lib/supabase';
 
 export default function Login() {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user } = useAuth();
+  const { setCurrentProject } = useProject();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -12,6 +15,80 @@ export default function Login() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showProjectSelection, setShowProjectSelection] = useState(false);
+  const [availableProjects, setAvailableProjects] = useState<UserProjectAccess[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+
+  useEffect(() => {
+    if (user && !showProjectSelection) {
+      loadAvailableProjects();
+    }
+  }, [user]);
+
+  async function loadAvailableProjects() {
+    if (!user) return;
+
+    setLoadingProjects(true);
+    try {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      const isSuperAdmin = profile?.role === 'super_admin';
+
+      let accessData: UserProjectAccess[] = [];
+
+      if (isSuperAdmin) {
+        const { data: allProjects } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('is_active', true);
+
+        if (allProjects) {
+          accessData = allProjects.map(project => ({
+            id: '',
+            user_id: user.id,
+            project_id: project.id,
+            role: 'admin' as const,
+            granted_by: null,
+            created_at: new Date().toISOString(),
+            project: project
+          }));
+        }
+      } else {
+        const { data: userAccess } = await supabase
+          .from('user_project_access')
+          .select('*, project:projects(*)')
+          .eq('user_id', user.id);
+
+        if (userAccess) {
+          accessData = userAccess;
+        }
+      }
+
+      setAvailableProjects(accessData);
+
+      if (accessData.length === 0) {
+        setError('У вас немає доступу до жодного проекту. Зверніться до адміністратора для отримання доступу.');
+      } else if (accessData.length === 1 && accessData[0].project) {
+        handleProjectSelect(accessData[0].project);
+      } else {
+        setShowProjectSelection(true);
+      }
+    } catch (err) {
+      console.error('Error loading projects:', err);
+      setError('Помилка завантаження проектів');
+    } finally {
+      setLoadingProjects(false);
+    }
+  }
+
+  function handleProjectSelect(project: Project) {
+    setCurrentProject(project);
+    setShowProjectSelection(false);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -49,6 +126,70 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (showProjectSelection) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+          <div className="flex justify-center mb-6">
+            <div className="w-16 h-16 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center">
+              <Briefcase className="w-8 h-8 text-white" />
+            </div>
+          </div>
+
+          <h1 className="text-3xl font-bold text-center text-gray-800 dark:text-gray-100 mb-2">
+            Виберіть проект
+          </h1>
+          <p className="text-center text-gray-600 dark:text-gray-400 mb-8">
+            Оберіть проект для роботи
+          </p>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
+              {error}
+            </div>
+          )}
+
+          {loadingProjects ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="mt-4 text-gray-600 dark:text-gray-400">Завантаження проектів...</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {availableProjects.map((access) => (
+                access.project && (
+                  <button
+                    key={access.project.id}
+                    onClick={() => handleProjectSelect(access.project!)}
+                    className="w-full p-4 bg-gray-50 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 border border-gray-200 dark:border-gray-600 rounded-lg transition text-left"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                          {access.project.name}
+                        </h3>
+                        {access.project.description && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            {access.project.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="ml-4">
+                        <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">
+                          {access.role}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                )
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
   }
 
   return (
