@@ -7,6 +7,7 @@ import { statusColors, paymentTypeColors, verifiedColors, formatEmptyValue } fro
 import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
 import { ColumnViewType, getColumns, saveColumnView, loadColumnView } from '../utils/columnConfigs';
+import { getCurrentProjectId } from '../utils/projectAccess';
 
 type AcceptedOrder = {
   id: string;
@@ -446,6 +447,13 @@ export default function Orders() {
         }
         showSuccess('Замовлення успішно оновлено!');
       } else {
+        const projectId = await getCurrentProjectId();
+        if (!projectId) {
+          showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
+          return;
+        }
+        dataToSubmit.project_id = projectId;
+
         const { error } = await supabase.from('orders').insert([dataToSubmit]);
         if (error) {
           console.error('Error inserting order:', error);
@@ -1055,6 +1063,13 @@ export default function Orders() {
     }
 
     try {
+      const projectId = await getCurrentProjectId();
+      if (!projectId) {
+        showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
+        return;
+      }
+      dataToSubmit.project_id = projectId;
+
       const { error } = await supabase.from('orders').insert([dataToSubmit]);
       if (error) {
         console.error('Error inserting order:', error);
@@ -1152,6 +1167,13 @@ export default function Orders() {
     }
 
     try {
+      const projectId = await getCurrentProjectId();
+      if (!projectId) {
+        showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
+        return;
+      }
+      dataToSubmit.project_id = projectId;
+
       const { error } = await supabase.from('orders').insert([dataToSubmit]);
       if (error) {
         console.error('Error inserting order:', error);

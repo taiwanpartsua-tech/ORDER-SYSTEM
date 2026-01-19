@@ -4,6 +4,7 @@ import { ChevronRight, Send, X, AlertCircle, ExternalLink, Search, XCircle, Hist
 import { useToast } from '../contexts/ToastContext';
 import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
+import { getCurrentProjectId } from '../utils/projectAccess';
 
 type OrderWithSupplier = Order & { supplier: Supplier };
 
@@ -277,6 +278,12 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
         return;
       }
 
+      const projectId = await getCurrentProjectId();
+      if (!projectId) {
+        showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
+        return;
+      }
+
       let supplier = orders[0].supplier;
 
       if (!supplier) {
@@ -321,6 +328,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
           receipt_date: receiptDate,
           status: 'draft',
           supplier_id: supplier.id,
+          project_id: projectId,
           parts_cost_pln: totals.parts_cost_pln,
           delivery_cost_pln: totals.delivery_cost_pln,
           receipt_cost_pln: totals.receipt_cost_pln,
@@ -377,6 +385,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
           changes.push({
             receipt_id: receipt.id,
             order_id: order.id,
+            project_id: projectId,
             field_name: 'Вага (кг)',
             old_value: String(order.weight_kg || 0),
             new_value: String(order.editableWeight),
@@ -389,6 +398,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
           changes.push({
             receipt_id: receipt.id,
             order_id: order.id,
+            project_id: projectId,
             field_name: 'Ціна деталі (PLN)',
             old_value: String(order.part_price || 0),
             new_value: String(order.editableParts),
@@ -401,6 +411,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
           changes.push({
             receipt_id: receipt.id,
             order_id: order.id,
+            project_id: projectId,
             field_name: 'Доставка (PLN)',
             old_value: String(order.delivery_cost || 0),
             new_value: String(order.editableDelivery),
@@ -413,6 +424,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
           changes.push({
             receipt_id: receipt.id,
             order_id: order.id,
+            project_id: projectId,
             field_name: 'Прийом (PLN)',
             old_value: String(order.received_pln || 0),
             new_value: String(order.editableReceipt),
@@ -425,6 +437,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
           changes.push({
             receipt_id: receipt.id,
             order_id: order.id,
+            project_id: projectId,
             field_name: 'Накладений платіж (PLN)',
             old_value: String(order.cash_on_delivery || 0),
             new_value: String(order.editableCash),
@@ -437,6 +450,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
           changes.push({
             receipt_id: receipt.id,
             order_id: order.id,
+            project_id: projectId,
             field_name: 'Транспорт (USD)',
             old_value: String(order.transport_cost_usd || 0),
             new_value: String(order.editableTransport),
