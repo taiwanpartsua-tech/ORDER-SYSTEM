@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase, Transaction, ActiveReceipt, Order } from '../lib/supabase';
-import { Plus, TrendingDown, TrendingUp, CheckCircle2, XCircle, Undo2 } from 'lucide-react';
+import { Plus, TrendingDown, TrendingUp, CheckCircle2, XCircle, Undo2, FileDown } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
@@ -421,6 +421,58 @@ export default function MutualSettlement() {
   const sentForSettlementReceipts = receipts.filter(r => r.status === 'sent_for_settlement');
   const settledReceipts = receipts.filter(r => r.status === 'settled');
 
+  async function exportReceiptDetails(receiptId: string) {
+    const receipt = receipts.find(r => r.id === receiptId);
+    if (!receipt) {
+      showError('Прийомку не знайдено');
+      return;
+    }
+
+    const orders = receiptOrders[receiptId] || [];
+    if (orders.length === 0) {
+      showWarning('Прийомка не містить замовлень');
+      return;
+    }
+
+    const dataToExport = orders.map(order => ({
+      client_id: order.client_id || '',
+      order_number: order.order_number || '',
+      title: order.title || '',
+      part_number: order.part_number || '',
+      tracking_pl: order.tracking_pl || '',
+      weight_kg: order.weight_kg || 0,
+      part_price: order.part_price || 0,
+      delivery_cost: order.delivery_cost || 0,
+      received_pln: order.received_pln || 0,
+      cash_on_delivery: order.cash_on_delivery || 0,
+      transport_cost_usd: order.transport_cost_usd || 0,
+      payment_type: order.payment_type || '',
+      order_date: order.order_date || '',
+      total: (order.part_price || 0) + (order.delivery_cost || 0) + (order.received_pln || 0) + (order.cash_on_delivery || 0)
+    }));
+
+    const headers = {
+      client_id: 'ID Клієнта',
+      order_number: '№ Замовлення',
+      title: 'Назва',
+      part_number: 'Артикул',
+      tracking_pl: 'Трекінг PL',
+      weight_kg: 'Вага (кг)',
+      part_price: 'Деталі (zł)',
+      delivery_cost: 'Доставка (zł)',
+      received_pln: 'Прийом (zł)',
+      cash_on_delivery: 'Побранє (zł)',
+      transport_cost_usd: 'Транспорт ($)',
+      payment_type: 'Тип оплати',
+      order_date: 'Дата',
+      total: 'Всього (zł)'
+    };
+
+    const statusText = receipt.status === 'sent_for_settlement' ? 'na_rozrahunku' : 'rozrahovano';
+    exportToCSV(dataToExport, `priyomka_${receipt.receipt_number}_${statusText}`, headers);
+    showSuccess('Документ експортовано');
+  }
+
   const handleExportSettlement = () => {
     const dataToExport = transactions.map(transaction => ({
       date: transaction.date,
@@ -634,6 +686,13 @@ export default function MutualSettlement() {
                     </div>
                     <div className="flex gap-1">
                       <button
+                        onClick={() => exportReceiptDetails(receipt.id)}
+                        className="px-2 py-1 bg-gray-600 text-white rounded text-[10px] hover:bg-gray-700 dark:bg-gradient-to-br dark:from-gray-700 dark:to-gray-600 dark:hover:from-gray-600 dark:hover:to-gray-500 transition flex items-center gap-0.5"
+                        title="Експортувати документ"
+                      >
+                        <FileDown size={12} />
+                      </button>
+                      <button
                         onClick={() => returnToActive(receipt.id)}
                         className="px-2 py-1 bg-gradient-to-r from-orange-600 to-yellow-500 text-white rounded text-[10px] hover:from-orange-700 hover:to-yellow-600 dark:from-orange-700 dark:to-yellow-600 dark:hover:from-orange-800 dark:hover:to-yellow-700 transition flex items-center gap-0.5"
                         title="Повернути в активні"
@@ -695,6 +754,13 @@ export default function MutualSettlement() {
                     )}
                   </div>
                   <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => exportReceiptDetails(receipt.id)}
+                      className="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition"
+                      title="Експортувати документ"
+                    >
+                      <FileDown size={12} className="text-gray-600 dark:text-gray-400" />
+                    </button>
                     <button
                       onClick={async () => {
                         const confirmed = await confirm(`Повернути накладну №${receipt.receipt_number} назад в "на розрахунку"?`);
