@@ -383,7 +383,7 @@ export default function Orders() {
     if (error) {
       console.error('Помилка завантаження контрагентів:', error);
     } else if (data) {
-      console.log('Контрагенти завантажено:', data.length);
+      console.log('Контрагенти завантажено:', data.length, data);
       setCounterparties(data);
 
       const romanCounterparty = data.find(c => c.name === 'Roman');
@@ -392,6 +392,8 @@ export default function Orders() {
         setSelectedCounterpartyId(romanCounterparty.id);
         setFormData(prev => ({ ...prev, counterparty_id: romanCounterparty.id }));
         setNewRowData(prev => ({ ...prev, counterparty_id: romanCounterparty.id }));
+      } else {
+        console.warn('Контрагент Roman не знайдено!');
       }
     }
   }
