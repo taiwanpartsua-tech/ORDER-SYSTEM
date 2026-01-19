@@ -760,10 +760,14 @@ export default function Orders() {
     return 'text-sm';
   }
 
-  function renderEditableCell(orderId: string, field: string, value: any, className: string = '', isAccepted: boolean = false) {
+  function renderEditableCell(orderId: string, field: string, value: any, className: string = '', isAccepted: boolean = false, order?: Order & { supplier: Supplier }) {
     const isEditing = editingCell?.orderId === orderId && editingCell?.field === field;
 
-    if (isEditing && !isAccepted) {
+    // Перевірка чи може постачальник редагувати це поле
+    const canSupplierEdit = isSupplier && field === 'cash_on_delivery' && order?.status === 'чернетка' && order.payment_type && ['побранє', 'самовивіз'].includes(order.payment_type);
+    const isFieldDisabled = isSupplier && !canSupplierEdit;
+
+    if (isEditing && !isAccepted && !isFieldDisabled) {
       return (
         <td className="px-3 py-3 min-h-[48px] bg-white dark:bg-gray-800">
           <input
@@ -785,9 +789,9 @@ export default function Orders() {
 
     return (
       <td
-        className={`px-3 py-3 ${!isAccepted ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} transition min-h-[48px] ${isTitle ? 'min-w-[200px]' : ''} ${className.replace(/text-(sm|xs|base)/g, '')} ${fontSizeClass} bg-white dark:bg-gray-800`}
-        onClick={() => !isAccepted && startEditing(orderId, field, value)}
-        title={displayValue}
+        className={`px-3 py-3 ${!isAccepted && !isFieldDisabled ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} ${isFieldDisabled ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-700' : ''} transition min-h-[48px] ${isTitle ? 'min-w-[200px]' : ''} ${className.replace(/text-(sm|xs|base)/g, '')} ${fontSizeClass} bg-white dark:bg-gray-800`}
+        onClick={() => !isAccepted && !isFieldDisabled && startEditing(orderId, field, value)}
+        title={isFieldDisabled ? 'Заблоковано для постачальника' : displayValue}
       >
         <div className={`w-full ${isTitle ? 'line-clamp-3 break-words' : 'break-words whitespace-normal'} text-gray-900 dark:text-gray-100`}>
           {displayValue}
@@ -799,8 +803,9 @@ export default function Orders() {
   function renderTrackingCell(orderId: string, order: Order & { supplier: Supplier }, isAccepted: boolean = false) {
     const isEditing = editingCell?.orderId === orderId && editingCell?.field === 'tracking_pl';
     const trackingValue = order.tracking_pl || '';
+    const isFieldDisabled = isSupplier;
 
-    if (isEditing && !isAccepted) {
+    if (isEditing && !isAccepted && !isFieldDisabled) {
       return (
         <td className="px-3 py-3 min-h-[48px]">
           <input
@@ -823,9 +828,9 @@ export default function Orders() {
 
     return (
       <td
-        className={`px-3 py-3 ${!isAccepted && !isOrderAccepted ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : isOrderAccepted ? 'cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-blue-600 dark:hover:text-blue-400 hover:underline' : ''} transition min-h-[48px] text-gray-900 dark:text-gray-100 text-center ${fontSizeClass} bg-white dark:bg-gray-800`}
+        className={`px-3 py-3 ${!isAccepted && !isOrderAccepted && !isFieldDisabled ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : isOrderAccepted ? 'cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-blue-600 dark:hover:text-blue-400 hover:underline' : ''} ${isFieldDisabled ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-700' : ''} transition min-h-[48px] text-gray-900 dark:text-gray-100 text-center ${fontSizeClass} bg-white dark:bg-gray-800`}
         onClick={() => {
-          if (!isAccepted && !isOrderAccepted) {
+          if (!isAccepted && !isOrderAccepted && !isFieldDisabled) {
             startEditing(orderId, 'tracking_pl', trackingValue);
           } else if (isOrderAccepted) {
             openReceiptByOrderId(orderId);
@@ -842,8 +847,9 @@ export default function Orders() {
 
   function renderLinkCell(orderId: string, link: string, isAccepted: boolean = false) {
     const isEditing = editingCell?.orderId === orderId && editingCell?.field === 'link';
+    const isFieldDisabled = isSupplier;
 
-    if (isEditing && !isAccepted) {
+    if (isEditing && !isAccepted && !isFieldDisabled) {
       return (
         <td className="px-3 py-3 text-center min-h-[48px]">
           <input
@@ -862,9 +868,9 @@ export default function Orders() {
 
     return (
       <td
-        className={`px-3 py-3 text-center ${!isAccepted ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} transition min-h-[48px] bg-white dark:bg-gray-800`}
-        onClick={() => !isAccepted && startEditing(orderId, 'link', link)}
-        title={isAccepted ? '' : "Клікніть для редагування посилання"}
+        className={`px-3 py-3 text-center ${!isAccepted && !isFieldDisabled ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} ${isFieldDisabled ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-700' : ''} transition min-h-[48px] bg-white dark:bg-gray-800`}
+        onClick={() => !isAccepted && !isFieldDisabled && startEditing(orderId, 'link', link)}
+        title={isFieldDisabled ? 'Заблоковано для постачальника' : (isAccepted ? '' : "Клікніть для редагування посилання")}
       >
         {link ? (
           <a
@@ -887,8 +893,9 @@ export default function Orders() {
 
   function renderDateCell(orderId: string, dateValue: string, className: string = '', isAccepted: boolean = false) {
     const isEditing = editingCell?.orderId === orderId && editingCell?.field === 'order_date';
+    const isFieldDisabled = isSupplier;
 
-    if (isEditing && !isAccepted) {
+    if (isEditing && !isAccepted && !isFieldDisabled) {
       return (
         <td className="px-3 py-3 min-h-[48px]">
           <input
@@ -910,9 +917,9 @@ export default function Orders() {
 
     return (
       <td
-        className={`px-3 py-3 ${!isAccepted ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} transition min-h-[48px] ${className.replace(/text-(sm|xs|base)/g, '')} ${fontSizeClass} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100`}
-        onClick={() => !isAccepted && startEditing(orderId, 'order_date', dateValue)}
-        title={isAccepted ? '' : "Клікніть для редагування дати"}
+        className={`px-3 py-3 ${!isAccepted && !isFieldDisabled ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} ${isFieldDisabled ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-700' : ''} transition min-h-[48px] ${className.replace(/text-(sm|xs|base)/g, '')} ${fontSizeClass} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100`}
+        onClick={() => !isAccepted && !isFieldDisabled && startEditing(orderId, 'order_date', dateValue)}
+        title={isFieldDisabled ? 'Заблоковано для постачальника' : (isAccepted ? '' : "Клікніть для редагування дати")}
       >
         <div className="w-full break-words whitespace-normal">
           {displayValue}
@@ -923,11 +930,13 @@ export default function Orders() {
 
   function renderPaymentTypeCell(orderId: string, paymentType: string, isAccepted: boolean = false) {
     const displayPaymentType = paymentType || 'не обрано';
+    const isFieldDisabled = isSupplier;
+
     return (
       <td className="p-0 relative">
         <button
           onClick={(e) => {
-            if (isAccepted) return;
+            if (isAccepted || isFieldDisabled) return;
             e.stopPropagation();
             const rect = e.currentTarget.getBoundingClientRect();
             const dropdownHeight = 300;
@@ -942,11 +951,12 @@ export default function Orders() {
             setPaymentDropdownPosition({ top, left: rect.left + window.scrollX });
             setOpenPaymentDropdown(openPaymentDropdown === orderId ? null : orderId);
           }}
-          className={`w-full h-full px-3 py-3 text-xs font-semibold ${paymentTypeColors[displayPaymentType]} ${!isAccepted ? 'hover:opacity-80' : 'cursor-default'} transition flex items-center justify-center gap-1 min-h-[48px]`}
-          disabled={isAccepted}
+          className={`w-full h-full px-3 py-3 text-xs font-semibold ${paymentTypeColors[displayPaymentType]} ${!isAccepted && !isFieldDisabled ? 'hover:opacity-80' : 'cursor-default'} ${isFieldDisabled ? 'opacity-60 cursor-not-allowed' : ''} transition flex items-center justify-center gap-1 min-h-[48px]`}
+          disabled={isAccepted || isFieldDisabled}
+          title={isFieldDisabled ? 'Заблоковано для постачальника' : ''}
         >
           {paymentTypeLabels[displayPaymentType]}
-          {!isAccepted && <ChevronDown size={14} />}
+          {!isAccepted && !isFieldDisabled && <ChevronDown size={14} />}
         </button>
       </td>
     );
@@ -1526,10 +1536,10 @@ export default function Orders() {
         return renderTrackingCell(order.id, order, isAccepted);
 
       case 'part_price':
-        return renderEditableCell(order.id, 'part_price', `${formatNumber(order.part_price)} zl`, 'text-center font-medium', isAccepted);
+        return renderEditableCell(order.id, 'part_price', `${formatNumber(order.part_price)} zl`, 'text-center font-medium', isAccepted, order);
 
       case 'delivery_cost':
-        return renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-center', isAccepted);
+        return renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-center', isAccepted, order);
 
       case 'total_cost':
         return (
@@ -1542,7 +1552,7 @@ export default function Orders() {
         return renderPaymentTypeCell(order.id, order.payment_type || 'оплачено', isAccepted);
 
       case 'cash_on_delivery':
-        return renderEditableCell(order.id, 'cash_on_delivery', `${formatNumber(order.cash_on_delivery)} zl`, 'text-center', isAccepted);
+        return renderEditableCell(order.id, 'cash_on_delivery', `${formatNumber(order.cash_on_delivery)} zl`, 'text-center', isAccepted, order);
 
       case 'order_date':
         return renderDateCell(order.id, order.order_date, 'text-gray-900 text-center', isAccepted);
@@ -1551,7 +1561,7 @@ export default function Orders() {
       case 'client_id':
       case 'title':
       case 'part_number':
-        return renderEditableCell(order.id, columnKey, value || '', 'text-gray-900 text-center', isAccepted);
+        return renderEditableCell(order.id, columnKey, value || '', 'text-gray-900 text-center', isAccepted, order);
 
       case 'manager':
         const manager = (order as any).manager;
@@ -1563,7 +1573,7 @@ export default function Orders() {
         );
 
       default:
-        return renderEditableCell(order.id, columnKey, value || '', 'text-gray-900 text-center', isAccepted);
+        return renderEditableCell(order.id, columnKey, value || '', 'text-gray-900 text-center', isAccepted, order);
     }
   }
 
@@ -1623,14 +1633,16 @@ export default function Orders() {
               </select>
             )}
             <ExportButton onClick={handleExportOrders} disabled={filteredOrders.length === 0} />
-            <button
-              onClick={() => setIsModalOpen(!isModalOpen)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition"
-            >
-              {isModalOpen ? <X size={20} /> : <Plus size={20} />}
-              {isModalOpen ? 'Скасувати' : 'Нове замовлення'}
-            </button>
-            {acceptedOrders.length > 0 && (
+            {!isSupplier && (
+              <button
+                onClick={() => setIsModalOpen(!isModalOpen)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition"
+              >
+                {isModalOpen ? <X size={20} /> : <Plus size={20} />}
+                {isModalOpen ? 'Скасувати' : 'Нове замовлення'}
+              </button>
+            )}
+            {!isSupplier && acceptedOrders.length > 0 && (
               <button
                 onClick={() => setIsAcceptedOrdersModalOpen(true)}
                 className="bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition"
@@ -2548,7 +2560,7 @@ export default function Orders() {
         </div>
       ) : activeTab === 'orders' ? (
         <div className="flex-1 overflow-auto min-h-0 flex flex-col bg-gray-100 dark:bg-gray-900">
-          {selectedOrders.size > 0 && (
+          {selectedOrders.size > 0 && !isSupplier && (
             <div className="flex-shrink-0 p-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-end items-center">
               <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900 px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-700">
                 <span className="text-sm font-medium text-blue-900 dark:text-blue-200">
@@ -2621,7 +2633,9 @@ export default function Orders() {
                             type="checkbox"
                             checked={selectedOrders.size === filteredOrders.length && filteredOrders.length > 0}
                             onChange={toggleAllOrders}
-                            className="w-4 h-4 rounded cursor-pointer text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600"
+                            className={`w-4 h-4 rounded text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600 ${!isSupplier ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
+                            disabled={isSupplier}
+                            title={isSupplier ? 'Заблоковано для постачальника' : ''}
                           />
                         </th>
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Статус</th>
@@ -2649,15 +2663,16 @@ export default function Orders() {
                               type="checkbox"
                               checked={selectedOrders.has(order.id)}
                               onChange={() => toggleOrderSelection(order.id)}
-                              className="w-4 h-4 rounded cursor-pointer text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600"
+                              className={`w-4 h-4 rounded text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600 ${!isAccepted && !isSupplier ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
                               onClick={(e) => e.stopPropagation()}
-                              disabled={isAccepted}
+                              disabled={isAccepted || isSupplier}
+                              title={isSupplier ? 'Заблоковано для постачальника' : ''}
                             />
                           </td>
                           <td className="p-0 relative">
                             <button
                               onClick={(e) => {
-                                if (isAccepted) return;
+                                if (isAccepted || isSupplier) return;
                                 e.stopPropagation();
                                 const rect = e.currentTarget.getBoundingClientRect();
                                 const dropdownHeight = 400;
@@ -2672,11 +2687,12 @@ export default function Orders() {
                                 setDropdownPosition({ top, left: rect.left + window.scrollX });
                                 setOpenDropdown(openDropdown === order.id ? null : order.id);
                               }}
-                              className={`w-full h-full px-3 py-2 text-xs font-semibold ${statusColors[order.status]} ${!isAccepted ? 'hover:opacity-80' : 'cursor-default'} transition flex items-center justify-center gap-1 min-h-[40px]`}
-                              disabled={isAccepted}
+                              className={`w-full h-full px-3 py-2 text-xs font-semibold ${statusColors[order.status]} ${!isAccepted && !isSupplier ? 'hover:opacity-80' : 'cursor-default'} ${isSupplier ? 'opacity-60' : ''} transition flex items-center justify-center gap-1 min-h-[40px]`}
+                              disabled={isAccepted || isSupplier}
+                              title={isSupplier ? 'Заблоковано для постачальника' : ''}
                             >
                               {statusLabels[order.status]}
-                              {!isAccepted && <ChevronDown size={14} />}
+                              {!isAccepted && !isSupplier && <ChevronDown size={14} />}
                             </button>
                           </td>
                           <td className="px-3 py-3 text-center min-h-[48px]">
@@ -2684,29 +2700,30 @@ export default function Orders() {
                               type="checkbox"
                               checked={order.verified}
                               onChange={() => handleVerifiedChange(order.id, order.verified)}
-                              className={`w-5 h-5 rounded cursor-pointer transition ${
+                              className={`w-5 h-5 rounded transition ${
                                 order.verified
                                   ? 'accent-green-700 bg-green-700 dark:accent-green-600 dark:bg-green-600'
                                   : 'border-2 border-gray-800 dark:border-gray-400 accent-gray-800 dark:accent-gray-400 bg-white dark:bg-gray-600'
-                              }`}
-                              disabled={isAccepted}
+                              } ${!isAccepted && !isSupplier ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
+                              disabled={isAccepted || isSupplier}
+                              title={isSupplier ? 'Заблоковано для постачальника' : ''}
                             />
                           </td>
-                          {renderEditableCell(order.id, 'client_id', order.client_id, 'text-gray-900 text-center', isAccepted)}
-                          {renderEditableCell(order.id, 'title', order.title, 'text-gray-900 text-center', isAccepted)}
+                          {renderEditableCell(order.id, 'client_id', order.client_id, 'text-gray-900 text-center', isAccepted, order)}
+                          {renderEditableCell(order.id, 'title', order.title, 'text-gray-900 text-center', isAccepted, order)}
                           {renderLinkCell(order.id, order.link || '', isAccepted)}
-                          {renderEditableCell(order.id, 'tracking_pl', order.tracking_pl || '', 'text-gray-600 text-center', isAccepted)}
-                          {renderEditableCell(order.id, 'part_price', `${formatNumber(order.part_price)} zl`, 'text-gray-900 font-medium text-center', isAccepted)}
-                          {renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-gray-900 text-center', isAccepted)}
+                          {renderEditableCell(order.id, 'tracking_pl', order.tracking_pl || '', 'text-gray-600 text-center', isAccepted, order)}
+                          {renderEditableCell(order.id, 'part_price', `${formatNumber(order.part_price)} zl`, 'text-gray-900 font-medium text-center', isAccepted, order)}
+                          {renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-gray-900 text-center', isAccepted, order)}
                           <td className="px-3 py-3 text-center text-gray-900 dark:text-gray-100 font-bold bg-gray-50 dark:bg-gray-700 min-h-[48px]">
                             {formatNumber(order.total_cost)} zl
                           </td>
-                          {renderEditableCell(order.id, 'part_number', order.part_number || '', 'text-gray-600 text-center', isAccepted)}
+                          {renderEditableCell(order.id, 'part_number', order.part_number || '', 'text-gray-600 text-center', isAccepted, order)}
                           {renderPaymentTypeCell(order.id, order.payment_type || 'оплачено', isAccepted)}
-                          {renderEditableCell(order.id, 'cash_on_delivery', `${formatNumber(order.cash_on_delivery)} zl`, 'text-gray-900 text-center', isAccepted)}
+                          {renderEditableCell(order.id, 'cash_on_delivery', `${formatNumber(order.cash_on_delivery)} zl`, 'text-gray-900 text-center', isAccepted, order)}
                           <td className="px-3 py-3 min-h-[48px]">
                             <div className="flex gap-2 justify-center">
-                              {!isAccepted && (
+                              {!isAccepted && !isSupplier && (
                                 <button
                                   onClick={() => openEditModal(order)}
                                   className="px-3 py-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
@@ -2715,7 +2732,7 @@ export default function Orders() {
                                   Ред.
                                 </button>
                               )}
-                              {!order.archived && !isAccepted && (
+                              {!order.archived && !isAccepted && !isSupplier && (
                                 <button
                                   onClick={() => handleReturn(order)}
                                   className="px-3 py-2 bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
@@ -2725,7 +2742,7 @@ export default function Orders() {
                                   Пов.
                                 </button>
                               )}
-                              {!isAccepted && (
+                              {!isAccepted && !isSupplier && (
                                 <button
                                   onClick={() => handleArchive(order.id)}
                                   className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
