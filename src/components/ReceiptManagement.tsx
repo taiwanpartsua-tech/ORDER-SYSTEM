@@ -1020,7 +1020,21 @@ export default function ReceiptManagement() {
           )}
 
           {expandedReceipt === receipt.id && orders[receipt.id] && (
-            <div className="overflow-x-auto">
+            <div>
+              <div className="px-4 py-3 bg-gray-50 dark:bg-gray-750 border-t border-b dark:border-gray-700 flex justify-between items-center">
+                <div className="text-sm text-gray-700 dark:text-gray-300">
+                  Замовлень у документі: <span className="font-semibold">{orders[receipt.id].length}</span>
+                </div>
+                <button
+                  onClick={() => exportReceiptDetails(receipt.id)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-gradient-to-br dark:from-blue-800 dark:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-600 transition flex items-center gap-2 shadow-sm"
+                  title="Експортувати документ в CSV"
+                >
+                  <FileDown size={16} />
+                  <span className="font-medium">Експортувати документ</span>
+                </button>
+              </div>
+              <div className="overflow-x-auto">
               <table className="w-full text-xs table-fixed">
                 <thead className="bg-gray-100 dark:bg-gray-700 sticky top-0">
                   <tr>
@@ -1127,6 +1141,7 @@ export default function ReceiptManagement() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </div>
@@ -1256,7 +1271,21 @@ export default function ReceiptManagement() {
           )}
 
           {expandedReceipt === receipt.id && orders[receipt.id] && (
-            <div className="overflow-x-auto">
+            <div>
+              <div className="px-4 py-3 bg-green-50 dark:bg-gradient-to-br dark:from-green-950 dark:to-green-900 border-t border-b dark:border-green-800 flex justify-between items-center">
+                <div className="text-sm text-green-700 dark:text-green-300">
+                  Замовлень у документі: <span className="font-semibold">{orders[receipt.id].length}</span>
+                </div>
+                <button
+                  onClick={() => exportReceiptDetails(receipt.id)}
+                  className="px-4 py-2 bg-green-700 text-white rounded-lg hover:bg-green-700 dark:bg-gradient-to-br dark:from-green-800 dark:to-green-700 dark:hover:from-green-700 dark:hover:to-green-600 transition flex items-center gap-2 shadow-sm"
+                  title="Експортувати підтверджений документ в CSV"
+                >
+                  <FileDown size={16} />
+                  <span className="font-medium">Експортувати документ</span>
+                </button>
+              </div>
+              <div className="overflow-x-auto">
               <table className="w-full text-xs table-fixed">
                 <thead className="bg-gray-100 dark:bg-gray-700 sticky top-0">
                   <tr>
@@ -1355,6 +1384,7 @@ export default function ReceiptManagement() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </div>
