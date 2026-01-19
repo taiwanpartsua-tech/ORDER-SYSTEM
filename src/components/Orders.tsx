@@ -632,9 +632,9 @@ export default function Orders() {
   function startEditing(orderId: string, field: string, currentValue: any) {
     // Перевірка прав для постачальника
     if (isSupplier) {
-      const allowedFields = ['weight_kg', 'transport_cost_usd', 'cash_on_delivery'];
+      const allowedFields = ['cash_on_delivery'];
       if (!allowedFields.includes(field)) {
-        showWarning('Ви можете редагувати тільки вагу, ціну за кілограм та вартість побраня');
+        showWarning('Ви можете редагувати тільки вартість побраня');
         return;
       }
 
@@ -643,6 +643,15 @@ export default function Orders() {
       if (order && order.status !== 'чернетка') {
         showWarning('Ви можете редагувати тільки замовлення в статусі "чернетка"');
         return;
+      }
+
+      // Перевірка payment_type для побраня
+      if (field === 'cash_on_delivery' && order) {
+        const paidTypes = ['оплачено', 'оплачено по перерахунку', 'не обрано', 'готівка', 'банк карта'];
+        if (paidTypes.includes(order.payment_type || '')) {
+          showWarning('Побраня можна редагувати тільки для замовлень з типом оплати "побранє"');
+          return;
+        }
       }
     }
 
@@ -664,10 +673,34 @@ export default function Orders() {
       valueToSave = parseFloat(cleanValue) || 0;
     }
 
+    // Додаткова перевірка для постачальника
+    if (isSupplier) {
+      if (field !== 'cash_on_delivery') {
+        showError('Ви можете редагувати тільки вартість побраня');
+        setEditingCell(null);
+        setEditValue('');
+        return;
+      }
+
+      const order = orders.find(o => o.id === orderId);
+      if (order) {
+        const paidTypes = ['оплачено', 'оплачено по перерахунку', 'не обрано', 'готівка', 'банк карта'];
+        if (paidTypes.includes(order.payment_type || '')) {
+          showError('Побраня можна редагувати тільки для замовлень з типом оплати "побранє"');
+          setEditingCell(null);
+          setEditValue('');
+          return;
+        }
+      }
+    }
+
     const updateData: any = { [field]: valueToSave };
 
-    if (field === 'payment_type' && (valueToSave === 'оплачено' || valueToSave === 'не обрано')) {
-      updateData.cash_on_delivery = 0;
+    if (field === 'payment_type') {
+      const paidTypes = ['оплачено', 'оплачено по перерахунку', 'не обрано', 'готівка', 'банк карта'];
+      if (paidTypes.includes(valueToSave)) {
+        updateData.cash_on_delivery = 0;
+      }
     }
 
     if (field === 'part_price' || field === 'delivery_cost') {
