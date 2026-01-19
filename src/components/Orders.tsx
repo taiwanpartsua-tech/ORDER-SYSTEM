@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase, Order, Supplier, TariffSettings } from '../lib/supabase';
+import { supabase, Order, Supplier, TariffSettings, DraftOrder } from '../lib/supabase';
 import { Plus, CreditCard as Edit, Archive, X, ExternalLink, ChevronDown, Layers, ChevronUp, Check, RotateCcw, Printer, Download, Search, XCircle, LayoutGrid } from 'lucide-react';
 import Returns from './Returns';
 import { useToast } from '../contexts/ToastContext';
@@ -71,29 +71,8 @@ export default function Orders() {
   const [searchTerm, setSearchTerm] = useState('');
   const [tariffSettings, setTariffSettings] = useState<TariffSettings | null>(null);
   const [columnView, setColumnView] = useState<ColumnViewType>(loadColumnView());
-  const [draftRows, setDraftRows] = useState<Array<{
-    id: string;
-    order_number: string;
-    supplier_id: string;
-    manager_id: string;
-    status: string;
-    order_date: string;
-    notes: string;
-    title: string;
-    link: string;
-    tracking_pl: string;
-    part_price: number;
-    delivery_cost: number;
-    total_cost: number;
-    part_number: string;
-    payment_type: string;
-    cash_on_delivery: number;
-    client_id: string;
-    received_pln: number;
-    transport_cost_usd: number;
-    weight_kg: number;
-    verified: boolean;
-  }>>([]);
+  const [draftRows, setDraftRows] = useState<DraftOrder[]>([]);
+  const [showArchivedDrafts, setShowArchivedDrafts] = useState(false);
   const [newRowData, setNewRowData] = useState({
     order_number: '',
     supplier_id: '',
@@ -152,11 +131,16 @@ export default function Orders() {
     loadArtTransId();
     loadReturnsCount();
     loadTariffSettings();
+    loadDraftOrders();
   }, []);
 
   useEffect(() => {
     loadOrders();
   }, [activeViewTab]);
+
+  useEffect(() => {
+    loadDraftOrders();
+  }, [showArchivedDrafts]);
 
   useEffect(() => {
     if (activeTab === 'returns') {
@@ -350,6 +334,32 @@ export default function Orders() {
 
   function printReceipt() {
     window.print();
+  }
+
+  async function loadDraftOrders() {
+    try {
+      const projectId = await getCurrentProjectId();
+      if (!projectId) {
+        console.error('Не знайдено project_id для завантаження чернеток');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('draft_orders')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('archived', showArchivedDrafts)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Помилка завантаження чернеток:', error);
+      } else if (data) {
+        console.log('Чернетки завантажено:', data.length);
+        setDraftRows(data);
+      }
+    } catch (err) {
+      console.error('Помилка при завантаженні чернеток:', err);
+    }
   }
 
   async function loadSuppliers() {
@@ -1021,59 +1031,106 @@ export default function Orders() {
     });
   }
 
-  function addDraftRows(count: number) {
+  async function addDraftRows(count: number) {
     const defaultWeight = 1;
     const receivedPln = tariffSettings?.default_received_pln || 15;
     const transportCostUsd = tariffSettings ? defaultWeight * tariffSettings.default_transport_cost_per_kg_usd : 0;
 
-    const newDrafts = Array.from({ length: count }, (_, index) => ({
-      id: `draft-${Date.now()}-${index}`,
-      order_number: '',
-      supplier_id: artTransId,
-      manager_id: '',
-      status: 'в роботі на сьогодні',
-      order_date: new Date().toISOString().split('T')[0],
-      notes: '',
-      title: '',
-      link: '',
-      tracking_pl: '',
-      part_price: 0,
-      delivery_cost: 0,
-      total_cost: 0,
-      part_number: '',
-      payment_type: 'не обрано',
-      cash_on_delivery: 0,
-      client_id: '',
-      received_pln: receivedPln,
-      transport_cost_usd: transportCostUsd,
-      weight_kg: defaultWeight,
-      verified: false
-    }));
+    try {
+      const projectId = await getCurrentProjectId();
+      if (!projectId) {
+        showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
+        return;
+      }
 
-    setDraftRows(prev => [...prev, ...newDrafts]);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        showError('Помилка: не знайдено поточного користувача');
+        return;
+      }
+
+      const newDrafts = Array.from({ length: count }, () => ({
+        order_number: '',
+        supplier_id: artTransId,
+        manager_id: null,
+        status: 'в роботі на сьогодні',
+        order_date: new Date().toISOString().split('T')[0],
+        notes: '',
+        title: '',
+        link: '',
+        tracking_pl: '',
+        part_price: 0,
+        delivery_cost: 0,
+        total_cost: 0,
+        part_number: '',
+        payment_type: 'не обрано',
+        cash_on_delivery: 0,
+        client_id: '',
+        received_pln: receivedPln,
+        transport_cost_usd: transportCostUsd,
+        weight_kg: defaultWeight,
+        verified: false,
+        archived: false,
+        project_id: projectId,
+        created_by: user.id
+      }));
+
+      const { error } = await supabase.from('draft_orders').insert(newDrafts);
+
+      if (error) {
+        console.error('Error creating drafts:', error);
+        showError('Помилка при створенні чернеток: ' + error.message);
+        return;
+      }
+
+      showSuccess(`Створено ${count} чернет${count === 1 ? 'ку' : count <= 4 ? 'ки' : 'ок'}`);
+      loadDraftOrders();
+    } catch (err) {
+      console.error('Network error:', err);
+      showError('Помилка мережі: Перевірте підключення до інтернету');
+    }
   }
 
-  function updateDraftRow(draftId: string, field: string, value: any) {
-    setDraftRows(prev => prev.map(draft => {
-      if (draft.id === draftId) {
-        const updated = { ...draft, [field]: value };
+  async function updateDraftRow(draftId: string, field: string, value: any) {
+    const draft = draftRows.find(d => d.id === draftId);
+    if (!draft) return;
 
-        if (field === 'payment_type' && value === 'оплачено') {
-          updated.cash_on_delivery = 0;
-        }
+    const updated: any = { [field]: value };
 
-        if (field === 'weight_kg' && tariffSettings) {
-          updated.transport_cost_usd = Number(value) * tariffSettings.default_transport_cost_per_kg_usd;
-        }
+    if (field === 'payment_type' && value === 'оплачено') {
+      updated.cash_on_delivery = 0;
+    }
 
-        if (field === 'part_price' || field === 'delivery_cost') {
-          updated.total_cost = updated.part_price + updated.delivery_cost;
-        }
+    if (field === 'weight_kg' && tariffSettings) {
+      updated.transport_cost_usd = Number(value) * tariffSettings.default_transport_cost_per_kg_usd;
+    }
 
-        return updated;
+    if (field === 'part_price' || field === 'delivery_cost') {
+      const newPartPrice = field === 'part_price' ? Number(value) : draft.part_price;
+      const newDeliveryCost = field === 'delivery_cost' ? Number(value) : draft.delivery_cost;
+      updated.total_cost = newPartPrice + newDeliveryCost;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('draft_orders')
+        .update(updated)
+        .eq('id', draftId);
+
+      if (error) {
+        console.error('Error updating draft:', error);
+        showError('Помилка оновлення чернетки');
+        return;
       }
-      return draft;
-    }));
+
+      // Оновлюємо локальний стан
+      setDraftRows(prev => prev.map(d =>
+        d.id === draftId ? { ...d, ...updated } : d
+      ));
+    } catch (err) {
+      console.error('Network error:', err);
+      showError('Помилка мережі');
+    }
   }
 
   async function saveDraftRow(draftId: string) {
@@ -1115,25 +1172,31 @@ export default function Orders() {
       return;
     }
 
-    const dataToSubmit: any = { ...draft };
-    delete dataToSubmit.id;
-
-    if (!dataToSubmit.supplier_id || dataToSubmit.supplier_id === '') {
-      delete dataToSubmit.supplier_id;
-    }
-
-    if (!dataToSubmit.manager_id || dataToSubmit.manager_id === '') {
-      delete dataToSubmit.manager_id;
-    }
+    const dataToSubmit: any = {
+      order_number: draft.order_number,
+      supplier_id: draft.supplier_id || null,
+      manager_id: draft.manager_id || null,
+      status: draft.status,
+      order_date: draft.order_date,
+      notes: draft.notes,
+      title: draft.title,
+      link: draft.link,
+      tracking_pl: draft.tracking_pl,
+      part_price: draft.part_price,
+      delivery_cost: draft.delivery_cost,
+      total_cost: draft.total_cost,
+      part_number: draft.part_number,
+      payment_type: draft.payment_type,
+      cash_on_delivery: draft.cash_on_delivery,
+      client_id: draft.client_id,
+      received_pln: draft.received_pln,
+      transport_cost_usd: draft.transport_cost_usd,
+      weight_kg: draft.weight_kg,
+      verified: draft.verified,
+      project_id: draft.project_id
+    };
 
     try {
-      const projectId = await getCurrentProjectId();
-      if (!projectId) {
-        showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
-        return;
-      }
-      dataToSubmit.project_id = projectId;
-
       const { error } = await supabase.from('orders').insert([dataToSubmit]);
       if (error) {
         console.error('Error inserting order:', error);
@@ -1141,8 +1204,11 @@ export default function Orders() {
         return;
       }
 
+      // Видаляємо чернетку після успішного створення замовлення
+      await supabase.from('draft_orders').delete().eq('id', draftId);
+
       showSuccess('Замовлення успішно створено!');
-      setDraftRows(prev => prev.filter(d => d.id !== draftId));
+      loadDraftOrders();
       loadOrders();
     } catch (err) {
       console.error('Network error:', err);
@@ -1150,8 +1216,73 @@ export default function Orders() {
     }
   }
 
-  function deleteDraftRow(draftId: string) {
-    setDraftRows(prev => prev.filter(d => d.id !== draftId));
+  async function deleteDraftRow(draftId: string) {
+    try {
+      const { error } = await supabase
+        .from('draft_orders')
+        .delete()
+        .eq('id', draftId);
+
+      if (error) {
+        console.error('Error deleting draft:', error);
+        showError('Помилка видалення чернетки');
+        return;
+      }
+
+      showSuccess('Чернетку видалено!');
+      loadDraftOrders();
+    } catch (err) {
+      console.error('Network error:', err);
+      showError('Помилка мережі');
+    }
+  }
+
+  async function archiveDraftRow(draftId: string) {
+    try {
+      const { error } = await supabase
+        .from('draft_orders')
+        .update({
+          archived: true,
+          archived_at: new Date().toISOString()
+        })
+        .eq('id', draftId);
+
+      if (error) {
+        console.error('Error archiving draft:', error);
+        showError('Помилка архівування чернетки');
+        return;
+      }
+
+      showSuccess('Чернетку архівовано!');
+      loadDraftOrders();
+    } catch (err) {
+      console.error('Network error:', err);
+      showError('Помилка мережі');
+    }
+  }
+
+  async function unarchiveDraftRow(draftId: string) {
+    try {
+      const { error } = await supabase
+        .from('draft_orders')
+        .update({
+          archived: false,
+          archived_at: null
+        })
+        .eq('id', draftId);
+
+      if (error) {
+        console.error('Error unarchiving draft:', error);
+        showError('Помилка розархівування чернетки');
+        return;
+      }
+
+      showSuccess('Чернетку розархівовано!');
+      loadDraftOrders();
+    } catch (err) {
+      console.error('Network error:', err);
+      showError('Помилка мережі');
+    }
   }
 
   function startAddingNewRow() {
@@ -2003,25 +2134,44 @@ export default function Orders() {
                   </button>
                 )}
                 {!isSupplier && (
-                  <div className="relative group">
-                    <button
-                      className="bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-800 transition text-sm font-medium"
-                    >
-                      <Layers size={18} />
-                      Чернетки
-                    </button>
-                    <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-700 shadow-lg rounded-lg overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-[140px]">
-                      {[1, 2, 3, 4, 5].map(count => (
-                        <button
-                          key={count}
-                          onClick={() => addDraftRows(count)}
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-sm"
-                        >
-                          Додати {count} {count === 1 ? 'рядок' : count <= 4 ? 'рядки' : 'рядків'}
-                        </button>
-                      ))}
+                  <>
+                    <div className="relative group">
+                      <button
+                        className="bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-800 transition text-sm font-medium"
+                      >
+                        <Layers size={18} />
+                        Чернетки
+                      </button>
+                      <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-700 shadow-lg rounded-lg overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-[140px]">
+                        {[1, 2, 3, 4, 5].map(count => (
+                          <button
+                            key={count}
+                            onClick={() => addDraftRows(count)}
+                            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-sm"
+                          >
+                            Додати {count} {count === 1 ? 'рядок' : count <= 4 ? 'рядки' : 'рядків'}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                    <button
+                      onClick={() => setShowArchivedDrafts(!showArchivedDrafts)}
+                      className={`px-4 py-2 rounded-lg flex items-center gap-2 transition text-sm font-medium ${
+                        showArchivedDrafts
+                          ? 'bg-gray-600 text-white hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600'
+                          : 'bg-purple-600 text-white hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800'
+                      }`}
+                      title={showArchivedDrafts ? 'Показати активні чернетки' : 'Показати архівовані чернетки'}
+                    >
+                      <Archive size={18} />
+                      {showArchivedDrafts ? 'Архів чернеток' : 'Показати архів'}
+                      {!showArchivedDrafts && draftRows.length > 0 && (
+                        <span className="bg-purple-800 dark:bg-purple-900 px-2 py-0.5 rounded-full text-xs">
+                          {draftRows.length}
+                        </span>
+                      )}
+                    </button>
+                  </>
                 )}
                 <button
                   onClick={toggleColumnView}
@@ -2337,22 +2487,53 @@ export default function Orders() {
                           <td key="actions" className="px-3 py-3 min-h-[48px]">
                             {!isSupplier ? (
                               <div className="flex gap-2 justify-start">
-                                <button
-                                  onClick={() => saveDraftRow(draft.id)}
-                                  className="px-3 py-2 bg-green-700 text-white rounded text-xs font-semibold hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition flex items-center gap-1"
-                                  title="Зберегти замовлення"
-                                >
-                                  <Check size={14} />
-                                  Зберегти
-                                </button>
-                                <button
-                                  onClick={() => deleteDraftRow(draft.id)}
-                                  className="px-3 py-2 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 transition flex items-center gap-1"
-                                  title="Видалити чернетку"
-                                >
-                                  <X size={14} />
-                                  Видалити
-                                </button>
+                                {!showArchivedDrafts ? (
+                                  <>
+                                    <button
+                                      onClick={() => saveDraftRow(draft.id)}
+                                      className="px-3 py-2 bg-green-700 text-white rounded text-xs font-semibold hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition flex items-center gap-1"
+                                      title="Зберегти замовлення"
+                                    >
+                                      <Check size={14} />
+                                      Зберегти
+                                    </button>
+                                    <button
+                                      onClick={() => archiveDraftRow(draft.id)}
+                                      className="px-3 py-2 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 transition flex items-center gap-1"
+                                      title="Архівувати чернетку"
+                                    >
+                                      <Archive size={14} />
+                                      Архів
+                                    </button>
+                                    <button
+                                      onClick={() => deleteDraftRow(draft.id)}
+                                      className="px-3 py-2 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 transition flex items-center gap-1"
+                                      title="Видалити чернетку"
+                                    >
+                                      <X size={14} />
+                                      Видалити
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={() => unarchiveDraftRow(draft.id)}
+                                      className="px-3 py-2 bg-orange-600 text-white rounded text-xs font-semibold hover:bg-orange-700 dark:bg-orange-600 dark:hover:bg-orange-700 transition flex items-center gap-1"
+                                      title="Розархівувати чернетку"
+                                    >
+                                      <RotateCcw size={14} />
+                                      Розархів
+                                    </button>
+                                    <button
+                                      onClick={() => deleteDraftRow(draft.id)}
+                                      className="px-3 py-2 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 transition flex items-center gap-1"
+                                      title="Видалити чернетку"
+                                    >
+                                      <X size={14} />
+                                      Видалити
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             ) : (
                               <div className="text-xs text-gray-500 dark:text-gray-400 italic">

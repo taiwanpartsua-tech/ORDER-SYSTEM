@@ -109,6 +109,35 @@ export type Return = {
   updated_at?: string;
 };
 
+export type DraftOrder = {
+  id: string;
+  order_number: string;
+  supplier_id: string;
+  manager_id?: string;
+  status: string;
+  order_date: string;
+  notes: string;
+  title: string;
+  link: string;
+  tracking_pl: string;
+  part_price: number;
+  delivery_cost: number;
+  total_cost: number;
+  part_number: string;
+  payment_type: string;
+  cash_on_delivery: number;
+  client_id: string;
+  received_pln: number;
+  transport_cost_usd: number;
+  weight_kg: number;
+  verified: boolean;
+  archived: boolean;
+  archived_at?: string;
+  project_id: string;
+  created_by?: string;
+  created_at: string;
+};
+
 export type ActiveReceipt = {
   id: string;
   receipt_number: string;
