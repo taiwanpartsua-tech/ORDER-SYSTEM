@@ -28,10 +28,41 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
     setIsLoading(true);
 
-    const { data: accessData } = await supabase
-      .from('user_project_access')
-      .select('*, project:projects(*)')
-      .eq('user_id', user.id);
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const isSuperAdmin = profile?.role === 'super_admin';
+
+    let accessData: UserProjectAccess[] = [];
+
+    if (isSuperAdmin) {
+      const { data: allProjects } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('is_active', true);
+
+      if (allProjects) {
+        accessData = allProjects.map(project => ({
+          user_id: user.id,
+          project_id: project.id,
+          role: 'admin',
+          created_at: new Date().toISOString(),
+          project: project
+        }));
+      }
+    } else {
+      const { data: userAccess } = await supabase
+        .from('user_project_access')
+        .select('*, project:projects(*)')
+        .eq('user_id', user.id);
+
+      if (userAccess) {
+        accessData = userAccess;
+      }
+    }
 
     if (accessData) {
       setUserProjects(accessData);
