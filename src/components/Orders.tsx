@@ -386,7 +386,7 @@ export default function Orders() {
       console.log('Контрагенти завантажено:', data.length);
       setCounterparties(data);
 
-      const romanCounterparty = data.find(c => c.name === 'Roman Paskevych');
+      const romanCounterparty = data.find(c => c.name === 'Roman');
       if (romanCounterparty) {
         setRomanCounterpartyId(romanCounterparty.id);
         setSelectedCounterpartyId(romanCounterparty.id);
@@ -1480,20 +1480,20 @@ export default function Orders() {
     switch (columnKey) {
       case 'counterparty_id':
         const currentCounterparty = counterparties.find(c => c.id === order.counterparty_id);
-        const counterpartyName = currentCounterparty ? currentCounterparty.name : 'Не обрано';
+        const counterpartyName = currentCounterparty ? currentCounterparty.name : '-';
         return (
           <td className="p-0 relative" key="counterparty_id">
             <select
               value={order.counterparty_id || ''}
               onChange={(e) => handleCounterpartyChange(order.id, e.target.value)}
               disabled={isAccepted}
-              className={`w-full h-full px-3 py-3 text-xs font-semibold border-0 ${
+              className={`w-full h-full px-2 py-3 text-xs font-bold border-0 ${
                 order.counterparty_id
-                  ? 'bg-blue-50 text-blue-900 dark:bg-blue-900/30 dark:text-blue-200'
-                  : 'bg-gray-50 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
-              } ${!isAccepted ? 'hover:opacity-80 cursor-pointer' : 'cursor-default'} transition min-h-[48px] focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400`}
+                  ? 'bg-gradient-to-br from-blue-50 to-blue-100 text-blue-800 dark:from-blue-900/40 dark:to-blue-900/20 dark:text-blue-300'
+                  : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500'
+              } ${!isAccepted ? 'hover:brightness-95 cursor-pointer' : 'cursor-default'} transition min-h-[48px] focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400`}
             >
-              <option value="" className="bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400">Не обрано</option>
+              <option value="" className="bg-white dark:bg-gray-700 text-gray-400 dark:text-gray-500">-</option>
               {counterparties.map((counterparty) => (
                 <option
                   key={counterparty.id}
@@ -2180,9 +2180,9 @@ export default function Orders() {
                             <select
                               value={newRowData.counterparty_id}
                               onChange={(e) => setNewRowData({ ...newRowData, counterparty_id: e.target.value })}
-                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-blue-50 dark:bg-blue-900/30 text-blue-900 dark:text-blue-200 focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500"
+                              className="w-full h-full px-2 py-3 text-xs font-bold border-0 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-800 dark:from-blue-900/40 dark:to-blue-900/20 dark:text-blue-300 focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500"
                             >
-                              <option value="" className="bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400">Не обрано</option>
+                              <option value="" className="bg-white dark:bg-gray-700 text-gray-400 dark:text-gray-500">-</option>
                               {counterparties.map((counterparty) => (
                                 <option
                                   key={counterparty.id}
@@ -2408,9 +2408,9 @@ export default function Orders() {
                             <select
                               value={draft.counterparty_id}
                               onChange={(e) => updateDraftRow(draft.id, 'counterparty_id', e.target.value)}
-                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-blue-50 dark:bg-blue-900/30 text-blue-900 dark:text-blue-200 focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500"
+                              className="w-full h-full px-2 py-3 text-xs font-bold border-0 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-800 dark:from-blue-900/40 dark:to-blue-900/20 dark:text-blue-300 focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500"
                             >
-                              <option value="" className="bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400">Не обрано</option>
+                              <option value="" className="bg-white dark:bg-gray-700 text-gray-400 dark:text-gray-500">-</option>
                               {counterparties.map((counterparty) => (
                                 <option
                                   key={counterparty.id}
