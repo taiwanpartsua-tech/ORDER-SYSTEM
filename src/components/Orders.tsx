@@ -1804,17 +1804,11 @@ export default function Orders() {
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 >
-                  <option value="в роботі на сьогодні" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">В роботі на сьогодні</option>
-                  <option value="на броні" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">На броні</option>
-                  <option value="очікується" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Очікується</option>
-                  <option value="прийнято сьогодні" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Прийнято сьогодні</option>
-                  <option value="на складі" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">На складі</option>
-                  <option value="в дорозі" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">В дорозі</option>
-                  <option value="в вигрузці" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">В вигрузці</option>
-                  <option value="готово до відправки" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Готово до відправки</option>
-                  <option value="повернення" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Повернення</option>
-                  <option value="проблемні" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Проблемні</option>
-                  <option value="анульовано" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Анульовано</option>
+                  {statuses.map((status) => (
+                    <option key={status} value={status} className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                      {statusLabels[status]}
+                    </option>
+                  ))}
                 </select>
               </div>
 
