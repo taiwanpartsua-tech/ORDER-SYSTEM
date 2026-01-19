@@ -73,13 +73,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         const storedProject = accessData.find(a => a.project_id === storedProjectId);
         if (storedProject && storedProject.project) {
           setCurrentProjectState(storedProject.project);
-        } else if (accessData.length > 0 && accessData[0].project) {
-          setCurrentProjectState(accessData[0].project);
-          localStorage.setItem('currentProjectId', accessData[0].project.id);
         }
-      } else if (accessData.length > 0 && accessData[0].project) {
-        setCurrentProjectState(accessData[0].project);
-        localStorage.setItem('currentProjectId', accessData[0].project.id);
       }
     }
 
