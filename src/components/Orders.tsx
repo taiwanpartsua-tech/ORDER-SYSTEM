@@ -72,6 +72,7 @@ export default function Orders() {
     id: string;
     order_number: string;
     supplier_id: string;
+    counterparty_id: string;
     manager_id: string;
     status: string;
     order_date: string;
@@ -674,6 +675,20 @@ export default function Orders() {
     }
   }
 
+  async function handleCounterpartyChange(orderId: string, counterpartyId: string) {
+    const { error } = await supabase
+      .from('orders')
+      .update({ counterparty_id: counterpartyId || null })
+      .eq('id', orderId);
+
+    if (!error) {
+      showSuccess('Контрагент оновлено!');
+      loadOrders();
+    } else {
+      showError('Помилка оновлення контрагента');
+    }
+  }
+
   function startEditing(orderId: string, field: string, currentValue: any) {
     setEditingCell({ orderId, field });
     let cleanValue = String(currentValue);
@@ -983,6 +998,7 @@ export default function Orders() {
     setFormData({
       order_number: '',
       supplier_id: artTransId,
+      counterparty_id: romanCounterpartyId,
       manager_id: '',
       status: 'в роботі на сьогодні',
       order_date: new Date().toISOString().split('T')[0],
@@ -1013,6 +1029,7 @@ export default function Orders() {
       id: `draft-${Date.now()}-${index}`,
       order_number: '',
       supplier_id: artTransId,
+      counterparty_id: romanCounterpartyId,
       manager_id: '',
       status: 'в роботі на сьогодні',
       order_date: new Date().toISOString().split('T')[0],
@@ -1461,6 +1478,35 @@ export default function Orders() {
     const value = (order as any)[columnKey];
 
     switch (columnKey) {
+      case 'counterparty_id':
+        const currentCounterparty = counterparties.find(c => c.id === order.counterparty_id);
+        const counterpartyName = currentCounterparty ? currentCounterparty.name : 'Не обрано';
+        return (
+          <td className="p-0 relative" key="counterparty_id">
+            <select
+              value={order.counterparty_id || ''}
+              onChange={(e) => handleCounterpartyChange(order.id, e.target.value)}
+              disabled={isAccepted}
+              className={`w-full h-full px-3 py-3 text-xs font-semibold border-0 ${
+                order.counterparty_id
+                  ? 'bg-blue-50 text-blue-900 dark:bg-blue-900/30 dark:text-blue-200'
+                  : 'bg-gray-50 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+              } ${!isAccepted ? 'hover:opacity-80 cursor-pointer' : 'cursor-default'} transition min-h-[48px] focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400`}
+            >
+              <option value="" className="bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400">Не обрано</option>
+              {counterparties.map((counterparty) => (
+                <option
+                  key={counterparty.id}
+                  value={counterparty.id}
+                  className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  {counterparty.name}
+                </option>
+              ))}
+            </select>
+          </td>
+        );
+
       case 'status':
         return (
           <td className="p-0 relative" key="status">
@@ -2128,6 +2174,29 @@ export default function Orders() {
                       const value = (newRowData as any)[col.key];
                       const isRequired = ['client_id', 'title', 'link'].includes(col.key);
 
+                      if (col.key === 'counterparty_id') {
+                        return (
+                          <td key={col.key} className="p-0 relative">
+                            <select
+                              value={newRowData.counterparty_id}
+                              onChange={(e) => setNewRowData({ ...newRowData, counterparty_id: e.target.value })}
+                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-blue-50 dark:bg-blue-900/30 text-blue-900 dark:text-blue-200 focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500"
+                            >
+                              <option value="" className="bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400">Не обрано</option>
+                              {counterparties.map((counterparty) => (
+                                <option
+                                  key={counterparty.id}
+                                  value={counterparty.id}
+                                  className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                >
+                                  {counterparty.name}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                        );
+                      }
+
                       if (col.key === 'status') {
                         return (
                           <td key={col.key} className="p-0 relative">
@@ -2332,6 +2401,29 @@ export default function Orders() {
 
                       const value = (draft as any)[col.key];
                       const isRequired = ['client_id', 'title', 'link'].includes(col.key);
+
+                      if (col.key === 'counterparty_id') {
+                        return (
+                          <td key={col.key} className="p-0 relative">
+                            <select
+                              value={draft.counterparty_id}
+                              onChange={(e) => updateDraftRow(draft.id, 'counterparty_id', e.target.value)}
+                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-blue-50 dark:bg-blue-900/30 text-blue-900 dark:text-blue-200 focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500"
+                            >
+                              <option value="" className="bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400">Не обрано</option>
+                              {counterparties.map((counterparty) => (
+                                <option
+                                  key={counterparty.id}
+                                  value={counterparty.id}
+                                  className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                >
+                                  {counterparty.name}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                        );
+                      }
 
                       if (col.key === 'status') {
                         return (
