@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase, Order, Supplier, ReceiptFieldChange } from '../lib/supabase';
-import { ChevronRight, Send, X, AlertCircle, ExternalLink, Search, XCircle, History, ChevronDown, ChevronUp } from 'lucide-react';
+import { supabase, Order, Supplier, ReceiptFieldChange, DraftOrder } from '../lib/supabase';
+import { ChevronRight, Send, X, AlertCircle, ExternalLink, Search, XCircle, History, ChevronDown, ChevronUp, Archive, Check } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
@@ -29,6 +29,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
   const [cashOnDeliveryOrders, setCashOnDeliveryOrders] = useState<EditableOrder[]>([]);
   const [paidOrders, setPaidOrders] = useState<EditableOrder[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [draftOrders, setDraftOrders] = useState<DraftOrder[]>([]);
 
   const [cashOnDeliveryReceiptNumber, setCashOnDeliveryReceiptNumber] = useState<string>('');
   const [paidReceiptNumber, setPaidReceiptNumber] = useState<string>('');
@@ -95,6 +96,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
   useEffect(() => {
     loadAvailableOrders();
     loadActiveReceiptOrders();
+    loadDraftOrders();
   }, []);
 
   async function loadAvailableOrders() {
@@ -106,6 +108,131 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
 
     if (data) {
       setAvailableOrders(data as OrderWithSupplier[]);
+    }
+  }
+
+  async function loadDraftOrders() {
+    try {
+      const projectId = await getCurrentProjectId();
+      if (!projectId) {
+        console.error('Не знайдено project_id для завантаження чернеток');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('draft_orders')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('archived', false)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Помилка завантаження чернеток:', error);
+      } else if (data) {
+        setDraftOrders(data);
+      }
+    } catch (err) {
+      console.error('Помилка при завантаженні чернеток:', err);
+    }
+  }
+
+  async function moveDraftToActiveReceipt(draft: DraftOrder, group: PaymentGroup) {
+    if (!draft.client_id || draft.client_id.trim() === '') {
+      showWarning('ID клієнта є обов\'язковим полем!');
+      return;
+    }
+
+    if (!draft.title || draft.title.trim() === '') {
+      showWarning('Назва є обов\'язковим полем!');
+      return;
+    }
+
+    if (!draft.link || draft.link.trim() === '') {
+      showWarning('Посилання є обов\'язковим полем!');
+      return;
+    }
+
+    if (!draft.part_price || draft.part_price <= 0) {
+      showWarning('Вартість запчастини є обов\'язковим полем і повинна бути більше 0!');
+      return;
+    }
+
+    if (!draft.part_number || draft.part_number.trim() === '') {
+      showWarning('Номер запчастини є обов\'язковим полем!');
+      return;
+    }
+
+    if (!draft.payment_type || draft.payment_type === 'не обрано') {
+      showWarning('Необхідно обрати тип оплати!');
+      return;
+    }
+
+    const dataToSubmit: any = {
+      order_number: draft.order_number,
+      supplier_id: draft.supplier_id || null,
+      manager_id: draft.manager_id || null,
+      status: 'в активному прийомі',
+      active_receipt_group: group,
+      order_date: draft.order_date,
+      notes: draft.notes,
+      title: draft.title,
+      link: draft.link,
+      tracking_pl: draft.tracking_pl,
+      part_price: draft.part_price,
+      delivery_cost: draft.delivery_cost,
+      total_cost: draft.total_cost,
+      part_number: draft.part_number,
+      payment_type: draft.payment_type,
+      cash_on_delivery: draft.cash_on_delivery,
+      client_id: draft.client_id,
+      received_pln: draft.received_pln,
+      transport_cost_usd: draft.transport_cost_usd,
+      weight_kg: draft.weight_kg,
+      verified: draft.verified,
+      project_id: draft.project_id
+    };
+
+    try {
+      const { error: insertError } = await supabase.from('orders').insert([dataToSubmit]);
+      if (insertError) {
+        console.error('Error inserting order:', insertError);
+        showError('Помилка при створенні замовлення: ' + insertError.message);
+        return;
+      }
+
+      // Видаляємо чернетку після успішного створення замовлення
+      await supabase.from('draft_orders').delete().eq('id', draft.id);
+
+      showSuccess('Чернетку додано до активного прийому!');
+      loadDraftOrders();
+      loadActiveReceiptOrders();
+    } catch (err) {
+      console.error('Network error:', err);
+      showError('Помилка мережі: Перевірте підключення до інтернету');
+    }
+  }
+
+  async function archiveDraft(draftId: string) {
+    try {
+      const { error } = await supabase
+        .from('draft_orders')
+        .update({
+          archived: true,
+          archived_at: new Date().toISOString()
+        })
+        .eq('id', draftId);
+
+      if (error) {
+        console.error('Error archiving draft:', error);
+        showError('Помилка архівування чернетки');
+        return;
+      }
+
+      showSuccess('Чернетку архівовано!');
+      loadDraftOrders();
+    } catch (err) {
+      console.error('Network error:', err);
+      showError('Помилка мережі');
     }
   }
 
@@ -580,10 +707,17 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow flex flex-col overflow-hidden">
           <div className="p-4 border-b flex-shrink-0">
             <div className="flex justify-between items-center mb-3">
-              <h3 className="font-semibold text-gray-800 dark:text-gray-100">Доступні замовлення ({availableOrders.length})</h3>
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100">
+                Доступні замовлення ({availableOrders.length + draftOrders.length})
+                {draftOrders.length > 0 && (
+                  <span className="ml-2 text-purple-600 dark:text-purple-400 text-sm">
+                    (+{draftOrders.length} чернеток)
+                  </span>
+                )}
+              </h3>
               <ExportButton
                 onClick={handleExportReceipts}
-                disabled={availableOrders.length === 0 && cashOnDeliveryOrders.length === 0 && paidOrders.length === 0}
+                disabled={availableOrders.length === 0 && cashOnDeliveryOrders.length === 0 && paidOrders.length === 0 && draftOrders.length === 0}
               />
             </div>
             <div className="relative">
@@ -661,7 +795,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
             )}
 
             {availablePaidOrders.length > 0 && (
-              <div>
+              <div className="mb-4">
                 <div className="bg-green-100 dark:bg-gradient-to-br dark:from-green-950 dark:to-green-900 px-3 py-2 font-semibold text-sm text-green-900 dark:text-green-200 sticky top-0 z-20">
                   Оплачені ({availablePaidOrders.length})
                 </div>
@@ -709,6 +843,79 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
                         </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {draftOrders.length > 0 && (
+              <div>
+                <div className="bg-purple-100 dark:bg-gradient-to-br dark:from-purple-950 dark:to-purple-900 px-3 py-2 font-semibold text-sm text-purple-900 dark:text-purple-200 sticky top-0 z-20">
+                  Чернетки ({draftOrders.length})
+                </div>
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 dark:bg-gray-700 sticky top-8 z-10">
+                    <tr>
+                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">ID</th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Назва</th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">№ запч.</th>
+                      <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 text-xs w-10">Посил.</th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Трекінг</th>
+                      <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 text-xs">Тип оплати</th>
+                      <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 w-16"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {draftOrders.map((draft) => {
+                      const draftGroup = draft.payment_type?.toLowerCase().includes('побран') ||
+                                        draft.payment_type?.toLowerCase().includes('самовив')
+                                        ? 'cash_on_delivery' : 'paid';
+
+                      return (
+                        <tr key={draft.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
+                          <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs">{draft.client_id || '-'}</td>
+                          <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs max-w-[150px] truncate" title={draft.title || '-'}>{draft.title || '-'}</td>
+                          <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs">{draft.part_number || '-'}</td>
+                          <td className="px-2 py-2 text-center">
+                            {draft.link ? (
+                              <a
+                                href={draft.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-900 inline-block"
+                                title="Відкрити посилання"
+                              >
+                                <ExternalLink size={14} />
+                              </a>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs">{draft.tracking_pl || '-'}</td>
+                          <td className="px-2 py-2 text-center text-gray-600 dark:text-gray-300 text-xs">
+                            {draft.payment_type || 'не обрано'}
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={() => moveDraftToActiveReceipt(draft, draftGroup)}
+                                className="text-green-600 hover:text-green-900 hover:bg-green-50 p-1 rounded transition"
+                                title="Додати до прийомки"
+                              >
+                                <Check size={16} />
+                              </button>
+                              <button
+                                onClick={() => archiveDraft(draft.id)}
+                                className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-1 rounded transition"
+                                title="Архівувати"
+                              >
+                                <Archive size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
