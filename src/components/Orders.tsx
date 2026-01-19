@@ -374,6 +374,7 @@ export default function Orders() {
   }
 
   async function loadCounterparties() {
+    console.log('🔄 Завантаження контрагентів...');
     const { data, error } = await supabase
       .from('counterparties')
       .select('*')
@@ -381,9 +382,10 @@ export default function Orders() {
       .order('name');
 
     if (error) {
-      console.error('Помилка завантаження контрагентів:', error);
+      console.error('❌ Помилка завантаження контрагентів:', error);
+      showError(`Помилка завантаження контрагентів: ${error.message}`);
     } else if (data) {
-      console.log('Контрагенти завантажено:', data.length, data);
+      console.log('✅ Контрагенти завантажено:', data.length, data);
       setCounterparties(data);
 
       const romanCounterparty = data.find(c => c.name === 'Roman');
@@ -392,9 +394,12 @@ export default function Orders() {
         setSelectedCounterpartyId(romanCounterparty.id);
         setFormData(prev => ({ ...prev, counterparty_id: romanCounterparty.id }));
         setNewRowData(prev => ({ ...prev, counterparty_id: romanCounterparty.id }));
+        console.log('✅ Roman встановлено за замовчуванням:', romanCounterparty.id);
       } else {
-        console.warn('Контрагент Roman не знайдено!');
+        console.warn('⚠️ Контрагент Roman не знайдено!');
       }
+    } else {
+      console.warn('⚠️ Контрагенти не знайдено (data is null/undefined)');
     }
   }
 
