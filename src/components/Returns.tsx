@@ -85,7 +85,7 @@ export default function Returns({ selectedCounterpartyId, romanCounterpartyId }:
   }, [showArchived]);
 
   useEffect(() => {
-    if (selectedCounterpartyId) {
+    if (selectedCounterpartyId && selectedCounterpartyId !== romanCounterpartyId) {
       loadReturns();
     }
   }, [selectedCounterpartyId]);
@@ -114,7 +114,7 @@ export default function Returns({ selectedCounterpartyId, romanCounterpartyId }:
       .eq('archived', showArchived)
       .order('created_at', { ascending: false });
 
-    if (selectedCounterpartyId) {
+    if (selectedCounterpartyId && selectedCounterpartyId !== 'all') {
       query = query.eq('counterparty_id', selectedCounterpartyId);
     }
 

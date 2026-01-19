@@ -159,7 +159,7 @@ export default function Orders() {
   }, [activeViewTab]);
 
   useEffect(() => {
-    if (selectedCounterpartyId) {
+    if (selectedCounterpartyId && selectedCounterpartyId !== romanCounterpartyId) {
       loadOrders();
       loadAcceptedOrders();
       loadSuppliers();
@@ -299,7 +299,7 @@ export default function Orders() {
         .select('*, supplier:suppliers(*), manager:user_profiles!manager_id(id, full_name, email)')
         .order('created_at', { ascending: false });
 
-      if (selectedCounterpartyId) {
+      if (selectedCounterpartyId && selectedCounterpartyId !== 'all') {
         query = query.eq('counterparty_id', selectedCounterpartyId);
       }
 
@@ -327,7 +327,7 @@ export default function Orders() {
       .select('*')
       .order('accepted_at', { ascending: false });
 
-    if (selectedCounterpartyId) {
+    if (selectedCounterpartyId && selectedCounterpartyId !== 'all') {
       query = query.eq('counterparty_id', selectedCounterpartyId);
     }
 
@@ -385,7 +385,7 @@ export default function Orders() {
       console.log('Контрагенти завантажено:', data.length);
       setCounterparties(data);
 
-      const romanCounterparty = data.find(c => c.name === 'ROMAN');
+      const romanCounterparty = data.find(c => c.name === 'Roman Paskevych');
       if (romanCounterparty) {
         setRomanCounterpartyId(romanCounterparty.id);
         setSelectedCounterpartyId(romanCounterparty.id);
@@ -401,7 +401,7 @@ export default function Orders() {
       .select('*')
       .order('name');
 
-    if (selectedCounterpartyId) {
+    if (selectedCounterpartyId && selectedCounterpartyId !== 'all') {
       query = query.or(`counterparty_id.eq.${selectedCounterpartyId},counterparty_id.is.null`);
     }
 
@@ -1566,6 +1566,12 @@ export default function Orders() {
               onChange={(e) => setSelectedCounterpartyId(e.target.value)}
               className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold min-w-[200px]"
             >
+              <option
+                value="all"
+                className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              >
+                Всі замовлення
+              </option>
               {counterparties.map((counterparty) => (
                 <option
                   key={counterparty.id}
