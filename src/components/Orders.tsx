@@ -35,7 +35,10 @@ type AcceptedOrder = {
 
 export default function Orders() {
   const { showSuccess, showError, showWarning, confirm } = useToast();
-  const { isSupplier } = useAuth();
+  const { isSupplier, profile } = useAuth();
+
+  console.log('DEBUG Orders - isSupplier:', isSupplier, 'profile.role:', profile?.role);
+
   const [orders, setOrders] = useState<(Order & { supplier: Supplier })[]>([]);
   const [acceptedOrders, setAcceptedOrders] = useState<AcceptedOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -1582,6 +1585,15 @@ export default function Orders() {
       <div className="flex justify-between items-center mb-4 flex-shrink-0">
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Замовлення</h2>
+          {profile && (
+            <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
+              isSupplier
+                ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+            }`}>
+              {profile.role} | {profile.email}
+            </div>
+          )}
           <div className="flex gap-2 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
             <button
               onClick={() => setActiveTab('orders')}
