@@ -2094,6 +2094,17 @@ export default function Orders() {
               )}
             </div>
           )}
+          {isSupplier && draftRows.length > 0 && (
+            <div className="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 dark:border-blue-400 mb-2">
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
+                <span className="inline-block w-4 h-4 bg-yellow-200 dark:bg-yellow-900/50 border border-yellow-400 dark:border-yellow-600 rounded mr-2"></span>
+                Жовтим виділені поля які ви можете редагувати
+                <span className="mx-2">|</span>
+                <span className="inline-block w-4 h-4 bg-gray-300 dark:bg-gray-700 border border-gray-400 dark:border-gray-600 rounded mr-2"></span>
+                Сірим - поля заблоковані для редагування
+              </p>
+            </div>
+          )}
           <div className="flex-1 overflow-auto">
           <table className="w-full text-sm">
               <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
@@ -2324,24 +2335,30 @@ export default function Orders() {
                       if (col.key === 'actions') {
                         return (
                           <td key="actions" className="px-3 py-3 min-h-[48px]">
-                            <div className="flex gap-2 justify-start">
-                              <button
-                                onClick={() => saveDraftRow(draft.id)}
-                                className="px-3 py-2 bg-green-700 text-white rounded text-xs font-semibold hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition flex items-center gap-1"
-                                title="Зберегти замовлення"
-                              >
-                                <Check size={14} />
-                                Зберегти
-                              </button>
-                              <button
-                                onClick={() => deleteDraftRow(draft.id)}
-                                className="px-3 py-2 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 transition flex items-center gap-1"
-                                title="Видалити чернетку"
-                              >
-                                <X size={14} />
-                                Видалити
-                              </button>
-                            </div>
+                            {!isSupplier ? (
+                              <div className="flex gap-2 justify-start">
+                                <button
+                                  onClick={() => saveDraftRow(draft.id)}
+                                  className="px-3 py-2 bg-green-700 text-white rounded text-xs font-semibold hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition flex items-center gap-1"
+                                  title="Зберегти замовлення"
+                                >
+                                  <Check size={14} />
+                                  Зберегти
+                                </button>
+                                <button
+                                  onClick={() => deleteDraftRow(draft.id)}
+                                  className="px-3 py-2 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 transition flex items-center gap-1"
+                                  title="Видалити чернетку"
+                                >
+                                  <X size={14} />
+                                  Видалити
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="text-xs text-gray-500 dark:text-gray-400 italic">
+                                Тільки перегляд
+                              </div>
+                            )}
                           </td>
                         );
                       }
@@ -2349,13 +2366,19 @@ export default function Orders() {
                       const value = (draft as any)[col.key];
                       const isRequired = ['client_id', 'title', 'link'].includes(col.key);
 
+                      // Поля які постачальник може редагувати
+                      const supplierEditableFields = ['order_number', 'delivery_date', 'cash_on_delivery', 'payment_type'];
+                      const isSupplierEditable = isSupplier && supplierEditableFields.includes(col.key);
+                      const isDisabledForSupplier = isSupplier && !supplierEditableFields.includes(col.key) && col.key !== 'actions';
+
                       if (col.key === 'status') {
                         return (
-                          <td key={col.key} className="p-0 relative">
+                          <td key={col.key} className={`p-0 relative ${isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : ''}`}>
                             <select
                               value={draft.status}
                               onChange={(e) => updateDraftRow(draft.id, 'status', e.target.value)}
-                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100"
+                              disabled={isDisabledForSupplier}
+                              className={`w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100 ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                               {statuses.map((status) => (
                                 <option
@@ -2373,12 +2396,13 @@ export default function Orders() {
 
                       if (col.key === 'verified') {
                         return (
-                          <td key={col.key} className="px-3 py-3 text-center min-h-[48px]">
+                          <td key={col.key} className={`px-3 py-3 text-center min-h-[48px] ${isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : ''}`}>
                             <input
                               type="checkbox"
                               checked={draft.verified}
                               onChange={(e) => updateDraftRow(draft.id, 'verified', e.target.checked)}
-                              className="w-5 h-5 rounded cursor-pointer transition text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-600"
+                              disabled={isDisabledForSupplier}
+                              className={`w-5 h-5 rounded cursor-pointer transition text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-600 ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
                             />
                           </td>
                         );
@@ -2386,13 +2410,14 @@ export default function Orders() {
 
                       if (col.key === 'link') {
                         return (
-                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
+                          <td key={col.key} className={`px-3 py-3 min-h-[48px] ${isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : ''}`}>
                             <input
                               type="text"
                               value={draft.link}
                               onChange={(e) => updateDraftRow(draft.id, 'link', e.target.value)}
                               placeholder="Посилання *"
-                              className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                              disabled={isDisabledForSupplier}
+                              className={`w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
                             />
                           </td>
                         );
@@ -2400,11 +2425,11 @@ export default function Orders() {
 
                       if (col.key === 'payment_type') {
                         return (
-                          <td key={col.key} className="p-0 relative">
+                          <td key={col.key} className={`p-0 relative ${isSupplierEditable ? 'bg-yellow-100 dark:bg-yellow-900/30' : ''}`}>
                             <select
                               value={draft.payment_type}
                               onChange={(e) => updateDraftRow(draft.id, 'payment_type', e.target.value)}
-                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100"
+                              className={`w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100 ${isSupplierEditable ? 'ring-2 ring-yellow-400 dark:ring-yellow-600' : ''}`}
                             >
                               {paymentTypes.map((type) => (
                                 <option
@@ -2429,16 +2454,17 @@ export default function Orders() {
                       }
 
                       if (col.key === 'cash_on_delivery') {
+                        const isDisabled = draft.payment_type === 'оплачено';
                         return (
-                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
+                          <td key={col.key} className={`px-3 py-3 min-h-[48px] ${isSupplierEditable && !isDisabled ? 'bg-yellow-100 dark:bg-yellow-900/30' : ''}`}>
                             <input
                               type="number"
                               step="0.01"
                               value={draft.cash_on_delivery}
                               onChange={(e) => updateDraftRow(draft.id, 'cash_on_delivery', Number(e.target.value))}
-                              disabled={draft.payment_type === 'оплачено'}
+                              disabled={isDisabled}
                               placeholder="0"
-                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className={`w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed ${isSupplierEditable && !isDisabled ? 'ring-2 ring-yellow-400 dark:ring-yellow-600' : ''}`}
                             />
                           </td>
                         );
@@ -2446,14 +2472,15 @@ export default function Orders() {
 
                       if (['part_price', 'delivery_cost'].includes(col.key)) {
                         return (
-                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
+                          <td key={col.key} className={`px-3 py-3 min-h-[48px] ${isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : ''}`}>
                             <input
                               type="number"
                               step="0.01"
                               value={value}
                               onChange={(e) => updateDraftRow(draft.id, col.key, Number(e.target.value))}
                               placeholder="0"
-                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                              disabled={isDisabledForSupplier}
+                              className={`w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
                             />
                           </td>
                         );
@@ -2461,12 +2488,13 @@ export default function Orders() {
 
                       if (col.renderType === 'date') {
                         return (
-                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
+                          <td key={col.key} className={`px-3 py-3 min-h-[48px] ${isSupplierEditable ? 'bg-yellow-100 dark:bg-yellow-900/30' : (isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : '')}`}>
                             <input
                               type="date"
                               value={value || ''}
                               onChange={(e) => updateDraftRow(draft.id, col.key, e.target.value)}
-                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                              disabled={isDisabledForSupplier}
+                              className={`w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isSupplierEditable ? 'ring-2 ring-yellow-400 dark:ring-yellow-600' : ''} ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
                             />
                           </td>
                         );
@@ -2474,11 +2502,12 @@ export default function Orders() {
 
                       if (col.key === 'manager') {
                         return (
-                          <td key={col.key} className="p-0 relative">
+                          <td key={col.key} className={`p-0 relative ${isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : ''}`}>
                             <select
                               value={draft.manager_id || ''}
                               onChange={(e) => updateDraftRow(draft.id, 'manager_id', e.target.value)}
-                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100"
+                              disabled={isDisabledForSupplier}
+                              className={`w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100 ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                               <option value="" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Не обрано</option>
                               {managers.map((manager) => (
@@ -2496,13 +2525,14 @@ export default function Orders() {
                       }
 
                       return (
-                        <td key={col.key} className="px-3 py-3 min-h-[48px]">
+                        <td key={col.key} className={`px-3 py-3 min-h-[48px] ${isSupplierEditable ? 'bg-yellow-100 dark:bg-yellow-900/30' : (isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : '')}`}>
                           <input
                             type="text"
                             value={value || ''}
                             onChange={(e) => updateDraftRow(draft.id, col.key, e.target.value)}
                             placeholder={isRequired ? `${col.label} *` : col.label}
-                            className={`w-full px-2 py-1 border ${isRequired ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'} rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+                            disabled={isDisabledForSupplier}
+                            className={`w-full px-2 py-1 border ${isRequired ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'} rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isSupplierEditable ? 'ring-2 ring-yellow-400 dark:ring-yellow-600' : ''} ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
                           />
                         </td>
                       );
