@@ -4,11 +4,10 @@ export interface ColumnConfig {
   key: string;
   label: string;
   isEditable?: boolean;
-  renderType?: 'text' | 'number' | 'link' | 'tracking' | 'status' | 'verified' | 'payment' | 'date' | 'actions' | 'substatus' | 'counterparty';
+  renderType?: 'text' | 'number' | 'link' | 'tracking' | 'status' | 'verified' | 'payment' | 'date' | 'actions' | 'substatus';
 }
 
 export const paskaColumns: ColumnConfig[] = [
-  { key: 'counterparty_id', label: 'Контрагент', renderType: 'counterparty' },
   { key: 'status', label: 'Статус', renderType: 'status' },
   { key: 'verified', label: 'V', renderType: 'verified' },
   { key: 'client_id', label: 'ID клієнта', isEditable: true, renderType: 'text' },
@@ -26,7 +25,6 @@ export const paskaColumns: ColumnConfig[] = [
 ];
 
 export const mondayColumns: ColumnConfig[] = [
-  { key: 'counterparty_id', label: 'Контрагент', renderType: 'counterparty' },
   { key: 'title', label: 'Назва', isEditable: true, renderType: 'text' },
   { key: 'link', label: '', renderType: 'link' },
   { key: 'status', label: 'Статус', renderType: 'status' },
