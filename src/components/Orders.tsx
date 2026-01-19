@@ -3,6 +3,7 @@ import { supabase, Order, Supplier, TariffSettings } from '../lib/supabase';
 import { Plus, CreditCard as Edit, Archive, X, ExternalLink, ChevronDown, Layers, ChevronUp, Check, RotateCcw, Printer, Download, Search, XCircle, LayoutGrid } from 'lucide-react';
 import Returns from './Returns';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
 import { statusColors, paymentTypeColors, verifiedColors, formatEmptyValue } from '../utils/themeColors';
 import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
@@ -34,6 +35,7 @@ type AcceptedOrder = {
 
 export default function Orders() {
   const { showSuccess, showError, showWarning, confirm } = useToast();
+  const { isSupplier } = useAuth();
   const [orders, setOrders] = useState<(Order & { supplier: Supplier })[]>([]);
   const [acceptedOrders, setAcceptedOrders] = useState<AcceptedOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -628,6 +630,22 @@ export default function Orders() {
   }
 
   function startEditing(orderId: string, field: string, currentValue: any) {
+    // Перевірка прав для постачальника
+    if (isSupplier) {
+      const allowedFields = ['weight_kg', 'transport_cost_usd', 'cash_on_delivery'];
+      if (!allowedFields.includes(field)) {
+        showWarning('Ви можете редагувати тільки вагу, ціну за кілограм та вартість побраня');
+        return;
+      }
+
+      // Перевірка чи це чернетка
+      const order = orders.find(o => o.id === orderId);
+      if (order && order.status !== 'чернетка') {
+        showWarning('Ви можете редагувати тільки замовлення в статусі "чернетка"');
+        return;
+      }
+    }
+
     setEditingCell({ orderId, field });
     let cleanValue = String(currentValue);
     cleanValue = cleanValue.replace(/ (zl|\$|кг)$/, '');
@@ -1918,32 +1936,36 @@ export default function Orders() {
           {!isAddingNewRow && (
             <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
               <div className="flex items-center gap-3">
-                <button
-                  onClick={startAddingNewRow}
-                  className="bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition text-sm font-medium"
-                >
-                  <Plus size={18} />
-                  Додати рядок
-                </button>
-                <div className="relative group">
+                {!isSupplier && (
                   <button
-                    className="bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-800 transition text-sm font-medium"
+                    onClick={startAddingNewRow}
+                    className="bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition text-sm font-medium"
                   >
-                    <Layers size={18} />
-                    Чернетки
+                    <Plus size={18} />
+                    Додати рядок
                   </button>
-                  <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-700 shadow-lg rounded-lg overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-[140px]">
-                    {[1, 2, 3, 4, 5].map(count => (
-                      <button
-                        key={count}
-                        onClick={() => addDraftRows(count)}
-                        className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-sm"
-                      >
-                        Додати {count} {count === 1 ? 'рядок' : count <= 4 ? 'рядки' : 'рядків'}
-                      </button>
-                    ))}
+                )}
+                {!isSupplier && (
+                  <div className="relative group">
+                    <button
+                      className="bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-800 transition text-sm font-medium"
+                    >
+                      <Layers size={18} />
+                      Чернетки
+                    </button>
+                    <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-700 shadow-lg rounded-lg overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-[140px]">
+                      {[1, 2, 3, 4, 5].map(count => (
+                        <button
+                          key={count}
+                          onClick={() => addDraftRows(count)}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-sm"
+                        >
+                          Додати {count} {count === 1 ? 'рядок' : count <= 4 ? 'рядки' : 'рядків'}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
                 <button
                   onClick={toggleColumnView}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition text-sm font-medium"
@@ -1971,7 +1993,7 @@ export default function Orders() {
                   )}
                 </div>
               </div>
-              {selectedOrders.size > 0 && (
+              {selectedOrders.size > 0 && !isSupplier && (
                 <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900 px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-700">
                   <span className="text-sm font-medium text-blue-900 dark:text-blue-200">
                     Обрано: {selectedOrders.size}
