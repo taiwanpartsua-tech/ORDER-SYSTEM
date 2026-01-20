@@ -118,31 +118,32 @@ export type Return = {
 
 export type DraftOrder = {
   id: string;
-  order_number: string;
-  supplier_id: string;
-  manager_id?: string;
+  order_number?: string | null;
+  supplier_id?: string | null;
+  manager_id?: string | null;
   status: string;
   order_date: string;
-  notes: string;
-  title: string;
-  link: string;
-  tracking_pl: string;
+  notes?: string | null;
+  title?: string | null;
+  link?: string | null;
+  tracking_pl?: string | null;
   part_price: number;
   delivery_cost: number;
   total_cost: number;
-  part_number: string;
+  part_number?: string | null;
   payment_type: string;
   cash_on_delivery: number;
-  client_id: string;
+  client_id?: string | null;
   received_pln: number;
   transport_cost_usd: number;
   weight_kg: number;
   verified: boolean;
   archived: boolean;
-  archived_at?: string;
+  archived_at?: string | null;
   project_id: string;
-  created_by?: string;
+  created_by?: string | null;
   created_at: string;
+  counterparty_id?: string | null;
 };
 
 export type ActiveReceipt = {

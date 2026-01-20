@@ -760,6 +760,8 @@ export default function ReceiptManagement() {
   async function archiveDraftReceipt(receiptId: string) {
     try {
       const projectId = await getCurrentProjectId();
+      console.log('Архівування чернетки для project_id:', projectId);
+
       if (!projectId) {
         showError('Не знайдено project_id');
         return;
@@ -776,9 +778,15 @@ export default function ReceiptManagement() {
         return;
       }
 
+      console.log('Дані для архівування:', {
+        order_number: receiptData.receipt_number,
+        payment_type: receiptData.settlement_type || 'не обрано',
+        project_id: projectId
+      });
+
       const { data: { user } } = await supabase.auth.getUser();
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('draft_orders')
         .insert({
           order_number: receiptData.receipt_number,
@@ -787,7 +795,10 @@ export default function ReceiptManagement() {
           archived_at: new Date().toISOString(),
           project_id: projectId,
           created_by: user?.id
-        });
+        })
+        .select();
+
+      console.log('Результат створення архіву:', { data, error });
 
       if (error) {
         console.error('Помилка архівування:', error);

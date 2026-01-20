@@ -197,6 +197,8 @@ export default function SupplierInspection() {
   async function loadArchivedDrafts() {
     try {
       const projectId = await getCurrentProjectId();
+      console.log('Завантаження архіву чернеток для project_id:', projectId);
+
       if (!projectId) {
         console.error('Не знайдено project_id для завантаження архіву чернеток');
         return;
@@ -209,10 +211,13 @@ export default function SupplierInspection() {
         .eq('archived', true)
         .order('archived_at', { ascending: false });
 
+      console.log('Результат завантаження архіву чернеток:', { data, error, count: data?.length });
+
       if (error) {
         console.error('Помилка завантаження архіву чернеток:', error);
       } else if (data) {
         setArchivedDrafts(data);
+        console.log('Архівовані чернетки встановлені:', data.length);
       }
     } catch (err) {
       console.error('Помилка при завантаженні архіву чернеток:', err);
