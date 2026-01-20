@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase, UserProfile, InviteCode } from '../lib/supabase';
-import { Users, Plus, X, Check, Ban, Key, Copy, UserCheck, UserX, Shield, Edit2 } from 'lucide-react';
+import { Users, Plus, X, Check, Ban, Key, Copy, UserCheck, UserX, Shield, Edit2, RefreshCw } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import { logAction } from '../utils/auditLog';
@@ -17,6 +17,7 @@ export default function AdminPanel() {
   const [inviteDays, setInviteDays] = useState(7);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (isAdmin) {
@@ -41,6 +42,22 @@ export default function AdminPanel() {
       .order('created_at', { ascending: false });
 
     if (data) setInvites(data);
+  }
+
+  async function refreshSession() {
+    setRefreshing(true);
+    try {
+      const { error } = await supabase.auth.refreshSession();
+      if (error) throw error;
+
+      showSuccess('Сесію оновлено! Завантажуємо дані...');
+      await loadUsers();
+      await loadInvites();
+    } catch (error: any) {
+      showError('Помилка оновлення сесії: ' + (error.message || 'невідома помилка'));
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   async function generateInviteCode() {
@@ -253,6 +270,15 @@ export default function AdminPanel() {
           <Users className="w-8 h-8 text-gray-700 dark:text-gray-300" />
           <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Панель адміністратора</h2>
         </div>
+        <button
+          onClick={refreshSession}
+          disabled={refreshing}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition dark:bg-blue-500 dark:hover:bg-blue-600"
+          title="Оновити сесію та перезавантажити дані"
+        >
+          <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
+          {refreshing ? 'Оновлення...' : 'Оновити сесію'}
+        </button>
       </div>
 
       <div className="flex gap-2 mb-4">
