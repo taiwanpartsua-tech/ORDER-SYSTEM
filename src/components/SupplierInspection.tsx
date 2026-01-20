@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase, Order, OrderPhoto, Supplier } from '../lib/supabase';
-import { Search, XCircle, Upload, Camera, Check, AlertTriangle, X, ExternalLink, Image as ImageIcon, ChevronDown, ChevronUp, Edit2, Save } from 'lucide-react';
+import { supabase, Order, OrderPhoto, Supplier, DraftOrder } from '../lib/supabase';
+import { Search, XCircle, Upload, Camera, Check, AlertTriangle, X, ExternalLink, Image as ImageIcon, ChevronDown, ChevronUp, Edit2, Save, Archive, RotateCcw } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { getCurrentProjectId } from '../utils/projectAccess';
 
@@ -95,6 +95,8 @@ export default function SupplierInspection() {
   const [inspectorName, setInspectorName] = useState<string>('');
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [selectedInspector, setSelectedInspector] = useState<string>('');
+  const [archivedDrafts, setArchivedDrafts] = useState<DraftOrder[]>([]);
+  const [showArchivedDrafts, setShowArchivedDrafts] = useState(false);
 
   function getPaymentTypeColor(paymentType: string | null): string {
     switch (paymentType) {
@@ -178,6 +180,7 @@ export default function SupplierInspection() {
   useEffect(() => {
     loadOrders();
     loadUsers();
+    loadArchivedDrafts();
   }, []);
 
   async function loadUsers() {
@@ -188,6 +191,55 @@ export default function SupplierInspection() {
 
     if (data) {
       setUsers(data);
+    }
+  }
+
+  async function loadArchivedDrafts() {
+    try {
+      const projectId = await getCurrentProjectId();
+      if (!projectId) {
+        console.error('Не знайдено project_id для завантаження архіву чернеток');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('draft_orders')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('archived', true)
+        .order('archived_at', { ascending: false });
+
+      if (error) {
+        console.error('Помилка завантаження архіву чернеток:', error);
+      } else if (data) {
+        setArchivedDrafts(data);
+      }
+    } catch (err) {
+      console.error('Помилка при завантаженні архіву чернеток:', err);
+    }
+  }
+
+  async function unarchiveDraft(draftId: string) {
+    try {
+      const { error } = await supabase
+        .from('draft_orders')
+        .update({
+          archived: false,
+          archived_at: null
+        })
+        .eq('id', draftId);
+
+      if (error) {
+        console.error('Error unarchiving draft:', error);
+        showError('Помилка розархівування чернетки');
+        return;
+      }
+
+      showSuccess('Чернетку розархівовано!');
+      loadArchivedDrafts();
+    } catch (err) {
+      console.error('Network error:', err);
+      showError('Помилка мережі');
     }
   }
 
@@ -676,6 +728,76 @@ export default function SupplierInspection() {
                 </div>
               );
             })}
+
+            {archivedDrafts.length > 0 && (
+              <div className="mt-4">
+                <button
+                  onClick={() => setShowArchivedDrafts(!showArchivedDrafts)}
+                  className="w-full bg-gray-200 dark:bg-gray-700 px-3 py-2 font-semibold text-sm text-gray-700 dark:text-gray-300 rounded-lg flex items-center justify-between hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                >
+                  <span>Архів чернеток ({archivedDrafts.length})</span>
+                  {showArchivedDrafts ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+
+                {showArchivedDrafts && (
+                  <div className="mt-2 space-y-2">
+                    {archivedDrafts.map((draft) => (
+                      <div
+                        key={draft.id}
+                        className="p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 opacity-75"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                                {draft.tracking_pl || 'Без трекінгу'}
+                              </span>
+                              <Archive size={14} className="text-gray-500" />
+                            </div>
+                            <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                              {draft.client_id && <span>ID: {draft.client_id}</span>}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              {draft.title || draft.part_number}
+                            </div>
+                            {draft.payment_type && (
+                              <div className="text-xs text-gray-600 dark:text-gray-300 mt-1">
+                                Тип оплати: <span className="font-medium">{draft.payment_type}</span>
+                              </div>
+                            )}
+                            {draft.archived_at && (
+                              <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                Архівовано: {new Date(draft.archived_at).toLocaleString('uk-UA')}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {draft.link && (
+                              <a
+                                href={draft.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ExternalLink size={16} />
+                              </a>
+                            )}
+                            <button
+                              onClick={() => unarchiveDraft(draft.id)}
+                              className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/30 p-1 rounded transition"
+                              title="Розархівувати"
+                            >
+                              <RotateCcw size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
