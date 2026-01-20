@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Send, Check, ChevronDown, ChevronRight, Plus, X, FileText, ExternalLink, Search, XCircle, FileDown } from 'lucide-react';
+import { Send, Check, ChevronDown, ChevronRight, Plus, X, FileText, ExternalLink, Search, XCircle, FileDown, Archive } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
+import { getCurrentProjectId } from '../utils/projectAccess';
 
 type Receipt = {
   id: string;
@@ -721,6 +722,17 @@ export default function ReceiptManagement() {
         .eq('receipt_id', receiptId)
         .eq('order_id', orderId);
 
+      const { data: remainingOrders } = await supabase
+        .from('receipt_orders')
+        .select('id')
+        .eq('receipt_id', receiptId);
+
+      if (!remainingOrders || remainingOrders.length === 0) {
+        await archiveDraftReceipt(receiptId);
+        showSuccess('Чернетка порожня і була автоматично архівована');
+        return;
+      }
+
       loadOrdersForReceipt(receiptId);
       loadReceipts();
       if (showAddOrders === receiptId) {
@@ -729,6 +741,57 @@ export default function ReceiptManagement() {
     } catch (err) {
       console.error('Помилка при видаленні замовлення:', err);
       showError(`Помилка при видаленні замовлення: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  async function archiveDraftReceipt(receiptId: string) {
+    try {
+      const projectId = await getCurrentProjectId();
+      if (!projectId) {
+        showError('Не знайдено project_id');
+        return;
+      }
+
+      const { data: receiptData } = await supabase
+        .from('active_receipts')
+        .select('receipt_number, settlement_type')
+        .eq('id', receiptId)
+        .single();
+
+      if (!receiptData) {
+        showError('Прийомку не знайдено');
+        return;
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const { error } = await supabase
+        .from('draft_orders')
+        .insert({
+          receipt_number: receiptData.receipt_number,
+          payment_type: receiptData.settlement_type || 'не обрано',
+          archived: true,
+          archived_at: new Date().toISOString(),
+          project_id: projectId,
+          created_by: user?.id
+        });
+
+      if (error) {
+        console.error('Помилка архівування:', error);
+        showError('Помилка при архівуванні чернетки');
+        return;
+      }
+
+      await supabase
+        .from('active_receipts')
+        .delete()
+        .eq('id', receiptId);
+
+      loadReceipts();
+      showSuccess('Чернетку архівовано!');
+    } catch (err) {
+      console.error('Помилка при архівуванні:', err);
+      showError('Помилка при архівуванні чернетки');
     }
   }
 
@@ -938,6 +1001,18 @@ export default function ReceiptManagement() {
                   className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 dark:bg-gradient-to-br dark:from-blue-800 dark:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-600 transition"
                 >
                   Зберегти зміни
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm('Архівувати чернетку? Вона буде доступна в архіві на сторінці "Активні прийомки".')) {
+                      archiveDraftReceipt(receipt.id);
+                    }
+                  }}
+                  className="px-3 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 dark:bg-gradient-to-br dark:from-orange-800 dark:to-orange-700 dark:hover:from-orange-700 dark:hover:to-orange-600 transition flex items-center gap-1"
+                  title="Архівувати чернетку"
+                >
+                  <Archive size={14} />
+                  Архівувати
                 </button>
                 <button
                   onClick={() => sendToSupplier(receipt.id)}
