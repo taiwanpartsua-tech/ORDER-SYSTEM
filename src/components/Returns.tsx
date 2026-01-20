@@ -5,12 +5,7 @@ import { useToast } from '../contexts/ToastContext';
 import { paymentTypeColors, substatusColors, refundStatusColors, formatEmptyValue } from '../utils/themeColors';
 import { ColumnViewType, getReturnsColumns, saveReturnsColumnView, loadReturnsColumnView } from '../utils/columnConfigs';
 
-interface ReturnsProps {
-  selectedCounterpartyId: string;
-  romanCounterpartyId: string;
-}
-
-export default function Returns({ selectedCounterpartyId, romanCounterpartyId }: ReturnsProps) {
+export default function Returns() {
   const { showSuccess, showError, confirm, showWarning } = useToast();
   const [returns, setReturns] = useState<Return[]>([]);
   const [managers, setManagers] = useState<Manager[]>([]);
@@ -23,7 +18,6 @@ export default function Returns({ selectedCounterpartyId, romanCounterpartyId }:
   const [newRowData, setNewRowData] = useState({
     status: 'повернення',
     substatus: 'В Арта в хелмі',
-    counterparty_id: romanCounterpartyId,
     client_id: '',
     title: '',
     link: '',
@@ -85,18 +79,6 @@ export default function Returns({ selectedCounterpartyId, romanCounterpartyId }:
   }, [showArchived]);
 
   useEffect(() => {
-    if (selectedCounterpartyId) {
-      loadReturns();
-    }
-  }, [selectedCounterpartyId]);
-
-  useEffect(() => {
-    if (romanCounterpartyId) {
-      setNewRowData(prev => ({ ...prev, counterparty_id: romanCounterpartyId }));
-    }
-  }, [romanCounterpartyId]);
-
-  useEffect(() => {
     const totalCost = Number(newRowData.part_price) + Number(newRowData.delivery_cost);
     setNewRowData(prev => ({ ...prev, total_cost: totalCost }));
   }, [newRowData.part_price, newRowData.delivery_cost]);
@@ -108,17 +90,11 @@ export default function Returns({ selectedCounterpartyId, romanCounterpartyId }:
   }, [newRowData.payment_type]);
 
   async function loadReturns() {
-    let query = supabase
+    const { data, error } = await supabase
       .from('returns')
       .select('*')
       .eq('archived', showArchived)
       .order('created_at', { ascending: false });
-
-    if (selectedCounterpartyId) {
-      query = query.eq('counterparty_id', selectedCounterpartyId);
-    }
-
-    const { data, error } = await query;
 
     if (!error && data) {
       const statusOrder: Record<string, number> = {

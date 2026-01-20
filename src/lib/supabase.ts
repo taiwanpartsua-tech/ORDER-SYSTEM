@@ -19,16 +19,6 @@ export const supabase = createClient(
   supabaseAnonKey || 'placeholder-key'
 );
 
-export type Counterparty = {
-  id: string;
-  name: string;
-  code: string | null;
-  is_active: boolean;
-  project_id: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
 export type Supplier = {
   id: string;
   name: string;
@@ -42,7 +32,6 @@ export type Supplier = {
   balance_transport_usd?: number;
   card_balance_parts_pln?: number;
   card_balance_delivery_pln?: number;
-  counterparty_id?: string | null;
   created_at: string;
 };
 
@@ -50,7 +39,6 @@ export type Order = {
   id: string;
   order_number: string;
   supplier_id: string;
-  counterparty_id?: string | null;
   status: string;
   previous_status?: string;
   active_receipt_group?: 'cash_on_delivery' | 'paid' | null;
@@ -100,7 +88,6 @@ export type Return = {
   id: string;
   status?: string;
   substatus: string;
-  counterparty_id?: string | null;
   client_id?: string;
   title?: string;
   link?: string;
@@ -128,7 +115,6 @@ export type ActiveReceipt = {
   receipt_date: string;
   status: 'draft' | 'approved' | 'sent_for_settlement' | 'settled';
   supplier_id: string;
-  counterparty_id?: string | null;
   total_pln: number;
   total_usd: number;
   parts_cost_pln: number;
@@ -183,7 +169,6 @@ export type SupplierTransaction = {
 export type Transaction = {
   id: string;
   transaction_type: 'debit' | 'credit';
-  counterparty_id?: string | null;
   amount_pln: number;
   amount_usd: number;
   cash_on_delivery_pln: number;
@@ -201,7 +186,6 @@ export type CardTransaction = {
   id: string;
   transaction_type: 'payment' | 'refund' | 'charge';
   charge_type?: 'debit' | 'credit';
-  counterparty_id?: string | null;
   amount: number;
   parts_amount?: number;
   delivery_amount?: number;
