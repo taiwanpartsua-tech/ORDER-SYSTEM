@@ -399,74 +399,33 @@ export default function Returns() {
   }
 
   async function handleReturnToOrders(returnItem: Return) {
-    // Якщо це повернення з прийнятого замовлення, не дозволяємо повертати
-    if (returnItem.is_reversed || returnItem.accepted_order_id) {
-      showError('Неможливо повернути це замовлення, оскільки воно було створене з прийнятого товару');
-      return;
-    }
-
-    const confirmed = await confirm('Повернути це замовлення назад в список замовлень зі статусом "повернення"?');
+    const confirmed = await confirm('Повернути це замовлення назад в список замовлень?');
     if (confirmed) {
-      let success = false;
+      const { error } = await supabase.from('orders').insert({
+        status: 'в роботі на сьогодні',
+        order_number: '',
+        client_id: returnItem.client_id || '',
+        title: returnItem.title || '',
+        link: returnItem.link || '',
+        tracking_pl: returnItem.tracking_pl || '',
+        part_price: returnItem.part_price || 0,
+        delivery_cost: returnItem.delivery_cost || 0,
+        total_cost: returnItem.total_cost || 0,
+        part_number: returnItem.part_number || '',
+        payment_type: returnItem.payment_type || 'оплачено',
+        cash_on_delivery: returnItem.cash_on_delivery || 0,
+        order_date: returnItem.order_date || new Date().toISOString(),
+        notes: `Повернено з Returns ID: ${returnItem.id}`,
+        received_pln: 0,
+        transport_cost_usd: 0,
+        weight_kg: 0,
+        verified: false,
+        archived: false
+      });
 
-      // Якщо у повернення є зв'язок з оригінальним замовленням, розархівуємо його
-      if (returnItem.order_id) {
-        const { error } = await supabase
-          .from('orders')
-          .update({
-            status: 'повернення',
-            archived: false,
-            archived_at: null
-          })
-          .eq('id', returnItem.order_id);
-
-        if (!error) {
-          success = true;
-        } else {
-          console.error('Помилка при відновленні замовлення:', error);
-          showError('Помилка при відновленні замовлення');
-          return;
-        }
-      } else {
-        // Якщо немає зв'язку, створюємо нове замовлення зі статусом "повернення"
-        const { error } = await supabase.from('orders').insert({
-          supplier_id: returnItem.supplier_id,
-          status: 'повернення',
-          order_number: '',
-          client_id: returnItem.client_id || '',
-          title: returnItem.title || '',
-          link: returnItem.link || '',
-          tracking_pl: returnItem.tracking_pl || '',
-          part_price: returnItem.part_price || 0,
-          delivery_cost: returnItem.delivery_cost || 0,
-          total_cost: returnItem.total_cost || 0,
-          part_number: returnItem.part_number || '',
-          payment_type: returnItem.payment_type || 'оплачено',
-          cash_on_delivery: returnItem.cash_on_delivery || 0,
-          order_date: returnItem.order_date || new Date().toISOString().split('T')[0],
-          notes: `Повернено з Returns ID: ${returnItem.id}`,
-          received_pln: 0,
-          transport_cost_usd: 0,
-          weight_kg: 0,
-          verified: false,
-          archived: false,
-          project_id: returnItem.project_id,
-          counterparty_id: returnItem.counterparty_id
-        });
-
-        if (!error) {
-          success = true;
-        } else {
-          console.error('Помилка при створенні замовлення:', error);
-          showError('Помилка при створенні замовлення');
-          return;
-        }
-      }
-
-      // Якщо успішно створили/відновили замовлення, видаляємо повернення
-      if (success) {
+      if (!error) {
         await supabase.from('returns').delete().eq('id', returnItem.id);
-        showSuccess('Замовлення успішно повернено в список зі статусом "повернення"!');
+        showSuccess('Замовлення успішно повернено!');
         loadReturns();
       }
     }
@@ -680,7 +639,7 @@ export default function Returns() {
             <div className="flex gap-2 justify-center">
               <button
                 onClick={() => handleReturnToOrders(returnItem)}
-                className="px-3 py-2 bg-orange-500 dark:bg-orange-600 text-white rounded text-xs font-semibold hover:bg-orange-600 dark:hover:bg-orange-700 transition flex items-center gap-1 shadow-sm"
+                className="px-3 py-2 bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
               >
                 <RotateCcw size={14} />
                 Повернути в замовлення

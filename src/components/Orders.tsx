@@ -385,8 +385,6 @@ export default function Orders() {
         return;
       }
 
-      console.log('🔍 Завантаження чернеток для проекту:', projectId, 'archived:', showArchivedDrafts);
-
       const { data, error } = await supabase
         .from('draft_orders')
         .select('*')
@@ -395,15 +393,13 @@ export default function Orders() {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ Помилка завантаження чернеток:', error);
-        console.error('Error details:', JSON.stringify(error, null, 2));
+        console.error('Помилка завантаження чернеток:', error);
       } else if (data) {
-        console.log('✅ Чернетки завантажено:', data.length);
-        console.log('📋 Дані чернеток:', data);
+        console.log('Чернетки завантажено:', data.length);
         setDraftRows(data);
       }
     } catch (err) {
-      console.error('❌ Помилка при завантаженні чернеток:', err);
+      console.error('Помилка при завантаженні чернеток:', err);
     }
   }
 
@@ -1496,19 +1492,6 @@ export default function Orders() {
     }
   }
 
-  function toggleGroupOrders(groupOrders: (Order & { supplier: Supplier })[]) {
-    const groupOrderIds = groupOrders.map(o => o.id);
-    const allGroupSelected = groupOrderIds.every(id => selectedOrders.has(id));
-
-    const newSelected = new Set(selectedOrders);
-    if (allGroupSelected) {
-      groupOrderIds.forEach(id => newSelected.delete(id));
-    } else {
-      groupOrderIds.forEach(id => newSelected.add(id));
-    }
-    setSelectedOrders(newSelected);
-  }
-
   function toggleColumnView() {
     const newView: ColumnViewType = columnView === 'paska' ? 'monday' : 'paska';
     setColumnView(newView);
@@ -1788,12 +1771,6 @@ export default function Orders() {
 
       case 'delivery_cost':
         return renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-center', isAccepted, order);
-
-      case 'weight_kg':
-        return renderEditableCell(order.id, 'weight_kg', `${formatNumber(order.weight_kg)} кг`, 'text-center', isAccepted, order);
-
-      case 'transport_cost_usd':
-        return renderEditableCell(order.id, 'transport_cost_usd', `${formatNumber(order.transport_cost_usd)} $`, 'text-center', isAccepted, order);
 
       case 'total_cost':
         return (
@@ -2784,7 +2761,7 @@ export default function Orders() {
                         );
                       }
 
-                      if (['part_price', 'delivery_cost', 'weight_kg', 'transport_cost_usd'].includes(col.key)) {
+                      if (['part_price', 'delivery_cost'].includes(col.key)) {
                         return (
                           <td key={col.key} className={`px-3 py-3 min-h-[48px] ${isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : ''}`}>
                             <input
@@ -2993,11 +2970,11 @@ export default function Orders() {
                         >
                           <input
                             type="checkbox"
-                            checked={groupOrders.length > 0 && groupOrders.every(o => selectedOrders.has(o.id))}
-                            onChange={() => toggleGroupOrders(groupOrders)}
+                            checked={selectedOrders.size === filteredOrders.length && filteredOrders.length > 0}
+                            onChange={toggleAllOrders}
                             className={`w-4 h-4 rounded text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600 ${!isSupplier ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
                             disabled={isSupplier}
-                            title={isSupplier ? 'Заблоковано для постачальника' : 'Вибрати всі в групі'}
+                            title={isSupplier ? 'Заблоковано для постачальника' : ''}
                           />
                         </ResizableTableHeader>
                         <ResizableTableHeader columnKey="status" width={getColumnWidth('status', 150)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 150))} isResizing={resizingColumn === 'status'}>Статус</ResizableTableHeader>
@@ -3008,8 +2985,6 @@ export default function Orders() {
                         <ResizableTableHeader columnKey="tracking_pl" width={getColumnWidth('tracking_pl', 130)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 130))} isResizing={resizingColumn === 'tracking_pl'}>Трекінг PL</ResizableTableHeader>
                         <ResizableTableHeader columnKey="part_price" width={getColumnWidth('part_price', 110)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 110))} isResizing={resizingColumn === 'part_price'}>Вартість запч.</ResizableTableHeader>
                         <ResizableTableHeader columnKey="delivery_cost" width={getColumnWidth('delivery_cost', 100)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 100))} isResizing={resizingColumn === 'delivery_cost'}>Доставка</ResizableTableHeader>
-                        <ResizableTableHeader columnKey="weight_kg" width={getColumnWidth('weight_kg', 100)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 100))} isResizing={resizingColumn === 'weight_kg'}>Вага (кг)</ResizableTableHeader>
-                        <ResizableTableHeader columnKey="transport_cost_usd" width={getColumnWidth('transport_cost_usd', 120)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 120))} isResizing={resizingColumn === 'transport_cost_usd'}>Перевезення ($)</ResizableTableHeader>
                         <ResizableTableHeader columnKey="total_cost" width={getColumnWidth('total_cost', 100)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 100))} isResizing={resizingColumn === 'total_cost'}>Всього</ResizableTableHeader>
                         <ResizableTableHeader columnKey="part_number" width={getColumnWidth('part_number', 130)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 130))} isResizing={resizingColumn === 'part_number'}>№ запчастини</ResizableTableHeader>
                         <ResizableTableHeader columnKey="payment_type" width={getColumnWidth('payment_type', 120)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 120))} isResizing={resizingColumn === 'payment_type'}>Тип оплати</ResizableTableHeader>
@@ -3079,8 +3054,6 @@ export default function Orders() {
                           {renderEditableCell(order.id, 'tracking_pl', order.tracking_pl || '', 'text-gray-600 text-center', isAccepted, order)}
                           {renderEditableCell(order.id, 'part_price', `${formatNumber(order.part_price)} zl`, 'text-gray-900 font-medium text-center', isAccepted, order)}
                           {renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-gray-900 text-center', isAccepted, order)}
-                          {renderEditableCell(order.id, 'weight_kg', `${formatNumber(order.weight_kg)} кг`, 'text-gray-900 text-center', isAccepted, order)}
-                          {renderEditableCell(order.id, 'transport_cost_usd', `${formatNumber(order.transport_cost_usd)} $`, 'text-gray-900 text-center', isAccepted, order)}
                           <td className="px-3 py-3 text-center text-gray-900 dark:text-gray-100 font-bold bg-gray-50 dark:bg-gray-700 min-h-[48px]">
                             {formatNumber(order.total_cost)} zl
                           </td>
