@@ -241,19 +241,53 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
     };
 
     try {
-      const { error: insertError } = await supabase.from('orders').insert([dataToSubmit]);
+      const { data: newOrder, error: insertError } = await supabase
+        .from('orders')
+        .insert([dataToSubmit])
+        .select('*, supplier:suppliers(*)')
+        .single();
+
       if (insertError) {
         console.error('Error inserting order:', insertError);
         showError('Помилка при створенні замовлення: ' + insertError.message);
         return;
       }
 
+      if (!newOrder) {
+        showError('Не вдалося створити замовлення');
+        return;
+      }
+
+      // Створюємо об'єкт редагованого замовлення
+      const editableOrder: EditableOrder = {
+        ...newOrder,
+        editableParts: newOrder.part_price || 0,
+        editableDelivery: newOrder.delivery_cost || 0,
+        editableReceipt: newOrder.received_pln || 0,
+        editableCash: newOrder.cash_on_delivery || 0,
+        editableTransport: newOrder.transport_cost_usd || 0,
+        editableWeight: newOrder.weight_kg || 0
+      };
+
+      // Додаємо замовлення до відповідної групи
+      if (group === 'cash_on_delivery') {
+        setCashOnDeliveryOrders(prev => [...prev, editableOrder]);
+        if (!cashOnDeliveryReceiptNumber) {
+          setCashOnDeliveryReceiptNumber(generateReceiptNumber('cash_on_delivery'));
+        }
+      } else {
+        setPaidOrders(prev => [...prev, editableOrder]);
+        if (!paidReceiptNumber) {
+          setPaidReceiptNumber(generateReceiptNumber('paid'));
+        }
+      }
+
       // Видаляємо чернетку після успішного створення замовлення
       await supabase.from('draft_orders').delete().eq('id', draft.id);
 
       showSuccess('Чернетку додано до активного прийому!');
-      loadDraftOrders();
-      loadActiveReceiptOrders();
+      await loadDraftOrders();
+      await loadAvailableOrders();
     } catch (err) {
       console.error('Network error:', err);
       showError('Помилка мережі: Перевірте підключення до інтернету');
