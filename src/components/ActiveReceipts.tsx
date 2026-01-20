@@ -5,6 +5,8 @@ import { useToast } from '../contexts/ToastContext';
 import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
 import { getCurrentProjectId } from '../utils/projectAccess';
+import { useResizableColumns } from '../hooks/useResizableColumns';
+import { ResizableTableHeader } from './ResizableTableHeader';
 
 type OrderWithSupplier = Order & { supplier: Supplier };
 
@@ -37,6 +39,24 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
   const [paidReceiptNumber, setPaidReceiptNumber] = useState<string>('');
   const [orderChanges, setOrderChanges] = useState<Record<string, ReceiptFieldChange[]>>({});
   const [expandedChanges, setExpandedChanges] = useState<Set<string>>(new Set());
+
+  const { columnWidths, resizingColumn, handleMouseDown, getColumnWidth } = useResizableColumns('active_receipts_table', {
+    checkbox: 50,
+    client_id: 120,
+    title: 200,
+    link: 60,
+    tracking_pl: 130,
+    part_price: 110,
+    delivery_cost: 110,
+    total_cost: 100,
+    part_number: 130,
+    payment_type: 120,
+    cash_on_delivery: 110,
+    received_pln: 110,
+    transport_cost_usd: 130,
+    weight_kg: 90,
+    actions: 150
+  });
 
   function generateReceiptNumber(group: PaymentGroup): string {
     const now = new Date();

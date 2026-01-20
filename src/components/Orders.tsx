@@ -9,6 +9,8 @@ import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
 import { ColumnViewType, getColumns, saveColumnView, loadColumnView } from '../utils/columnConfigs';
 import { getCurrentProjectId } from '../utils/projectAccess';
+import { useResizableColumns } from '../hooks/useResizableColumns';
+import { ResizableTableHeader } from './ResizableTableHeader';
 
 type AcceptedOrder = {
   id: string;
@@ -73,6 +75,45 @@ export default function Orders() {
   const [columnView, setColumnView] = useState<ColumnViewType>(loadColumnView());
   const [draftRows, setDraftRows] = useState<DraftOrder[]>([]);
   const [showArchivedDrafts, setShowArchivedDrafts] = useState(false);
+
+  const { columnWidths, resizingColumn, handleMouseDown, getColumnWidth } = useResizableColumns('orders_table', {
+    checkbox: 60,
+    status: 150,
+    verified: 60,
+    client_id: 120,
+    title: 200,
+    link: 60,
+    tracking_pl: 130,
+    part_price: 110,
+    delivery_cost: 100,
+    total_cost: 100,
+    part_number: 130,
+    payment_type: 120,
+    cash_on_delivery: 110,
+    actions: 100
+  });
+
+  const acceptedColumnsResizable = useResizableColumns('accepted_orders_table', {
+    receipt_number: 100,
+    status: 100,
+    title: 200,
+    client_id: 120,
+    part_number: 130,
+    link: 60,
+    tracking_number: 130,
+    weight_kg: 90,
+    part_price: 110,
+    delivery_cost: 110,
+    total: 100,
+    payment_type: 120,
+    cash_on_delivery: 110,
+    received_pln: 110,
+    transport_cost_usd: 130,
+    supplier: 120,
+    accepted_at: 150,
+    explanation: 200,
+    actions: 80
+  });
   const [newRowData, setNewRowData] = useState({
     order_number: '',
     supplier_id: '',
@@ -2278,21 +2319,34 @@ export default function Orders() {
             </div>
           )}
           <div className="flex-1 overflow-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
               <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
                 <tr>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                  <ResizableTableHeader
+                    columnKey="checkbox"
+                    width={getColumnWidth('checkbox', 60)}
+                    className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                    onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 60))}
+                    isResizing={resizingColumn === 'checkbox'}
+                  >
                     <input
                       type="checkbox"
                       checked={selectedOrders.size === filteredOrders.length && filteredOrders.length > 0}
                       onChange={toggleAllOrders}
                       className="w-4 h-4 rounded cursor-pointer text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600"
                     />
-                  </th>
+                  </ResizableTableHeader>
                   {getColumns(columnView).map((col) => (
-                    <th key={col.key} className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    <ResizableTableHeader
+                      key={col.key}
+                      columnKey={col.key}
+                      width={getColumnWidth(col.key, 150)}
+                      className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                      onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 150))}
+                      isResizing={resizingColumn === col.key}
+                    >
                       {col.key === 'link' ? <ExternalLink size={16} className="inline-block" /> : col.label}
-                    </th>
+                    </ResizableTableHeader>
                   ))}
                 </tr>
               </thead>
@@ -2870,10 +2924,16 @@ export default function Orders() {
                 </button>
                 {!isCollapsed && (
                   <div className="overflow-x-auto overflow-y-visible">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
                     <thead className="bg-gray-50 dark:bg-gray-700">
                       <tr>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        <ResizableTableHeader
+                          columnKey="checkbox"
+                          width={getColumnWidth('checkbox', 60)}
+                          className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                          onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 60))}
+                          isResizing={resizingColumn === 'checkbox'}
+                        >
                           <input
                             type="checkbox"
                             checked={selectedOrders.size === filteredOrders.length && filteredOrders.length > 0}
@@ -2882,20 +2942,20 @@ export default function Orders() {
                             disabled={isSupplier}
                             title={isSupplier ? 'Заблоковано для постачальника' : ''}
                           />
-                        </th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Статус</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">V</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ID клієнта</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Назва</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"><ExternalLink size={16} className="inline-block" /></th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Трекінг PL</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Вартість запч.</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Доставка</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Всього</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">№ запчастини</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Тип оплати</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Побранє</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Дії</th>
+                        </ResizableTableHeader>
+                        <ResizableTableHeader columnKey="status" width={getColumnWidth('status', 150)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 150))} isResizing={resizingColumn === 'status'}>Статус</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="verified" width={getColumnWidth('verified', 60)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 60))} isResizing={resizingColumn === 'verified'}>V</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="client_id" width={getColumnWidth('client_id', 120)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 120))} isResizing={resizingColumn === 'client_id'}>ID клієнта</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="title" width={getColumnWidth('title', 200)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 200))} isResizing={resizingColumn === 'title'}>Назва</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="link" width={getColumnWidth('link', 60)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 60))} isResizing={resizingColumn === 'link'}><ExternalLink size={16} className="inline-block" /></ResizableTableHeader>
+                        <ResizableTableHeader columnKey="tracking_pl" width={getColumnWidth('tracking_pl', 130)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 130))} isResizing={resizingColumn === 'tracking_pl'}>Трекінг PL</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="part_price" width={getColumnWidth('part_price', 110)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 110))} isResizing={resizingColumn === 'part_price'}>Вартість запч.</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="delivery_cost" width={getColumnWidth('delivery_cost', 100)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 100))} isResizing={resizingColumn === 'delivery_cost'}>Доставка</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="total_cost" width={getColumnWidth('total_cost', 100)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 100))} isResizing={resizingColumn === 'total_cost'}>Всього</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="part_number" width={getColumnWidth('part_number', 130)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 130))} isResizing={resizingColumn === 'part_number'}>№ запчастини</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="payment_type" width={getColumnWidth('payment_type', 120)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 120))} isResizing={resizingColumn === 'payment_type'}>Тип оплати</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="cash_on_delivery" width={getColumnWidth('cash_on_delivery', 110)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 110))} isResizing={resizingColumn === 'cash_on_delivery'}>Побранє</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="actions" width={getColumnWidth('actions', 100)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 100))} isResizing={resizingColumn === 'actions'}>Дії</ResizableTableHeader>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
@@ -3134,24 +3194,24 @@ export default function Orders() {
               </button>
             </div>
             <div className="flex-1 overflow-auto p-6">
-              <table className="w-full border-collapse">
+              <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                 <thead className="bg-green-700 dark:bg-green-900 sticky top-0 z-10">
                   <tr>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">№ Док</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">Статус</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">Назва</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">ID Клієнта</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">№ Запчастини</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-center text-sm font-semibold text-white"><ExternalLink size={16} className="inline-block" /></th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">ТТН</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Вага (кг)</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Запчастини</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Доставка</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Отримали PLN</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Наложка</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Транспорт USD</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">Тип оплати</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">Дата прийому</th>
+                    <ResizableTableHeader columnKey="receipt_number" width={acceptedColumnsResizable.getColumnWidth('receipt_number', 100)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 100))} isResizing={acceptedColumnsResizable.resizingColumn === 'receipt_number'}>№ Док</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="status" width={acceptedColumnsResizable.getColumnWidth('status', 100)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 100))} isResizing={acceptedColumnsResizable.resizingColumn === 'status'}>Статус</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="title" width={acceptedColumnsResizable.getColumnWidth('title', 200)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 200))} isResizing={acceptedColumnsResizable.resizingColumn === 'title'}>Назва</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="client_id" width={acceptedColumnsResizable.getColumnWidth('client_id', 120)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 120))} isResizing={acceptedColumnsResizable.resizingColumn === 'client_id'}>ID Клієнта</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="part_number" width={acceptedColumnsResizable.getColumnWidth('part_number', 130)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 130))} isResizing={acceptedColumnsResizable.resizingColumn === 'part_number'}>№ Запчастини</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="link" width={acceptedColumnsResizable.getColumnWidth('link', 60)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-center text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 60))} isResizing={acceptedColumnsResizable.resizingColumn === 'link'}><ExternalLink size={16} className="inline-block" /></ResizableTableHeader>
+                    <ResizableTableHeader columnKey="tracking_number" width={acceptedColumnsResizable.getColumnWidth('tracking_number', 130)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 130))} isResizing={acceptedColumnsResizable.resizingColumn === 'tracking_number'}>ТТН</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="weight_kg" width={acceptedColumnsResizable.getColumnWidth('weight_kg', 90)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 90))} isResizing={acceptedColumnsResizable.resizingColumn === 'weight_kg'}>Вага (кг)</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="part_price" width={acceptedColumnsResizable.getColumnWidth('part_price', 110)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 110))} isResizing={acceptedColumnsResizable.resizingColumn === 'part_price'}>Запчастини</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="delivery_cost" width={acceptedColumnsResizable.getColumnWidth('delivery_cost', 110)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 110))} isResizing={acceptedColumnsResizable.resizingColumn === 'delivery_cost'}>Доставка</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="received_pln" width={acceptedColumnsResizable.getColumnWidth('received_pln', 110)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 110))} isResizing={acceptedColumnsResizable.resizingColumn === 'received_pln'}>Отримали PLN</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="cash_on_delivery" width={acceptedColumnsResizable.getColumnWidth('cash_on_delivery', 110)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 110))} isResizing={acceptedColumnsResizable.resizingColumn === 'cash_on_delivery'}>Наложка</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="transport_cost_usd" width={acceptedColumnsResizable.getColumnWidth('transport_cost_usd', 130)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 130))} isResizing={acceptedColumnsResizable.resizingColumn === 'transport_cost_usd'}>Транспорт USD</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="payment_type" width={acceptedColumnsResizable.getColumnWidth('payment_type', 120)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 120))} isResizing={acceptedColumnsResizable.resizingColumn === 'payment_type'}>Тип оплати</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="accepted_at" width={acceptedColumnsResizable.getColumnWidth('accepted_at', 150)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 150))} isResizing={acceptedColumnsResizable.resizingColumn === 'accepted_at'}>Дата прийому</ResizableTableHeader>
                   </tr>
                 </thead>
                 <tbody>
