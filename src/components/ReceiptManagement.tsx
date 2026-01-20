@@ -123,6 +123,8 @@ export default function ReceiptManagement() {
 
     if (data) {
       setReceipts(data);
+      // Завантажуємо замовлення для кожної накладної
+      data.forEach(receipt => loadOrdersForReceipt(receipt.id));
     }
   }
 
