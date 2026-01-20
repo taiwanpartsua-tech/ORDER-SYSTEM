@@ -750,12 +750,13 @@ export default function SupplierInspection() {
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
-                                {draft.tracking_pl || 'Без трекінгу'}
+                                {draft.order_number || draft.tracking_pl || 'Без номеру'}
                               </span>
                               <Archive size={14} className="text-gray-500" />
                             </div>
                             <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                               {draft.client_id && <span>ID: {draft.client_id}</span>}
+                              {draft.tracking_pl && <span className="ml-2">• PL: {draft.tracking_pl}</span>}
                             </div>
                             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                               {draft.title || draft.part_number}

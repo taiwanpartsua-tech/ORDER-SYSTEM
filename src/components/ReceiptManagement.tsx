@@ -781,7 +781,7 @@ export default function ReceiptManagement() {
       const { error } = await supabase
         .from('draft_orders')
         .insert({
-          receipt_number: receiptData.receipt_number,
+          order_number: receiptData.receipt_number,
           payment_type: receiptData.settlement_type || 'не обрано',
           archived: true,
           archived_at: new Date().toISOString(),
