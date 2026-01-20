@@ -330,10 +330,24 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
     if (!searchTerm.trim()) return true;
     const searchLower = searchTerm.toLowerCase().trim();
     return (
+      (order.order_number && order.order_number.toLowerCase().includes(searchLower)) ||
       (order.client_id && order.client_id.toLowerCase().includes(searchLower)) ||
       (order.title && order.title.toLowerCase().includes(searchLower)) ||
+      (order.link && order.link.toLowerCase().includes(searchLower)) ||
       (order.tracking_pl && order.tracking_pl.toLowerCase().includes(searchLower)) ||
-      (order.part_number && order.part_number.toLowerCase().includes(searchLower))
+      (order.part_number && order.part_number.toLowerCase().includes(searchLower)) ||
+      (order.notes && order.notes.toLowerCase().includes(searchLower)) ||
+      (order.status && order.status.toLowerCase().includes(searchLower)) ||
+      (order.payment_type && order.payment_type.toLowerCase().includes(searchLower)) ||
+      (order.supplier?.name && order.supplier.name.toLowerCase().includes(searchLower)) ||
+      (order.part_price && order.part_price.toString().includes(searchLower)) ||
+      (order.delivery_cost && order.delivery_cost.toString().includes(searchLower)) ||
+      (order.total_cost && order.total_cost.toString().includes(searchLower)) ||
+      (order.cash_on_delivery && order.cash_on_delivery.toString().includes(searchLower)) ||
+      (order.received_pln && order.received_pln.toString().includes(searchLower)) ||
+      (order.transport_cost_usd && order.transport_cost_usd.toString().includes(searchLower)) ||
+      (order.weight_kg && order.weight_kg.toString().includes(searchLower)) ||
+      (order.order_date && order.order_date.includes(searchLower))
     );
   });
 
@@ -344,10 +358,24 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
     if (!searchTerm.trim()) return true;
     const searchLower = searchTerm.toLowerCase().trim();
     return (
+      (order.order_number && order.order_number.toLowerCase().includes(searchLower)) ||
       (order.client_id && order.client_id.toLowerCase().includes(searchLower)) ||
       (order.title && order.title.toLowerCase().includes(searchLower)) ||
+      (order.link && order.link.toLowerCase().includes(searchLower)) ||
       (order.tracking_pl && order.tracking_pl.toLowerCase().includes(searchLower)) ||
-      (order.part_number && order.part_number.toLowerCase().includes(searchLower))
+      (order.part_number && order.part_number.toLowerCase().includes(searchLower)) ||
+      (order.notes && order.notes.toLowerCase().includes(searchLower)) ||
+      (order.status && order.status.toLowerCase().includes(searchLower)) ||
+      (order.payment_type && order.payment_type.toLowerCase().includes(searchLower)) ||
+      (order.supplier?.name && order.supplier.name.toLowerCase().includes(searchLower)) ||
+      (order.part_price && order.part_price.toString().includes(searchLower)) ||
+      (order.delivery_cost && order.delivery_cost.toString().includes(searchLower)) ||
+      (order.total_cost && order.total_cost.toString().includes(searchLower)) ||
+      (order.cash_on_delivery && order.cash_on_delivery.toString().includes(searchLower)) ||
+      (order.received_pln && order.received_pln.toString().includes(searchLower)) ||
+      (order.transport_cost_usd && order.transport_cost_usd.toString().includes(searchLower)) ||
+      (order.weight_kg && order.weight_kg.toString().includes(searchLower)) ||
+      (order.order_date && order.order_date.includes(searchLower))
     );
   });
 
@@ -355,10 +383,24 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
     if (!searchTerm.trim()) return true;
     const searchLower = searchTerm.toLowerCase().trim();
     return (
+      (order.order_number && order.order_number.toLowerCase().includes(searchLower)) ||
       (order.client_id && order.client_id.toLowerCase().includes(searchLower)) ||
       (order.title && order.title.toLowerCase().includes(searchLower)) ||
+      (order.link && order.link.toLowerCase().includes(searchLower)) ||
       (order.tracking_pl && order.tracking_pl.toLowerCase().includes(searchLower)) ||
-      (order.part_number && order.part_number.toLowerCase().includes(searchLower))
+      (order.part_number && order.part_number.toLowerCase().includes(searchLower)) ||
+      (order.notes && order.notes.toLowerCase().includes(searchLower)) ||
+      (order.status && order.status.toLowerCase().includes(searchLower)) ||
+      (order.payment_type && order.payment_type.toLowerCase().includes(searchLower)) ||
+      (order.supplier?.name && order.supplier.name.toLowerCase().includes(searchLower)) ||
+      (order.part_price && order.part_price.toString().includes(searchLower)) ||
+      (order.delivery_cost && order.delivery_cost.toString().includes(searchLower)) ||
+      (order.total_cost && order.total_cost.toString().includes(searchLower)) ||
+      (order.cash_on_delivery && order.cash_on_delivery.toString().includes(searchLower)) ||
+      (order.received_pln && order.received_pln.toString().includes(searchLower)) ||
+      (order.transport_cost_usd && order.transport_cost_usd.toString().includes(searchLower)) ||
+      (order.weight_kg && order.weight_kg.toString().includes(searchLower)) ||
+      (order.order_date && order.order_date.includes(searchLower))
     );
   });
 
