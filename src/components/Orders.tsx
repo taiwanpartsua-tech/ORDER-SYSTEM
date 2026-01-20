@@ -1785,6 +1785,12 @@ export default function Orders() {
       case 'delivery_cost':
         return renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-center', isAccepted, order);
 
+      case 'weight_kg':
+        return renderEditableCell(order.id, 'weight_kg', `${formatNumber(order.weight_kg)} кг`, 'text-center', isAccepted, order);
+
+      case 'transport_cost_usd':
+        return renderEditableCell(order.id, 'transport_cost_usd', `${formatNumber(order.transport_cost_usd)} $`, 'text-center', isAccepted, order);
+
       case 'total_cost':
         return (
           <td className="px-3 py-3 text-center text-gray-900 dark:text-gray-100 font-medium bg-white dark:bg-gray-800 min-h-[48px]" key="total_cost">
@@ -2774,7 +2780,7 @@ export default function Orders() {
                         );
                       }
 
-                      if (['part_price', 'delivery_cost'].includes(col.key)) {
+                      if (['part_price', 'delivery_cost', 'weight_kg', 'transport_cost_usd'].includes(col.key)) {
                         return (
                           <td key={col.key} className={`px-3 py-3 min-h-[48px] ${isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : ''}`}>
                             <input
@@ -2998,6 +3004,8 @@ export default function Orders() {
                         <ResizableTableHeader columnKey="tracking_pl" width={getColumnWidth('tracking_pl', 130)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 130))} isResizing={resizingColumn === 'tracking_pl'}>Трекінг PL</ResizableTableHeader>
                         <ResizableTableHeader columnKey="part_price" width={getColumnWidth('part_price', 110)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 110))} isResizing={resizingColumn === 'part_price'}>Вартість запч.</ResizableTableHeader>
                         <ResizableTableHeader columnKey="delivery_cost" width={getColumnWidth('delivery_cost', 100)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 100))} isResizing={resizingColumn === 'delivery_cost'}>Доставка</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="weight_kg" width={getColumnWidth('weight_kg', 100)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 100))} isResizing={resizingColumn === 'weight_kg'}>Вага (кг)</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="transport_cost_usd" width={getColumnWidth('transport_cost_usd', 120)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 120))} isResizing={resizingColumn === 'transport_cost_usd'}>Перевезення ($)</ResizableTableHeader>
                         <ResizableTableHeader columnKey="total_cost" width={getColumnWidth('total_cost', 100)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 100))} isResizing={resizingColumn === 'total_cost'}>Всього</ResizableTableHeader>
                         <ResizableTableHeader columnKey="part_number" width={getColumnWidth('part_number', 130)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 130))} isResizing={resizingColumn === 'part_number'}>№ запчастини</ResizableTableHeader>
                         <ResizableTableHeader columnKey="payment_type" width={getColumnWidth('payment_type', 120)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 120))} isResizing={resizingColumn === 'payment_type'}>Тип оплати</ResizableTableHeader>
@@ -3067,6 +3075,8 @@ export default function Orders() {
                           {renderEditableCell(order.id, 'tracking_pl', order.tracking_pl || '', 'text-gray-600 text-center', isAccepted, order)}
                           {renderEditableCell(order.id, 'part_price', `${formatNumber(order.part_price)} zl`, 'text-gray-900 font-medium text-center', isAccepted, order)}
                           {renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-gray-900 text-center', isAccepted, order)}
+                          {renderEditableCell(order.id, 'weight_kg', `${formatNumber(order.weight_kg)} кг`, 'text-gray-900 text-center', isAccepted, order)}
+                          {renderEditableCell(order.id, 'transport_cost_usd', `${formatNumber(order.transport_cost_usd)} $`, 'text-gray-900 text-center', isAccepted, order)}
                           <td className="px-3 py-3 text-center text-gray-900 dark:text-gray-100 font-bold bg-gray-50 dark:bg-gray-700 min-h-[48px]">
                             {formatNumber(order.total_cost)} zl
                           </td>
