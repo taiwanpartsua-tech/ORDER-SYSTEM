@@ -19,9 +19,29 @@ export const supabase = createClient(
   supabaseAnonKey || 'placeholder-key'
 );
 
+export type Project = {
+  id: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type UserProjectAccess = {
+  id: string;
+  user_id: string;
+  project_id: string;
+  role: 'admin' | 'manager' | 'viewer';
+  granted_by: string | null;
+  created_at: string;
+  project?: Project;
+};
+
 export type Supplier = {
   id: string;
   name: string;
+  project_id: string;
   balance?: number;
   balance_pln?: number;
   balance_usd?: number;
@@ -39,6 +59,7 @@ export type Order = {
   id: string;
   order_number: string;
   supplier_id: string;
+  project_id: string;
   status: string;
   previous_status?: string;
   active_receipt_group?: 'cash_on_delivery' | 'paid' | null;
@@ -71,6 +92,7 @@ export type Order = {
 export type OrderPhoto = {
   id: string;
   order_id: string;
+  project_id?: string;
   photo_url: string;
   uploaded_by?: string;
   uploaded_at: string;
@@ -86,6 +108,7 @@ export type Manager = {
 
 export type Return = {
   id: string;
+  project_id: string;
   status?: string;
   substatus: string;
   client_id?: string;
@@ -111,6 +134,7 @@ export type Return = {
 
 export type ActiveReceipt = {
   id: string;
+  project_id: string;
   receipt_number: string;
   receipt_date: string;
   status: 'draft' | 'approved' | 'sent_for_settlement' | 'settled';
@@ -168,6 +192,7 @@ export type SupplierTransaction = {
 
 export type Transaction = {
   id: string;
+  project_id: string;
   transaction_type: 'debit' | 'credit';
   amount_pln: number;
   amount_usd: number;
@@ -184,6 +209,7 @@ export type Transaction = {
 
 export type CardTransaction = {
   id: string;
+  project_id: string;
   transaction_type: 'payment' | 'refund' | 'charge';
   charge_type?: 'debit' | 'credit';
   amount: number;
@@ -200,6 +226,7 @@ export type CardTransaction = {
 
 export type TariffSettings = {
   id: string;
+  project_id: string;
   default_received_pln: number;
   default_transport_cost_per_kg_usd: number;
   created_at: string;

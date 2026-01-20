@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Package, ClipboardCheck, TrendingUp, FileCheck, DollarSign, Moon, Sun, Settings, Users, History, LogOut, Camera } from 'lucide-react';
+import { Package, ClipboardCheck, TrendingUp, FileCheck, DollarSign, Moon, Sun, Settings, Users, History, LogOut, Camera, Building2 } from 'lucide-react';
 import Orders from './components/Orders';
 import ActiveReceipts from './components/ActiveReceipts';
 import SupplierBalance from './components/SupplierBalance';
@@ -12,6 +12,7 @@ import SupplierInspection from './components/SupplierInspection';
 import Login from './components/Login';
 import { useTheme } from './contexts/ThemeContext';
 import { useAuth } from './contexts/AuthContext';
+import { useProject } from './contexts/ProjectContext';
 
 type Tab = 'orders' | 'receipts' | 'management' | 'balance' | 'settlement' | 'settings' | 'admin' | 'audit' | 'inspection';
 
@@ -22,6 +23,7 @@ function App() {
   });
   const { isDark, toggleTheme } = useTheme();
   const { user, profile, loading, signOut, isSuper, isAdmin } = useAuth();
+  const { currentProject, userProjects, setCurrentProject, isLoading: projectLoading } = useProject();
 
   useEffect(() => {
     if (user) {
@@ -29,7 +31,7 @@ function App() {
     }
   }, [activeTab, user]);
 
-  if (loading) {
+  if (loading || projectLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-gray-500 dark:text-gray-400">Завантаження...</div>
@@ -41,12 +43,109 @@ function App() {
     return <Login />;
   }
 
+  if (!currentProject) {
+    if (userProjects.length === 0) {
+      return (
+        <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+          <div className="max-w-md w-full p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+            <div className="text-center mb-6">
+              <Building2 className="w-16 h-16 mx-auto text-blue-600 dark:text-blue-400 mb-4" />
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">У вас немає доступу до жодного проекту</h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">Зверніться до адміністратора для отримання доступу</p>
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-1">Адміністратор системи:</p>
+                <a
+                  href="mailto:paska8882@gmail.com"
+                  className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                >
+                  paska8882@gmail.com
+                </a>
+              </div>
+            </div>
+            <button
+              onClick={signOut}
+              className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+            >
+              Вийти
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-md w-full p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+          <div className="text-center mb-6">
+            <Building2 className="w-16 h-16 mx-auto text-blue-600 dark:text-blue-400 mb-4" />
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">Виберіть проект</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">У вас є доступ до наступних проектів:</p>
+          </div>
+          <div className="space-y-3 mb-6">
+            {userProjects.map(access => (
+              access.project && (
+                <button
+                  key={access.project.id}
+                  onClick={() => setCurrentProject(access.project!)}
+                  className="w-full p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <Building2 className="text-blue-600 dark:text-blue-400" size={24} />
+                    <div>
+                      <div className="font-semibold text-gray-800 dark:text-gray-100">{access.project.name}</div>
+                      {access.project.description && (
+                        <div className="text-sm text-gray-600 dark:text-gray-400">{access.project.description}</div>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              )
+            ))}
+          </div>
+          <button
+            onClick={signOut}
+            className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+          >
+            Вийти
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden transition-colors">
       <header className="bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 flex-shrink-0">
         <div className="max-w-[98%] mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Система управління закупівлями</h1>
           <div className="flex items-center gap-4">
+            {userProjects.length > 1 && (
+              <div className="flex items-center gap-2">
+                <Building2 size={18} className="text-gray-600 dark:text-gray-400" />
+                <select
+                  value={currentProject?.id || ''}
+                  onChange={(e) => {
+                    const project = userProjects.find(p => p.project_id === e.target.value)?.project;
+                    if (project) setCurrentProject(project);
+                  }}
+                  className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {userProjects.map(access => (
+                    access.project && (
+                      <option key={access.project.id} value={access.project.id}>
+                        {access.project.name}
+                      </option>
+                    )
+                  ))}
+                </select>
+              </div>
+            )}
+            {userProjects.length === 1 && currentProject && (
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <Building2 size={18} />
+                <span className="font-medium">{currentProject.name}</span>
+              </div>
+            )}
             <div className="text-right">
               <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{profile?.full_name || profile?.email}</div>
               <div className="text-xs text-gray-500 dark:text-gray-400">
