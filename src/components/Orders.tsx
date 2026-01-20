@@ -385,6 +385,8 @@ export default function Orders() {
         return;
       }
 
+      console.log('🔍 Завантаження чернеток для проекту:', projectId, 'archived:', showArchivedDrafts);
+
       const { data, error } = await supabase
         .from('draft_orders')
         .select('*')
@@ -393,13 +395,15 @@ export default function Orders() {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Помилка завантаження чернеток:', error);
+        console.error('❌ Помилка завантаження чернеток:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
       } else if (data) {
-        console.log('Чернетки завантажено:', data.length);
+        console.log('✅ Чернетки завантажено:', data.length);
+        console.log('📋 Дані чернеток:', data);
         setDraftRows(data);
       }
     } catch (err) {
-      console.error('Помилка при завантаженні чернеток:', err);
+      console.error('❌ Помилка при завантаженні чернеток:', err);
     }
   }
 
