@@ -240,15 +240,3 @@ export type AuditLog = {
   created_at: string;
   user_profile?: UserProfile;
 };
-
-export type ReceiptFieldChange = {
-  id: string;
-  receipt_id: string | null;
-  order_id: string | null;
-  field_name: string;
-  old_value: string | null;
-  new_value: string | null;
-  changed_by: string | null;
-  changed_at: string;
-  created_at: string;
-};

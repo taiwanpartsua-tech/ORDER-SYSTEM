@@ -69,7 +69,6 @@ export default function Orders() {
     id: string;
     order_number: string;
     supplier_id: string;
-    manager_id: string;
     status: string;
     order_date: string;
     notes: string;
@@ -423,10 +422,6 @@ export default function Orders() {
 
     if (!dataToSubmit.supplier_id || dataToSubmit.supplier_id === '') {
       delete dataToSubmit.supplier_id;
-    }
-
-    if (!dataToSubmit.manager_id || dataToSubmit.manager_id === '') {
-      delete dataToSubmit.manager_id;
     }
 
     if (dataToSubmit.client_id === '') {
@@ -958,7 +953,6 @@ export default function Orders() {
       id: `draft-${Date.now()}-${index}`,
       order_number: '',
       supplier_id: artTransId,
-      manager_id: '',
       status: 'в роботі на сьогодні',
       order_date: new Date().toISOString().split('T')[0],
       notes: '',
@@ -1048,10 +1042,6 @@ export default function Orders() {
 
     if (!dataToSubmit.supplier_id || dataToSubmit.supplier_id === '') {
       delete dataToSubmit.supplier_id;
-    }
-
-    if (!dataToSubmit.manager_id || dataToSubmit.manager_id === '') {
-      delete dataToSubmit.manager_id;
     }
 
     try {
@@ -2016,202 +2006,160 @@ export default function Orders() {
                 {isAddingNewRow && (
                   <tr className="bg-green-100 dark:bg-green-900/70">
                     <td className="px-3 py-3 text-center min-h-[48px]"></td>
-                    {getColumns(columnView).map((col) => {
-                      if (col.key === 'actions') {
-                        return (
-                          <td key="actions" className="px-3 py-3 min-h-[48px]">
-                            <div className="flex gap-2 justify-start">
-                              <button
-                                onClick={saveNewRow}
-                                className="px-3 py-2 bg-green-700 text-white rounded text-xs font-semibold hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition flex items-center gap-1"
-                              >
-                                <Check size={14} />
-                                Зберегти
-                              </button>
-                              <button
-                                onClick={cancelNewRow}
-                                className="px-3 py-2 bg-gray-200 text-gray-800 rounded text-xs font-semibold hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 transition flex items-center gap-1"
-                              >
-                                <X size={14} />
-                                Скасувати
-                              </button>
-                            </div>
-                          </td>
-                        );
-                      }
-
-                      const value = (newRowData as any)[col.key];
-                      const isRequired = ['client_id', 'title', 'link'].includes(col.key);
-
-                      if (col.key === 'status') {
-                        return (
-                          <td key={col.key} className="p-0 relative">
-                            <select
-                              value={newRowData.status}
-                              onChange={(e) => setNewRowData({ ...newRowData, status: e.target.value })}
-                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 text-gray-900 dark:text-gray-100"
-                            >
-                              {statuses.map((status) => (
-                                <option
-                                  key={status}
-                                  value={status}
-                                  className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                >
-                                  {statusLabels[status]}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                        );
-                      }
-
-                      if (col.key === 'verified') {
-                        return (
-                          <td key={col.key} className="px-3 py-3 text-center min-h-[48px]">
-                            <input
-                              type="checkbox"
-                              checked={newRowData.verified}
-                              onChange={(e) => setNewRowData({ ...newRowData, verified: e.target.checked })}
-                              className="w-5 h-5 rounded cursor-pointer transition text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-600"
-                            />
-                          </td>
-                        );
-                      }
-
-                      if (col.key === 'link') {
-                        return (
-                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
-                            <input
-                              type="text"
-                              value={newRowData.link}
-                              onChange={(e) => setNewRowData({ ...newRowData, link: e.target.value })}
-                              onKeyDown={handleNewRowKeyDown}
-                              placeholder="Посилання *"
-                              className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                            />
-                          </td>
-                        );
-                      }
-
-                      if (col.key === 'payment_type') {
-                        return (
-                          <td key={col.key} className="p-0 relative">
-                            <select
-                              value={newRowData.payment_type}
-                              onChange={(e) => {
-                                const newPaymentType = e.target.value;
-                                setNewRowData({
-                                  ...newRowData,
-                                  payment_type: newPaymentType,
-                                  cash_on_delivery: newPaymentType === 'оплачено' ? 0 : newRowData.cash_on_delivery
-                                });
-                              }}
-                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 text-gray-900 dark:text-gray-100"
-                            >
-                              {paymentTypes.map((type) => (
-                                <option
-                                  key={type}
-                                  value={type}
-                                  className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                >
-                                  {paymentTypeLabels[type]}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                        );
-                      }
-
-                      if (col.key === 'total_cost') {
-                        return (
-                          <td key={col.key} className="px-3 py-3 text-center text-gray-900 dark:text-gray-100 font-bold bg-gray-50 dark:bg-gray-700 min-h-[48px]">
-                            {formatNumber(newRowData.total_cost)} zl
-                          </td>
-                        );
-                      }
-
-                      if (col.key === 'cash_on_delivery') {
-                        return (
-                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={newRowData.cash_on_delivery}
-                              onChange={(e) => setNewRowData({ ...newRowData, cash_on_delivery: Number(e.target.value) })}
-                              onKeyDown={handleNewRowKeyDown}
-                              disabled={newRowData.payment_type === 'оплачено'}
-                              placeholder="0"
-                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                            />
-                          </td>
-                        );
-                      }
-
-                      if (['part_price', 'delivery_cost'].includes(col.key)) {
-                        return (
-                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={value}
-                              onChange={(e) => setNewRowData({ ...newRowData, [col.key]: Number(e.target.value) })}
-                              onKeyDown={handleNewRowKeyDown}
-                              placeholder="0"
-                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                            />
-                          </td>
-                        );
-                      }
-
-                      if (col.renderType === 'date') {
-                        return (
-                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
-                            <input
-                              type="date"
-                              value={value || ''}
-                              onChange={(e) => setNewRowData({ ...newRowData, [col.key]: e.target.value })}
-                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                            />
-                          </td>
-                        );
-                      }
-
-                      if (col.key === 'manager') {
-                        return (
-                          <td key={col.key} className="p-0 relative">
-                            <select
-                              value={newRowData.manager_id || ''}
-                              onChange={(e) => setNewRowData({ ...newRowData, manager_id: e.target.value })}
-                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 text-gray-900 dark:text-gray-100"
-                            >
-                              <option value="" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Не обрано</option>
-                              {managers.map((manager) => (
-                                <option
-                                  key={manager.id}
-                                  value={manager.id}
-                                  className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                >
-                                  {manager.full_name || manager.email}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                        );
-                      }
-
-                      return (
-                        <td key={col.key} className="px-3 py-3 min-h-[48px]">
-                          <input
-                            type="text"
-                            value={value || ''}
-                            onChange={(e) => setNewRowData({ ...newRowData, [col.key]: e.target.value })}
-                            onKeyDown={handleNewRowKeyDown}
-                            placeholder={isRequired ? `${col.label} *` : col.label}
-                            className={`w-full px-2 py-1 border ${isRequired ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'} rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
-                          />
-                        </td>
-                      );
-                    })}
+                    <td className="p-0 relative">
+                      <select
+                        value={newRowData.status}
+                        onChange={(e) => setNewRowData({ ...newRowData, status: e.target.value })}
+                        className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 text-gray-900 dark:text-gray-100"
+                      >
+                        {statuses.map((status) => (
+                          <option
+                            key={status}
+                            value={status}
+                            className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          >
+                            {statusLabels[status]}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-3 py-3 text-center min-h-[48px]">
+                      <input
+                        type="checkbox"
+                        checked={newRowData.verified}
+                        onChange={(e) => setNewRowData({ ...newRowData, verified: e.target.checked })}
+                        className="w-5 h-5 rounded cursor-pointer transition text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-600"
+                      />
+                    </td>
+                    <td className="px-3 py-3 min-h-[48px]">
+                      <input
+                        type="text"
+                        value={newRowData.client_id}
+                        onChange={(e) => setNewRowData({ ...newRowData, client_id: e.target.value })}
+                        onKeyDown={handleNewRowKeyDown}
+                        placeholder="ID клієнта *"
+                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      />
+                    </td>
+                    <td className="px-3 py-3 min-h-[48px]">
+                      <input
+                        type="text"
+                        value={newRowData.title}
+                        onChange={(e) => setNewRowData({ ...newRowData, title: e.target.value })}
+                        onKeyDown={handleNewRowKeyDown}
+                        placeholder="Назва *"
+                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      />
+                    </td>
+                    <td className="px-3 py-3 min-h-[48px]">
+                      <input
+                        type="text"
+                        value={newRowData.link}
+                        onChange={(e) => setNewRowData({ ...newRowData, link: e.target.value })}
+                        onKeyDown={handleNewRowKeyDown}
+                        placeholder="Посилання *"
+                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      />
+                    </td>
+                    <td className="px-3 py-3 min-h-[48px]">
+                      <input
+                        type="text"
+                        value={newRowData.tracking_pl}
+                        onChange={(e) => setNewRowData({ ...newRowData, tracking_pl: e.target.value })}
+                        onKeyDown={handleNewRowKeyDown}
+                        placeholder="Трекінг"
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      />
+                    </td>
+                    <td className="px-3 py-3 min-h-[48px]">
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={newRowData.part_price}
+                        onChange={(e) => setNewRowData({ ...newRowData, part_price: Number(e.target.value) })}
+                        onKeyDown={handleNewRowKeyDown}
+                        placeholder="0"
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      />
+                    </td>
+                    <td className="px-3 py-3 min-h-[48px]">
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={newRowData.delivery_cost}
+                        onChange={(e) => setNewRowData({ ...newRowData, delivery_cost: Number(e.target.value) })}
+                        onKeyDown={handleNewRowKeyDown}
+                        placeholder="0"
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      />
+                    </td>
+                    <td className="px-3 py-3 text-center text-gray-900 dark:text-gray-100 font-bold bg-gray-50 dark:bg-gray-700 min-h-[48px]">
+                      {formatNumber(newRowData.total_cost)} zl
+                    </td>
+                    <td className="px-3 py-3 min-h-[48px]">
+                      <input
+                        type="text"
+                        value={newRowData.part_number}
+                        onChange={(e) => setNewRowData({ ...newRowData, part_number: e.target.value })}
+                        onKeyDown={handleNewRowKeyDown}
+                        placeholder="№"
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      />
+                    </td>
+                    <td className="p-0 relative">
+                      <select
+                        value={newRowData.payment_type}
+                        onChange={(e) => {
+                          const newPaymentType = e.target.value;
+                          setNewRowData({
+                            ...newRowData,
+                            payment_type: newPaymentType,
+                            cash_on_delivery: newPaymentType === 'оплачено' ? 0 : newRowData.cash_on_delivery
+                          });
+                        }}
+                        className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 text-gray-900 dark:text-gray-100"
+                      >
+                        {paymentTypes.map((type) => (
+                          <option
+                            key={type}
+                            value={type}
+                            className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          >
+                            {paymentTypeLabels[type]}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-3 py-3 min-h-[48px]">
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={newRowData.cash_on_delivery}
+                        onChange={(e) => setNewRowData({ ...newRowData, cash_on_delivery: Number(e.target.value) })}
+                        onKeyDown={handleNewRowKeyDown}
+                        disabled={newRowData.payment_type === 'оплачено'}
+                        placeholder="0"
+                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                    </td>
+                    <td className="px-3 py-3 min-h-[48px]">
+                      <div className="flex gap-2 justify-start">
+                        <button
+                          onClick={saveNewRow}
+                          className="px-3 py-2 bg-green-700 text-white rounded text-xs font-semibold hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition flex items-center gap-1"
+                        >
+                          <Check size={14} />
+                          Зберегти
+                        </button>
+                        <button
+                          onClick={cancelNewRow}
+                          className="px-3 py-2 bg-gray-200 text-gray-800 rounded text-xs font-semibold hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 transition flex items-center gap-1"
+                        >
+                          <X size={14} />
+                          Скасувати
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 )}
                 {draftRows.map((draft) => (
@@ -2367,29 +2315,6 @@ export default function Orders() {
                               onChange={(e) => updateDraftRow(draft.id, col.key, e.target.value)}
                               className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                             />
-                          </td>
-                        );
-                      }
-
-                      if (col.key === 'manager') {
-                        return (
-                          <td key={col.key} className="p-0 relative">
-                            <select
-                              value={draft.manager_id || ''}
-                              onChange={(e) => updateDraftRow(draft.id, 'manager_id', e.target.value)}
-                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100"
-                            >
-                              <option value="" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Не обрано</option>
-                              {managers.map((manager) => (
-                                <option
-                                  key={manager.id}
-                                  value={manager.id}
-                                  className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                >
-                                  {manager.full_name || manager.email}
-                                </option>
-                              ))}
-                            </select>
                           </td>
                         );
                       }

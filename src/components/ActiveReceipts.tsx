@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase, Order, Supplier, ReceiptFieldChange } from '../lib/supabase';
-import { ChevronRight, Send, X, AlertCircle, ExternalLink, Search, XCircle, History, ChevronDown, ChevronUp } from 'lucide-react';
+import { supabase, Order, Supplier } from '../lib/supabase';
+import { ChevronRight, Send, X, AlertCircle, ExternalLink, Search, XCircle } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
@@ -31,8 +31,6 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
 
   const [cashOnDeliveryReceiptNumber, setCashOnDeliveryReceiptNumber] = useState<string>('');
   const [paidReceiptNumber, setPaidReceiptNumber] = useState<string>('');
-  const [orderChanges, setOrderChanges] = useState<Record<string, ReceiptFieldChange[]>>({});
-  const [expandedChanges, setExpandedChanges] = useState<Set<string>>(new Set());
 
   function generateReceiptNumber(group: PaymentGroup): string {
     const now = new Date();
@@ -106,34 +104,6 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
     if (data) {
       setAvailableOrders(data as OrderWithSupplier[]);
     }
-  }
-
-  async function loadOrderChanges(orderId: string) {
-    const { data } = await supabase
-      .from('receipt_field_changes')
-      .select('*')
-      .eq('order_id', orderId)
-      .order('changed_at', { ascending: false });
-
-    if (data) {
-      setOrderChanges(prev => ({
-        ...prev,
-        [orderId]: data
-      }));
-    }
-  }
-
-  function toggleOrderChanges(orderId: string) {
-    const newExpanded = new Set(expandedChanges);
-    if (newExpanded.has(orderId)) {
-      newExpanded.delete(orderId);
-    } else {
-      newExpanded.add(orderId);
-      if (!orderChanges[orderId]) {
-        loadOrderChanges(orderId);
-      }
-    }
-    setExpandedChanges(newExpanded);
   }
 
   function getOrderGroup(order: OrderWithSupplier | EditableOrder): PaymentGroup {
@@ -368,85 +338,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
         console.error('Помилка збереження знімків замовлень:', snapshotsError);
       }
 
-      const fieldChanges = [];
-
       for (const order of orders) {
-        const changes = [];
-
-        if (order.editableWeight !== (order.weight_kg || 0)) {
-          changes.push({
-            receipt_id: receipt.id,
-            order_id: order.id,
-            field_name: 'Вага (кг)',
-            old_value: String(order.weight_kg || 0),
-            new_value: String(order.editableWeight),
-            changed_by: user.id,
-            changed_at: new Date().toISOString()
-          });
-        }
-
-        if (order.editableParts !== (order.part_price || 0)) {
-          changes.push({
-            receipt_id: receipt.id,
-            order_id: order.id,
-            field_name: 'Ціна деталі (PLN)',
-            old_value: String(order.part_price || 0),
-            new_value: String(order.editableParts),
-            changed_by: user.id,
-            changed_at: new Date().toISOString()
-          });
-        }
-
-        if (order.editableDelivery !== (order.delivery_cost || 0)) {
-          changes.push({
-            receipt_id: receipt.id,
-            order_id: order.id,
-            field_name: 'Доставка (PLN)',
-            old_value: String(order.delivery_cost || 0),
-            new_value: String(order.editableDelivery),
-            changed_by: user.id,
-            changed_at: new Date().toISOString()
-          });
-        }
-
-        if (order.editableReceipt !== (order.received_pln || 0)) {
-          changes.push({
-            receipt_id: receipt.id,
-            order_id: order.id,
-            field_name: 'Прийом (PLN)',
-            old_value: String(order.received_pln || 0),
-            new_value: String(order.editableReceipt),
-            changed_by: user.id,
-            changed_at: new Date().toISOString()
-          });
-        }
-
-        if (order.editableCash !== (order.cash_on_delivery || 0)) {
-          changes.push({
-            receipt_id: receipt.id,
-            order_id: order.id,
-            field_name: 'Накладений платіж (PLN)',
-            old_value: String(order.cash_on_delivery || 0),
-            new_value: String(order.editableCash),
-            changed_by: user.id,
-            changed_at: new Date().toISOString()
-          });
-        }
-
-        if (order.editableTransport !== (order.transport_cost_usd || 0)) {
-          changes.push({
-            receipt_id: receipt.id,
-            order_id: order.id,
-            field_name: 'Транспорт (USD)',
-            old_value: String(order.transport_cost_usd || 0),
-            new_value: String(order.editableTransport),
-            changed_by: user.id,
-            changed_at: new Date().toISOString()
-          });
-        }
-
-        fieldChanges.push(...changes);
-
         await supabase
           .from('orders')
           .update({
@@ -461,16 +353,6 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
             active_receipt_group: null
           })
           .eq('id', order.id);
-      }
-
-      if (fieldChanges.length > 0) {
-        const { error: changesError } = await supabase
-          .from('receipt_field_changes')
-          .insert(fieldChanges);
-
-        if (changesError) {
-          console.error('Помилка збереження історії змін:', changesError);
-        }
       }
 
       if (group === 'cash_on_delivery') {
@@ -743,14 +625,12 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
                       <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Перев. ($)</th>
                       <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Тип оплати</th>
                       <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 w-10"></th>
-                      <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 w-10"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {filteredCashOnDeliveryOrders.map((order) => (
-                      <>
-                        <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
-                          <td className="px-2 py-2 text-gray-600 dark:text-gray-300 max-w-[150px] truncate">{order.title || '-'}</td>
+                      <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
+                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300 max-w-[150px] truncate">{order.title || '-'}</td>
                         <td className="px-2 py-2">
                           <input
                             type="number"
@@ -796,59 +676,17 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
                             className="w-20 px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                           />
                         </td>
-                          <td className="px-2 py-2 text-gray-600 dark:text-gray-300">{order.payment_type || '-'}</td>
-                          <td className="px-2 py-2 text-center">
-                            <button
-                              onClick={() => toggleOrderChanges(order.id)}
-                              className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded transition"
-                              title="Історія змін"
-                            >
-                              {expandedChanges.has(order.id) ? <ChevronUp size={16} /> : <History size={16} />}
-                            </button>
-                          </td>
-                          <td className="px-2 py-2 text-center">
-                            <button
-                              onClick={() => removeFromActiveReceipt(order, 'cash_on_delivery')}
-                              className="text-red-600 hover:text-red-900 hover:bg-red-50 p-1 rounded transition"
-                              title="Видалити з прійомки"
-                            >
-                              <X size={16} />
-                            </button>
-                          </td>
-                        </tr>
-                        {expandedChanges.has(order.id) && (
-                          <tr className="bg-blue-50 dark:bg-blue-900/20">
-                            <td colSpan={9} className="px-4 py-3">
-                              <div className="text-sm">
-                                <div className="flex items-center gap-2 mb-2 text-blue-700 dark:text-blue-300 font-medium">
-                                  <History size={16} />
-                                  <span>Історія змін</span>
-                                </div>
-                                {orderChanges[order.id]?.length > 0 ? (
-                                  <div className="space-y-1">
-                                    {orderChanges[order.id].map((change) => (
-                                      <div key={change.id} className="text-xs bg-white dark:bg-gray-800 rounded p-2 border border-blue-200 dark:border-blue-800">
-                                        <div className="flex justify-between items-start">
-                                          <div>
-                                            <span className="font-medium text-gray-900 dark:text-gray-100">{change.field_name}:</span>
-                                            <span className="text-gray-600 dark:text-gray-400"> {change.old_value} → </span>
-                                            <span className="text-blue-600 dark:text-blue-400 font-medium">{change.new_value}</span>
-                                          </div>
-                                          <span className="text-gray-500 dark:text-gray-400 text-xs">
-                                            {new Date(change.changed_at).toLocaleString('uk-UA')}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <p className="text-gray-500 dark:text-gray-400 text-xs">Немає історії змін</p>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </>
+                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300">{order.payment_type || '-'}</td>
+                        <td className="px-2 py-2 text-center">
+                          <button
+                            onClick={() => removeFromActiveReceipt(order, 'cash_on_delivery')}
+                            className="text-red-600 hover:text-red-900 hover:bg-red-50 p-1 rounded transition"
+                            title="Видалити з прійомки"
+                          >
+                            <X size={16} />
+                          </button>
+                        </td>
+                      </tr>
                     ))}
                   </tbody>
                 </table>
@@ -903,14 +741,12 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
                       <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Перев. ($)</th>
                       <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Тип оплати</th>
                       <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 w-10"></th>
-                      <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 w-10"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {filteredPaidOrders.map((order) => (
-                      <>
-                        <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
-                          <td className="px-2 py-2 text-gray-600 dark:text-gray-300 max-w-[150px] truncate">{order.title || '-'}</td>
+                      <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
+                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300 max-w-[150px] truncate">{order.title || '-'}</td>
                         <td className="px-2 py-2">
                           <input
                             type="number"
@@ -960,59 +796,17 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
                             className="w-20 px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                           />
                         </td>
-                          <td className="px-2 py-2 text-gray-600 dark:text-gray-300">{order.payment_type || '-'}</td>
-                          <td className="px-2 py-2 text-center">
-                            <button
-                              onClick={() => toggleOrderChanges(order.id)}
-                              className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded transition"
-                              title="Історія змін"
-                            >
-                              {expandedChanges.has(order.id) ? <ChevronUp size={16} /> : <History size={16} />}
-                            </button>
-                          </td>
-                          <td className="px-2 py-2 text-center">
-                            <button
-                              onClick={() => removeFromActiveReceipt(order, 'paid')}
-                              className="text-red-600 hover:text-red-900 hover:bg-red-50 p-1 rounded transition"
-                              title="Видалити з прійомки"
-                            >
-                              <X size={16} />
-                            </button>
-                          </td>
-                        </tr>
-                        {expandedChanges.has(order.id) && (
-                          <tr className="bg-blue-50 dark:bg-blue-900/20">
-                            <td colSpan={9} className="px-4 py-3">
-                              <div className="text-sm">
-                                <div className="flex items-center gap-2 mb-2 text-blue-700 dark:text-blue-300 font-medium">
-                                  <History size={16} />
-                                  <span>Історія змін</span>
-                                </div>
-                                {orderChanges[order.id]?.length > 0 ? (
-                                  <div className="space-y-1">
-                                    {orderChanges[order.id].map((change) => (
-                                      <div key={change.id} className="text-xs bg-white dark:bg-gray-800 rounded p-2 border border-blue-200 dark:border-blue-800">
-                                        <div className="flex justify-between items-start">
-                                          <div>
-                                            <span className="font-medium text-gray-900 dark:text-gray-100">{change.field_name}:</span>
-                                            <span className="text-gray-600 dark:text-gray-400"> {change.old_value} → </span>
-                                            <span className="text-blue-600 dark:text-blue-400 font-medium">{change.new_value}</span>
-                                          </div>
-                                          <span className="text-gray-500 dark:text-gray-400 text-xs">
-                                            {new Date(change.changed_at).toLocaleString('uk-UA')}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <p className="text-gray-500 dark:text-gray-400 text-xs">Немає історії змін</p>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </>
+                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300">{order.payment_type || '-'}</td>
+                        <td className="px-2 py-2 text-center">
+                          <button
+                            onClick={() => removeFromActiveReceipt(order, 'paid')}
+                            className="text-red-600 hover:text-red-900 hover:bg-red-50 p-1 rounded transition"
+                            title="Видалити з прійомки"
+                          >
+                            <X size={16} />
+                          </button>
+                        </td>
+                      </tr>
                     ))}
                   </tbody>
                 </table>
