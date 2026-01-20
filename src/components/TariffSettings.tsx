@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase, TariffSettings as TariffSettingsType } from '../lib/supabase';
 import { useToast } from '../contexts/ToastContext';
 import { Save } from 'lucide-react';
-import { getCurrentProjectId } from '../utils/projectAccess';
 
 export default function TariffSettings() {
   const { showSuccess, showError } = useToast();
@@ -59,18 +58,11 @@ export default function TariffSettings() {
 
         if (error) throw error;
       } else {
-        const projectId = await getCurrentProjectId();
-        if (!projectId) {
-          showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
-          return;
-        }
-
         const { error } = await supabase
           .from('tariff_settings')
           .insert([{
             default_received_pln: formData.default_received_pln,
-            default_transport_cost_per_kg_usd: formData.default_transport_cost_per_kg_usd,
-            project_id: projectId
+            default_transport_cost_per_kg_usd: formData.default_transport_cost_per_kg_usd
           }]);
 
         if (error) throw error;

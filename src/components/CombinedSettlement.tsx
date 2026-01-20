@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase, Transaction, CardTransaction, ActiveReceipt, Order } from '../lib/supabase';
 import { Plus, TrendingUp, CheckCircle2, XCircle, Undo2 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
-import { getCurrentProjectId } from '../utils/projectAccess';
 
 type SettlementType = 'cash' | 'card';
 
@@ -207,12 +206,6 @@ export default function CombinedSettlement() {
       return;
     }
 
-    const projectId = await getCurrentProjectId();
-    if (!projectId) {
-      showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
-      return;
-    }
-
     const transactionData: any = {
       transaction_type: 'credit',
       amount_pln: 0,
@@ -222,8 +215,7 @@ export default function CombinedSettlement() {
       parts_delivery_pln: 0,
       description: cashFormData.description || 'Платіж',
       transaction_date: cashFormData.date,
-      created_by: 'user',
-      project_id: projectId
+      created_by: 'user'
     };
 
     if (cashFormData.balanceType === 'receipt') {
@@ -266,12 +258,6 @@ export default function CombinedSettlement() {
       return;
     }
 
-    const projectId = await getCurrentProjectId();
-    if (!projectId) {
-      showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
-      return;
-    }
-
     const transactionData: any = {
       transaction_type: 'debit',
       amount_pln: 0,
@@ -281,8 +267,7 @@ export default function CombinedSettlement() {
       parts_delivery_pln: 0,
       description: cashChargeData.description,
       transaction_date: cashChargeData.date,
-      created_by: 'user',
-      project_id: projectId
+      created_by: 'user'
     };
 
     if (cashChargeData.balanceType === 'receipt') {
@@ -322,19 +307,12 @@ export default function CombinedSettlement() {
       return;
     }
 
-    const projectId = await getCurrentProjectId();
-    if (!projectId) {
-      showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
-      return;
-    }
-
     const transactionData: any = {
       transaction_type: 'payment',
       amount: amount,
       description: cardFormData.description || 'Платіж',
       transaction_date: cardFormData.date,
-      is_reversed: false,
-      project_id: projectId
+      is_reversed: false
     };
 
     const { error } = await supabase
@@ -370,19 +348,12 @@ export default function CombinedSettlement() {
       return;
     }
 
-    const projectId = await getCurrentProjectId();
-    if (!projectId) {
-      showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
-      return;
-    }
-
     const transactionData: any = {
       transaction_type: 'charge',
       amount: amount,
       description: cardChargeData.description,
       transaction_date: cardChargeData.date,
-      is_reversed: false,
-      project_id: projectId
+      is_reversed: false
     };
 
     const { error } = await supabase
@@ -414,12 +385,6 @@ export default function CombinedSettlement() {
       return;
     }
 
-    const projectId = await getCurrentProjectId();
-    if (!projectId) {
-      showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
-      return;
-    }
-
     const receiptCashPln = (receipt.receipt_cost_pln || 0) + (receipt.cash_on_delivery_pln || 0);
     const transportUsd = receipt.transport_cost_usd || 0;
 
@@ -435,8 +400,7 @@ export default function CombinedSettlement() {
         description: `Нарахування за накладну №${receipt.receipt_number}`,
         transaction_date: new Date().toISOString().split('T')[0],
         receipt_id: receipt.id,
-        created_by: user.id,
-        project_id: projectId
+        created_by: user.id
       });
 
     if (cashTxError) {
@@ -458,8 +422,7 @@ export default function CombinedSettlement() {
           description: `Нарахування за накладну №${receipt.receipt_number}`,
           transaction_date: new Date().toISOString().split('T')[0],
           receipt_id: receipt.id,
-          is_reversed: false,
-          project_id: projectId
+          is_reversed: false
         });
 
       if (cardTxError) {

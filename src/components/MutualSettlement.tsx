@@ -4,7 +4,6 @@ import { Plus, TrendingDown, TrendingUp, CheckCircle2, XCircle, Undo2, FileDown 
 import { useToast } from '../contexts/ToastContext';
 import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
-import { getCurrentProjectId } from '../utils/projectAccess';
 
 export default function MutualSettlement() {
   const { showSuccess, showError, showWarning, confirm } = useToast();
@@ -128,12 +127,6 @@ export default function MutualSettlement() {
       return;
     }
 
-    const projectId = await getCurrentProjectId();
-    if (!projectId) {
-      showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
-      return;
-    }
-
     const transactionData: any = {
       transaction_type: 'credit',
       amount_pln: 0,
@@ -143,8 +136,7 @@ export default function MutualSettlement() {
       parts_delivery_pln: 0,
       description: formData.description || 'Платіж',
       transaction_date: formData.date,
-      created_by: 'user',
-      project_id: projectId
+      created_by: 'user'
     };
 
     if (formData.balanceType === 'receipt') {
@@ -188,12 +180,6 @@ export default function MutualSettlement() {
       return;
     }
 
-    const projectId = await getCurrentProjectId();
-    if (!projectId) {
-      showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
-      return;
-    }
-
     const transactionData: any = {
       transaction_type: 'debit',
       amount_pln: 0,
@@ -203,8 +189,7 @@ export default function MutualSettlement() {
       parts_delivery_pln: 0,
       description: chargeData.description,
       transaction_date: chargeData.date,
-      created_by: 'user',
-      project_id: projectId
+      created_by: 'user'
     };
 
     if (chargeData.balanceType === 'receipt') {
@@ -245,12 +230,6 @@ export default function MutualSettlement() {
       return;
     }
 
-    const projectId = await getCurrentProjectId();
-    if (!projectId) {
-      showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
-      return;
-    }
-
     const { error } = await supabase
       .from('active_receipts')
       .update({
@@ -287,8 +266,7 @@ export default function MutualSettlement() {
             description: `Сторно: повернення в активні накладна №${receipt.receipt_number}`,
             transaction_date: new Date().toISOString().split('T')[0],
             receipt_id: receiptId,
-            created_by: 'system',
-            project_id: projectId
+            created_by: 'system'
           });
 
         await supabase

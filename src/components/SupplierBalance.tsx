@@ -4,7 +4,6 @@ import { ChevronDown, ChevronUp, Send, CheckCircle2, Undo2, Archive } from 'luci
 import { useToast } from '../contexts/ToastContext';
 import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
-import { getCurrentProjectId } from '../utils/projectAccess';
 
 export default function SupplierBalance() {
   const { showSuccess, showError, confirm } = useToast();
@@ -93,12 +92,6 @@ export default function SupplierBalance() {
       return;
     }
 
-    const projectId = await getCurrentProjectId();
-    if (!projectId) {
-      showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
-      return;
-    }
-
     const { error: receiptError } = await supabase
       .from('active_receipts')
       .update({
@@ -128,8 +121,7 @@ export default function SupplierBalance() {
         description: `Нарахування за накладну №${receipt.receipt_number}`,
         transaction_date: new Date().toISOString().split('T')[0],
         receipt_id: receipt.id,
-        created_by: 'system',
-        project_id: projectId
+        created_by: 'system'
       });
 
     if (txError) {
@@ -146,8 +138,7 @@ export default function SupplierBalance() {
       receipt_cost_pln: receipt.receipt_cost_pln,
       cash_on_delivery_pln: receipt.cash_on_delivery_pln,
       transport_cost_usd: receipt.transport_cost_usd,
-      notes: `Прийомка ${receipt.receipt_number}`,
-      project_id: projectId
+      notes: `Прийомка ${receipt.receipt_number}`
     }]);
 
     const { data: receiptOrderLinks2 } = await supabase

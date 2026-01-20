@@ -4,7 +4,6 @@ import { Plus, TrendingDown, TrendingUp, CheckCircle2, XCircle, Undo2, ArrowLeft
 import { useToast } from '../contexts/ToastContext';
 import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
-import { getCurrentProjectId } from '../utils/projectAccess';
 
 export default function CardMutualSettlement() {
   const { showSuccess, showError, showWarning, confirm } = useToast();
@@ -131,19 +130,12 @@ export default function CardMutualSettlement() {
       return;
     }
 
-    const projectId = await getCurrentProjectId();
-    if (!projectId) {
-      showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
-      return;
-    }
-
     const transactionData: any = {
       transaction_type: 'payment',
       amount: amount,
       description: formData.description || 'Платіж',
       transaction_date: formData.date,
-      is_reversed: false,
-      project_id: projectId
+      is_reversed: false
     };
 
     const { error } = await supabase
@@ -181,19 +173,12 @@ export default function CardMutualSettlement() {
       return;
     }
 
-    const projectId = await getCurrentProjectId();
-    if (!projectId) {
-      showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
-      return;
-    }
-
     const transactionData: any = {
       transaction_type: 'charge',
       amount: amount,
       description: chargeData.description,
       transaction_date: chargeData.date,
-      is_reversed: false,
-      project_id: projectId
+      is_reversed: false
     };
 
     const { error } = await supabase
@@ -227,12 +212,6 @@ export default function CardMutualSettlement() {
       return;
     }
 
-    const projectId = await getCurrentProjectId();
-    if (!projectId) {
-      showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
-      return;
-    }
-
     const orders = receiptOrders[receiptId] || [];
     const paidOrders = orders.filter(o => o.verified && o.payment_type === 'оплачено');
 
@@ -256,8 +235,7 @@ export default function CardMutualSettlement() {
         description: `Нарахування за накладну №${receipt.receipt_number} (Запчастини: ${totalPartsPln.toFixed(2)} zł, Доставка: ${totalDeliveryPln.toFixed(2)} zł)`,
         transaction_date: new Date().toISOString().split('T')[0],
         receipt_id: receipt.id,
-        created_by: user.id,
-        project_id: projectId
+        created_by: user.id
       });
 
     if (txError) {
@@ -295,12 +273,6 @@ export default function CardMutualSettlement() {
       return;
     }
 
-    const projectId = await getCurrentProjectId();
-    if (!projectId) {
-      showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
-      return;
-    }
-
     const { error } = await supabase
       .from('active_receipts')
       .update({
@@ -333,8 +305,7 @@ export default function CardMutualSettlement() {
             description: `Сторно: повернення в активні накладна №${receipt.receipt_number}`,
             transaction_date: new Date().toISOString().split('T')[0],
             receipt_id: receiptId,
-            created_by: 'system',
-            project_id: projectId
+            created_by: 'system'
           });
 
         await supabase

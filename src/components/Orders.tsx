@@ -3,12 +3,10 @@ import { supabase, Order, Supplier, TariffSettings } from '../lib/supabase';
 import { Plus, CreditCard as Edit, Archive, X, ExternalLink, ChevronDown, Layers, ChevronUp, Check, RotateCcw, Printer, Download, Search, XCircle, LayoutGrid } from 'lucide-react';
 import Returns from './Returns';
 import { useToast } from '../contexts/ToastContext';
-import { useAuth } from '../contexts/AuthContext';
 import { statusColors, paymentTypeColors, verifiedColors, formatEmptyValue } from '../utils/themeColors';
 import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
 import { ColumnViewType, getColumns, saveColumnView, loadColumnView } from '../utils/columnConfigs';
-import { getCurrentProjectId } from '../utils/projectAccess';
 
 type AcceptedOrder = {
   id: string;
@@ -35,10 +33,6 @@ type AcceptedOrder = {
 
 export default function Orders() {
   const { showSuccess, showError, showWarning, confirm } = useToast();
-  const { isSupplier, profile } = useAuth();
-
-  console.log('DEBUG Orders - isSupplier:', isSupplier, 'profile.role:', profile?.role);
-
   const [orders, setOrders] = useState<(Order & { supplier: Supplier })[]>([]);
   const [acceptedOrders, setAcceptedOrders] = useState<AcceptedOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -452,13 +446,6 @@ export default function Orders() {
         }
         showSuccess('Замовлення успішно оновлено!');
       } else {
-        const projectId = await getCurrentProjectId();
-        if (!projectId) {
-          showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
-          return;
-        }
-        dataToSubmit.project_id = projectId;
-
         const { error } = await supabase.from('orders').insert([dataToSubmit]);
         if (error) {
           console.error('Error inserting order:', error);
@@ -633,31 +620,6 @@ export default function Orders() {
   }
 
   function startEditing(orderId: string, field: string, currentValue: any) {
-    // Перевірка прав для постачальника
-    if (isSupplier) {
-      const allowedFields = ['cash_on_delivery'];
-      if (!allowedFields.includes(field)) {
-        showWarning('Ви можете редагувати тільки вартість побраня');
-        return;
-      }
-
-      // Перевірка чи це чернетка
-      const order = orders.find(o => o.id === orderId);
-      if (order && order.status !== 'чернетка') {
-        showWarning('Ви можете редагувати тільки замовлення в статусі "чернетка"');
-        return;
-      }
-
-      // Перевірка payment_type для побраня
-      if (field === 'cash_on_delivery' && order) {
-        const paidTypes = ['оплачено', 'оплачено по перерахунку', 'не обрано', 'готівка', 'банк карта'];
-        if (paidTypes.includes(order.payment_type || '')) {
-          showWarning('Побраня можна редагувати тільки для замовлень з типом оплати "побранє"');
-          return;
-        }
-      }
-    }
-
     setEditingCell({ orderId, field });
     let cleanValue = String(currentValue);
     cleanValue = cleanValue.replace(/ (zl|\$|кг)$/, '');
@@ -676,34 +638,10 @@ export default function Orders() {
       valueToSave = parseFloat(cleanValue) || 0;
     }
 
-    // Додаткова перевірка для постачальника
-    if (isSupplier) {
-      if (field !== 'cash_on_delivery') {
-        showError('Ви можете редагувати тільки вартість побраня');
-        setEditingCell(null);
-        setEditValue('');
-        return;
-      }
-
-      const order = orders.find(o => o.id === orderId);
-      if (order) {
-        const paidTypes = ['оплачено', 'оплачено по перерахунку', 'не обрано', 'готівка', 'банк карта'];
-        if (paidTypes.includes(order.payment_type || '')) {
-          showError('Побраня можна редагувати тільки для замовлень з типом оплати "побранє"');
-          setEditingCell(null);
-          setEditValue('');
-          return;
-        }
-      }
-    }
-
     const updateData: any = { [field]: valueToSave };
 
-    if (field === 'payment_type') {
-      const paidTypes = ['оплачено', 'оплачено по перерахунку', 'не обрано', 'готівка', 'банк карта'];
-      if (paidTypes.includes(valueToSave)) {
-        updateData.cash_on_delivery = 0;
-      }
+    if (field === 'payment_type' && (valueToSave === 'оплачено' || valueToSave === 'не обрано')) {
+      updateData.cash_on_delivery = 0;
     }
 
     if (field === 'part_price' || field === 'delivery_cost') {
@@ -763,14 +701,10 @@ export default function Orders() {
     return 'text-sm';
   }
 
-  function renderEditableCell(orderId: string, field: string, value: any, className: string = '', isAccepted: boolean = false, order?: Order & { supplier: Supplier }) {
+  function renderEditableCell(orderId: string, field: string, value: any, className: string = '', isAccepted: boolean = false) {
     const isEditing = editingCell?.orderId === orderId && editingCell?.field === field;
 
-    // Перевірка чи може постачальник редагувати це поле
-    const canSupplierEdit = isSupplier && field === 'cash_on_delivery' && order?.status === 'чернетка' && order.payment_type && ['побранє', 'самовивіз'].includes(order.payment_type);
-    const isFieldDisabled = isSupplier && !canSupplierEdit;
-
-    if (isEditing && !isAccepted && !isFieldDisabled) {
+    if (isEditing && !isAccepted) {
       return (
         <td className="px-3 py-3 min-h-[48px] bg-white dark:bg-gray-800">
           <input
@@ -792,9 +726,9 @@ export default function Orders() {
 
     return (
       <td
-        className={`px-3 py-3 ${!isAccepted && !isFieldDisabled ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} ${isFieldDisabled ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-700' : ''} transition min-h-[48px] ${isTitle ? 'min-w-[200px]' : ''} ${className.replace(/text-(sm|xs|base)/g, '')} ${fontSizeClass} bg-white dark:bg-gray-800`}
-        onClick={() => !isAccepted && !isFieldDisabled && startEditing(orderId, field, value)}
-        title={isFieldDisabled ? 'Заблоковано для постачальника' : displayValue}
+        className={`px-3 py-3 ${!isAccepted ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} transition min-h-[48px] ${isTitle ? 'min-w-[200px]' : ''} ${className.replace(/text-(sm|xs|base)/g, '')} ${fontSizeClass} bg-white dark:bg-gray-800`}
+        onClick={() => !isAccepted && startEditing(orderId, field, value)}
+        title={displayValue}
       >
         <div className={`w-full ${isTitle ? 'line-clamp-3 break-words' : 'break-words whitespace-normal'} text-gray-900 dark:text-gray-100`}>
           {displayValue}
@@ -806,9 +740,8 @@ export default function Orders() {
   function renderTrackingCell(orderId: string, order: Order & { supplier: Supplier }, isAccepted: boolean = false) {
     const isEditing = editingCell?.orderId === orderId && editingCell?.field === 'tracking_pl';
     const trackingValue = order.tracking_pl || '';
-    const isFieldDisabled = isSupplier;
 
-    if (isEditing && !isAccepted && !isFieldDisabled) {
+    if (isEditing && !isAccepted) {
       return (
         <td className="px-3 py-3 min-h-[48px]">
           <input
@@ -831,9 +764,9 @@ export default function Orders() {
 
     return (
       <td
-        className={`px-3 py-3 ${!isAccepted && !isOrderAccepted && !isFieldDisabled ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : isOrderAccepted ? 'cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-blue-600 dark:hover:text-blue-400 hover:underline' : ''} ${isFieldDisabled ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-700' : ''} transition min-h-[48px] text-gray-900 dark:text-gray-100 text-center ${fontSizeClass} bg-white dark:bg-gray-800`}
+        className={`px-3 py-3 ${!isAccepted && !isOrderAccepted ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : isOrderAccepted ? 'cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-blue-600 dark:hover:text-blue-400 hover:underline' : ''} transition min-h-[48px] text-gray-900 dark:text-gray-100 text-center ${fontSizeClass} bg-white dark:bg-gray-800`}
         onClick={() => {
-          if (!isAccepted && !isOrderAccepted && !isFieldDisabled) {
+          if (!isAccepted && !isOrderAccepted) {
             startEditing(orderId, 'tracking_pl', trackingValue);
           } else if (isOrderAccepted) {
             openReceiptByOrderId(orderId);
@@ -850,9 +783,8 @@ export default function Orders() {
 
   function renderLinkCell(orderId: string, link: string, isAccepted: boolean = false) {
     const isEditing = editingCell?.orderId === orderId && editingCell?.field === 'link';
-    const isFieldDisabled = isSupplier;
 
-    if (isEditing && !isAccepted && !isFieldDisabled) {
+    if (isEditing && !isAccepted) {
       return (
         <td className="px-3 py-3 text-center min-h-[48px]">
           <input
@@ -871,9 +803,9 @@ export default function Orders() {
 
     return (
       <td
-        className={`px-3 py-3 text-center ${!isAccepted && !isFieldDisabled ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} ${isFieldDisabled ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-700' : ''} transition min-h-[48px] bg-white dark:bg-gray-800`}
-        onClick={() => !isAccepted && !isFieldDisabled && startEditing(orderId, 'link', link)}
-        title={isFieldDisabled ? 'Заблоковано для постачальника' : (isAccepted ? '' : "Клікніть для редагування посилання")}
+        className={`px-3 py-3 text-center ${!isAccepted ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} transition min-h-[48px] bg-white dark:bg-gray-800`}
+        onClick={() => !isAccepted && startEditing(orderId, 'link', link)}
+        title={isAccepted ? '' : "Клікніть для редагування посилання"}
       >
         {link ? (
           <a
@@ -896,9 +828,8 @@ export default function Orders() {
 
   function renderDateCell(orderId: string, dateValue: string, className: string = '', isAccepted: boolean = false) {
     const isEditing = editingCell?.orderId === orderId && editingCell?.field === 'order_date';
-    const isFieldDisabled = isSupplier;
 
-    if (isEditing && !isAccepted && !isFieldDisabled) {
+    if (isEditing && !isAccepted) {
       return (
         <td className="px-3 py-3 min-h-[48px]">
           <input
@@ -920,9 +851,9 @@ export default function Orders() {
 
     return (
       <td
-        className={`px-3 py-3 ${!isAccepted && !isFieldDisabled ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} ${isFieldDisabled ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-700' : ''} transition min-h-[48px] ${className.replace(/text-(sm|xs|base)/g, '')} ${fontSizeClass} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100`}
-        onClick={() => !isAccepted && !isFieldDisabled && startEditing(orderId, 'order_date', dateValue)}
-        title={isFieldDisabled ? 'Заблоковано для постачальника' : (isAccepted ? '' : "Клікніть для редагування дати")}
+        className={`px-3 py-3 ${!isAccepted ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} transition min-h-[48px] ${className.replace(/text-(sm|xs|base)/g, '')} ${fontSizeClass} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100`}
+        onClick={() => !isAccepted && startEditing(orderId, 'order_date', dateValue)}
+        title={isAccepted ? '' : "Клікніть для редагування дати"}
       >
         <div className="w-full break-words whitespace-normal">
           {displayValue}
@@ -933,13 +864,11 @@ export default function Orders() {
 
   function renderPaymentTypeCell(orderId: string, paymentType: string, isAccepted: boolean = false) {
     const displayPaymentType = paymentType || 'не обрано';
-    const isFieldDisabled = isSupplier;
-
     return (
       <td className="p-0 relative">
         <button
           onClick={(e) => {
-            if (isAccepted || isFieldDisabled) return;
+            if (isAccepted) return;
             e.stopPropagation();
             const rect = e.currentTarget.getBoundingClientRect();
             const dropdownHeight = 300;
@@ -954,12 +883,11 @@ export default function Orders() {
             setPaymentDropdownPosition({ top, left: rect.left + window.scrollX });
             setOpenPaymentDropdown(openPaymentDropdown === orderId ? null : orderId);
           }}
-          className={`w-full h-full px-3 py-3 text-xs font-semibold ${paymentTypeColors[displayPaymentType]} ${!isAccepted && !isFieldDisabled ? 'hover:opacity-80' : 'cursor-default'} ${isFieldDisabled ? 'opacity-60 cursor-not-allowed' : ''} transition flex items-center justify-center gap-1 min-h-[48px]`}
-          disabled={isAccepted || isFieldDisabled}
-          title={isFieldDisabled ? 'Заблоковано для постачальника' : ''}
+          className={`w-full h-full px-3 py-3 text-xs font-semibold ${paymentTypeColors[displayPaymentType]} ${!isAccepted ? 'hover:opacity-80' : 'cursor-default'} transition flex items-center justify-center gap-1 min-h-[48px]`}
+          disabled={isAccepted}
         >
           {paymentTypeLabels[displayPaymentType]}
-          {!isAccepted && !isFieldDisabled && <ChevronDown size={14} />}
+          {!isAccepted && <ChevronDown size={14} />}
         </button>
       </td>
     );
@@ -1127,13 +1055,6 @@ export default function Orders() {
     }
 
     try {
-      const projectId = await getCurrentProjectId();
-      if (!projectId) {
-        showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
-        return;
-      }
-      dataToSubmit.project_id = projectId;
-
       const { error } = await supabase.from('orders').insert([dataToSubmit]);
       if (error) {
         console.error('Error inserting order:', error);
@@ -1231,13 +1152,6 @@ export default function Orders() {
     }
 
     try {
-      const projectId = await getCurrentProjectId();
-      if (!projectId) {
-        showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
-        return;
-      }
-      dataToSubmit.project_id = projectId;
-
       const { error } = await supabase.from('orders').insert([dataToSubmit]);
       if (error) {
         console.error('Error inserting order:', error);
@@ -1539,10 +1453,10 @@ export default function Orders() {
         return renderTrackingCell(order.id, order, isAccepted);
 
       case 'part_price':
-        return renderEditableCell(order.id, 'part_price', `${formatNumber(order.part_price)} zl`, 'text-center font-medium', isAccepted, order);
+        return renderEditableCell(order.id, 'part_price', `${formatNumber(order.part_price)} zl`, 'text-center font-medium', isAccepted);
 
       case 'delivery_cost':
-        return renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-center', isAccepted, order);
+        return renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-center', isAccepted);
 
       case 'total_cost':
         return (
@@ -1555,7 +1469,7 @@ export default function Orders() {
         return renderPaymentTypeCell(order.id, order.payment_type || 'оплачено', isAccepted);
 
       case 'cash_on_delivery':
-        return renderEditableCell(order.id, 'cash_on_delivery', `${formatNumber(order.cash_on_delivery)} zl`, 'text-center', isAccepted, order);
+        return renderEditableCell(order.id, 'cash_on_delivery', `${formatNumber(order.cash_on_delivery)} zl`, 'text-center', isAccepted);
 
       case 'order_date':
         return renderDateCell(order.id, order.order_date, 'text-gray-900 text-center', isAccepted);
@@ -1564,7 +1478,7 @@ export default function Orders() {
       case 'client_id':
       case 'title':
       case 'part_number':
-        return renderEditableCell(order.id, columnKey, value || '', 'text-gray-900 text-center', isAccepted, order);
+        return renderEditableCell(order.id, columnKey, value || '', 'text-gray-900 text-center', isAccepted);
 
       case 'manager':
         const manager = (order as any).manager;
@@ -1576,7 +1490,7 @@ export default function Orders() {
         );
 
       default:
-        return renderEditableCell(order.id, columnKey, value || '', 'text-gray-900 text-center', isAccepted, order);
+        return renderEditableCell(order.id, columnKey, value || '', 'text-gray-900 text-center', isAccepted);
     }
   }
 
@@ -1585,15 +1499,6 @@ export default function Orders() {
       <div className="flex justify-between items-center mb-4 flex-shrink-0">
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Замовлення</h2>
-          {profile && (
-            <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
-              isSupplier
-                ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-            }`}>
-              {profile.role} | {profile.email}
-            </div>
-          )}
           <div className="flex gap-2 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
             <button
               onClick={() => setActiveTab('orders')}
@@ -1645,16 +1550,14 @@ export default function Orders() {
               </select>
             )}
             <ExportButton onClick={handleExportOrders} disabled={filteredOrders.length === 0} />
-            {!isSupplier && (
-              <button
-                onClick={() => setIsModalOpen(!isModalOpen)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition"
-              >
-                {isModalOpen ? <X size={20} /> : <Plus size={20} />}
-                {isModalOpen ? 'Скасувати' : 'Нове замовлення'}
-              </button>
-            )}
-            {!isSupplier && acceptedOrders.length > 0 && (
+            <button
+              onClick={() => setIsModalOpen(!isModalOpen)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition"
+            >
+              {isModalOpen ? <X size={20} /> : <Plus size={20} />}
+              {isModalOpen ? 'Скасувати' : 'Нове замовлення'}
+            </button>
+            {acceptedOrders.length > 0 && (
               <button
                 onClick={() => setIsAcceptedOrdersModalOpen(true)}
                 className="bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition"
@@ -1993,36 +1896,32 @@ export default function Orders() {
           {!isAddingNewRow && (
             <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
               <div className="flex items-center gap-3">
-                {!isSupplier && (
+                <button
+                  onClick={startAddingNewRow}
+                  className="bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition text-sm font-medium"
+                >
+                  <Plus size={18} />
+                  Додати рядок
+                </button>
+                <div className="relative group">
                   <button
-                    onClick={startAddingNewRow}
-                    className="bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition text-sm font-medium"
+                    className="bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-800 transition text-sm font-medium"
                   >
-                    <Plus size={18} />
-                    Додати рядок
+                    <Layers size={18} />
+                    Чернетки
                   </button>
-                )}
-                {!isSupplier && (
-                  <div className="relative group">
-                    <button
-                      className="bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-800 transition text-sm font-medium"
-                    >
-                      <Layers size={18} />
-                      Чернетки
-                    </button>
-                    <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-700 shadow-lg rounded-lg overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-[140px]">
-                      {[1, 2, 3, 4, 5].map(count => (
-                        <button
-                          key={count}
-                          onClick={() => addDraftRows(count)}
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-sm"
-                        >
-                          Додати {count} {count === 1 ? 'рядок' : count <= 4 ? 'рядки' : 'рядків'}
-                        </button>
-                      ))}
-                    </div>
+                  <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-700 shadow-lg rounded-lg overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-[140px]">
+                    {[1, 2, 3, 4, 5].map(count => (
+                      <button
+                        key={count}
+                        onClick={() => addDraftRows(count)}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-sm"
+                      >
+                        Додати {count} {count === 1 ? 'рядок' : count <= 4 ? 'рядки' : 'рядків'}
+                      </button>
+                    ))}
                   </div>
-                )}
+                </div>
                 <button
                   onClick={toggleColumnView}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition text-sm font-medium"
@@ -2050,7 +1949,7 @@ export default function Orders() {
                   )}
                 </div>
               </div>
-              {selectedOrders.size > 0 && !isSupplier && (
+              {selectedOrders.size > 0 && (
                 <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900 px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-700">
                   <span className="text-sm font-medium text-blue-900 dark:text-blue-200">
                     Обрано: {selectedOrders.size}
@@ -2572,7 +2471,7 @@ export default function Orders() {
         </div>
       ) : activeTab === 'orders' ? (
         <div className="flex-1 overflow-auto min-h-0 flex flex-col bg-gray-100 dark:bg-gray-900">
-          {selectedOrders.size > 0 && !isSupplier && (
+          {selectedOrders.size > 0 && (
             <div className="flex-shrink-0 p-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-end items-center">
               <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900 px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-700">
                 <span className="text-sm font-medium text-blue-900 dark:text-blue-200">
@@ -2645,9 +2544,7 @@ export default function Orders() {
                             type="checkbox"
                             checked={selectedOrders.size === filteredOrders.length && filteredOrders.length > 0}
                             onChange={toggleAllOrders}
-                            className={`w-4 h-4 rounded text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600 ${!isSupplier ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
-                            disabled={isSupplier}
-                            title={isSupplier ? 'Заблоковано для постачальника' : ''}
+                            className="w-4 h-4 rounded cursor-pointer text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600"
                           />
                         </th>
                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Статус</th>
@@ -2675,16 +2572,15 @@ export default function Orders() {
                               type="checkbox"
                               checked={selectedOrders.has(order.id)}
                               onChange={() => toggleOrderSelection(order.id)}
-                              className={`w-4 h-4 rounded text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600 ${!isAccepted && !isSupplier ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
+                              className="w-4 h-4 rounded cursor-pointer text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600"
                               onClick={(e) => e.stopPropagation()}
-                              disabled={isAccepted || isSupplier}
-                              title={isSupplier ? 'Заблоковано для постачальника' : ''}
+                              disabled={isAccepted}
                             />
                           </td>
                           <td className="p-0 relative">
                             <button
                               onClick={(e) => {
-                                if (isAccepted || isSupplier) return;
+                                if (isAccepted) return;
                                 e.stopPropagation();
                                 const rect = e.currentTarget.getBoundingClientRect();
                                 const dropdownHeight = 400;
@@ -2699,12 +2595,11 @@ export default function Orders() {
                                 setDropdownPosition({ top, left: rect.left + window.scrollX });
                                 setOpenDropdown(openDropdown === order.id ? null : order.id);
                               }}
-                              className={`w-full h-full px-3 py-2 text-xs font-semibold ${statusColors[order.status]} ${!isAccepted && !isSupplier ? 'hover:opacity-80' : 'cursor-default'} ${isSupplier ? 'opacity-60' : ''} transition flex items-center justify-center gap-1 min-h-[40px]`}
-                              disabled={isAccepted || isSupplier}
-                              title={isSupplier ? 'Заблоковано для постачальника' : ''}
+                              className={`w-full h-full px-3 py-2 text-xs font-semibold ${statusColors[order.status]} ${!isAccepted ? 'hover:opacity-80' : 'cursor-default'} transition flex items-center justify-center gap-1 min-h-[40px]`}
+                              disabled={isAccepted}
                             >
                               {statusLabels[order.status]}
-                              {!isAccepted && !isSupplier && <ChevronDown size={14} />}
+                              {!isAccepted && <ChevronDown size={14} />}
                             </button>
                           </td>
                           <td className="px-3 py-3 text-center min-h-[48px]">
@@ -2712,30 +2607,29 @@ export default function Orders() {
                               type="checkbox"
                               checked={order.verified}
                               onChange={() => handleVerifiedChange(order.id, order.verified)}
-                              className={`w-5 h-5 rounded transition ${
+                              className={`w-5 h-5 rounded cursor-pointer transition ${
                                 order.verified
                                   ? 'accent-green-700 bg-green-700 dark:accent-green-600 dark:bg-green-600'
                                   : 'border-2 border-gray-800 dark:border-gray-400 accent-gray-800 dark:accent-gray-400 bg-white dark:bg-gray-600'
-                              } ${!isAccepted && !isSupplier ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
-                              disabled={isAccepted || isSupplier}
-                              title={isSupplier ? 'Заблоковано для постачальника' : ''}
+                              }`}
+                              disabled={isAccepted}
                             />
                           </td>
-                          {renderEditableCell(order.id, 'client_id', order.client_id, 'text-gray-900 text-center', isAccepted, order)}
-                          {renderEditableCell(order.id, 'title', order.title, 'text-gray-900 text-center', isAccepted, order)}
+                          {renderEditableCell(order.id, 'client_id', order.client_id, 'text-gray-900 text-center', isAccepted)}
+                          {renderEditableCell(order.id, 'title', order.title, 'text-gray-900 text-center', isAccepted)}
                           {renderLinkCell(order.id, order.link || '', isAccepted)}
-                          {renderEditableCell(order.id, 'tracking_pl', order.tracking_pl || '', 'text-gray-600 text-center', isAccepted, order)}
-                          {renderEditableCell(order.id, 'part_price', `${formatNumber(order.part_price)} zl`, 'text-gray-900 font-medium text-center', isAccepted, order)}
-                          {renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-gray-900 text-center', isAccepted, order)}
+                          {renderEditableCell(order.id, 'tracking_pl', order.tracking_pl || '', 'text-gray-600 text-center', isAccepted)}
+                          {renderEditableCell(order.id, 'part_price', `${formatNumber(order.part_price)} zl`, 'text-gray-900 font-medium text-center', isAccepted)}
+                          {renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-gray-900 text-center', isAccepted)}
                           <td className="px-3 py-3 text-center text-gray-900 dark:text-gray-100 font-bold bg-gray-50 dark:bg-gray-700 min-h-[48px]">
                             {formatNumber(order.total_cost)} zl
                           </td>
-                          {renderEditableCell(order.id, 'part_number', order.part_number || '', 'text-gray-600 text-center', isAccepted, order)}
+                          {renderEditableCell(order.id, 'part_number', order.part_number || '', 'text-gray-600 text-center', isAccepted)}
                           {renderPaymentTypeCell(order.id, order.payment_type || 'оплачено', isAccepted)}
-                          {renderEditableCell(order.id, 'cash_on_delivery', `${formatNumber(order.cash_on_delivery)} zl`, 'text-gray-900 text-center', isAccepted, order)}
+                          {renderEditableCell(order.id, 'cash_on_delivery', `${formatNumber(order.cash_on_delivery)} zl`, 'text-gray-900 text-center', isAccepted)}
                           <td className="px-3 py-3 min-h-[48px]">
                             <div className="flex gap-2 justify-center">
-                              {!isAccepted && !isSupplier && (
+                              {!isAccepted && (
                                 <button
                                   onClick={() => openEditModal(order)}
                                   className="px-3 py-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
@@ -2744,7 +2638,7 @@ export default function Orders() {
                                   Ред.
                                 </button>
                               )}
-                              {!order.archived && !isAccepted && !isSupplier && (
+                              {!order.archived && !isAccepted && (
                                 <button
                                   onClick={() => handleReturn(order)}
                                   className="px-3 py-2 bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
@@ -2754,7 +2648,7 @@ export default function Orders() {
                                   Пов.
                                 </button>
                               )}
-                              {!isAccepted && !isSupplier && (
+                              {!isAccepted && (
                                 <button
                                   onClick={() => handleArchive(order.id)}
                                   className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
