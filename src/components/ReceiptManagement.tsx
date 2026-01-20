@@ -219,6 +219,7 @@ export default function ReceiptManagement() {
       setExpandedReceipt(null);
     } else {
       setExpandedReceipt(receiptId);
+      setLoadingOrders(prev => ({ ...prev, [receiptId]: true }));
       loadOrdersForReceipt(receiptId);
     }
   }
@@ -1121,11 +1122,11 @@ export default function ReceiptManagement() {
 
           {expandedReceipt === receipt.id && (
             <div>
-              {loadingOrders[receipt.id] ? (
+              {loadingOrders[receipt.id] === true ? (
                 <div className="px-4 py-8 bg-gray-50 dark:bg-gray-750 border-t border-b dark:border-gray-700 text-center">
                   <div className="text-sm text-gray-600 dark:text-gray-400">Завантаження замовлень...</div>
                 </div>
-              ) : orders[receipt.id] && orders[receipt.id].length > 0 ? (
+              ) : (orders[receipt.id] && orders[receipt.id].length > 0) ? (
                 <>
                   <div className="px-4 py-3 bg-gray-50 dark:bg-gray-750 border-t border-b dark:border-gray-700 flex justify-between items-center">
                     <div className="text-sm text-gray-700 dark:text-gray-300">
@@ -1384,11 +1385,11 @@ export default function ReceiptManagement() {
 
           {expandedReceipt === receipt.id && (
             <div>
-              {loadingOrders[receipt.id] ? (
+              {loadingOrders[receipt.id] === true ? (
                 <div className="px-4 py-8 bg-green-50 dark:bg-gradient-to-br dark:from-green-950 dark:to-green-900 border-t border-b dark:border-green-800 text-center">
                   <div className="text-sm text-green-700 dark:text-green-300">Завантаження замовлень...</div>
                 </div>
-              ) : orders[receipt.id] && orders[receipt.id].length > 0 ? (
+              ) : (orders[receipt.id] && orders[receipt.id].length > 0) ? (
                 <>
                   <div className="px-4 py-3 bg-green-50 dark:bg-gradient-to-br dark:from-green-950 dark:to-green-900 border-t border-b dark:border-green-800 flex justify-between items-center">
                     <div className="text-sm text-green-700 dark:text-green-300">
