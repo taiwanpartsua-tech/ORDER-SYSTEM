@@ -1709,7 +1709,7 @@ export default function Orders() {
       status: 'Статус',
       order_date: 'Дата',
       title: 'Назва',
-      link: 'Посилання',
+      link: 'Ссилка на товар',
       tracking_pl: 'Трекінг PL',
       part_price: 'Ціна деталі',
       delivery_cost: 'Доставка',
