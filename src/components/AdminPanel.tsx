@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react';
 import { supabase, UserProfile, InviteCode } from '../lib/supabase';
-import { Users, Plus, X, Check, Ban, Key, Copy, UserCheck, UserX, Shield, Edit2, Building2 } from 'lucide-react';
+import { Users, Plus, X, Check, Ban, Key, Copy, UserCheck, UserX, Shield, Edit2 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import { logAction } from '../utils/auditLog';
-import ProjectManagement from './ProjectManagement';
 
-type Tab = 'users' | 'invites' | 'projects';
+type Tab = 'users' | 'invites';
 
 export default function AdminPanel() {
   const { showSuccess, showError, confirm } = useToast();
-  const { isAdmin, isSuper } = useAuth();
+  const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('users');
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [invites, setInvites] = useState<InviteCode[]>([]);
@@ -279,19 +278,6 @@ export default function AdminPanel() {
           <Key className="inline w-5 h-5 mr-2" />
           Інвайт-коди
         </button>
-        {isSuper && (
-          <button
-            onClick={() => setActiveTab('projects')}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
-              activeTab === 'projects'
-                ? 'bg-blue-600 text-white dark:bg-blue-500'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-            }`}
-          >
-            <Building2 className="inline w-5 h-5 mr-2" />
-            Проекти
-          </button>
-        )}
       </div>
 
       {activeTab === 'users' && (
@@ -489,10 +475,6 @@ export default function AdminPanel() {
             </table>
           </div>
         </>
-      )}
-
-      {activeTab === 'projects' && isSuper && (
-        <ProjectManagement />
       )}
 
       {isInviteModalOpen && (

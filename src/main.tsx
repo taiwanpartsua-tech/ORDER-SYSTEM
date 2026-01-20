@@ -5,7 +5,6 @@ import ErrorBoundary from './components/ErrorBoundary.tsx';
 import { ThemeProvider } from './contexts/ThemeContext.tsx';
 import { ToastProvider } from './contexts/ToastContext.tsx';
 import { AuthProvider } from './contexts/AuthContext.tsx';
-import { ProjectProvider } from './contexts/ProjectContext.tsx';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(
@@ -13,11 +12,9 @@ createRoot(document.getElementById('root')!).render(
     <ThemeProvider>
       <ToastProvider>
         <AuthProvider>
-          <ProjectProvider>
-            <ErrorBoundary>
-              <App />
-            </ErrorBoundary>
-          </ProjectProvider>
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
         </AuthProvider>
       </ToastProvider>
     </ThemeProvider>
