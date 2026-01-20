@@ -65,6 +65,7 @@ export type Order = {
   inspection_date?: string;
   inspected_by?: string;
   manager_id?: string;
+  counterparty_id?: string;
   created_at: string;
 };
 

@@ -548,9 +548,37 @@ export default function Orders() {
   }
 
   async function handleReturn(order: Order & { supplier: Supplier }) {
-    const confirmed = await confirm('Створити повернення з цього замовлення?');
+    const isAccepted = order.status === 'прийнято';
+
+    const confirmMessage = isAccepted
+      ? `Створити повернення з прийнятого замовлення?\n\nТовар: ${order.title || 'Без назви'}\nКлієнт: ${order.client_id || '-'}\n\nУвага: Це повернення не вплине на баланс постачальника, так як товар вже був оброблений.`
+      : 'Створити повернення з цього замовлення?';
+
+    const confirmed = await confirm(confirmMessage);
+
     if (confirmed) {
+      const projectId = await getCurrentProjectId();
+      if (!projectId) {
+        showError('Помилка: не вдалося визначити проект');
+        return;
+      }
+
+      let acceptedOrderId = null;
+
+      if (isAccepted) {
+        const { data: acceptedOrder } = await supabase
+          .from('accepted_orders')
+          .select('id')
+          .eq('order_id', order.id)
+          .maybeSingle();
+
+        acceptedOrderId = acceptedOrder?.id || null;
+      }
+
       const { error } = await supabase.from('returns').insert({
+        order_id: !isAccepted ? order.id : null,
+        accepted_order_id: acceptedOrderId,
+        supplier_id: order.supplier_id,
         status: 'повернення',
         substatus: 'В Арта в хелмі',
         client_id: order.client_id || '',
@@ -563,27 +591,33 @@ export default function Orders() {
         part_number: order.part_number || '',
         payment_type: order.payment_type || '',
         cash_on_delivery: order.cash_on_delivery || 0,
-        order_date: order.order_date || new Date().toISOString(),
+        order_date: order.order_date || new Date().toISOString().split('T')[0],
         return_tracking_to_supplier: '',
         refund_status: '',
-        archived: false
+        archived: false,
+        is_reversed: isAccepted,
+        project_id: projectId,
+        counterparty_id: order.counterparty_id
       });
 
       if (!error) {
-        await supabase
-          .from('orders')
-          .update({
-            status: 'повернення',
-            previous_status: order.status,
-            archived: true,
-            archived_at: new Date().toISOString()
-          })
-          .eq('id', order.id);
+        if (!isAccepted) {
+          await supabase
+            .from('orders')
+            .update({
+              status: 'повернення',
+              previous_status: order.status,
+              archived: true,
+              archived_at: new Date().toISOString()
+            })
+            .eq('id', order.id);
+        }
 
-        showSuccess('Повернення створено успішно!');
+        showSuccess(isAccepted ? 'Повернення з прийнятого замовлення створено успішно!' : 'Повернення створено успішно!');
         loadReturnsCount();
         loadOrders();
       } else {
+        console.error('Помилка при створенні повернення:', error);
         showError('Помилка при створенні повернення');
       }
     }
@@ -2824,7 +2858,7 @@ export default function Orders() {
                                 Ред.
                               </button>
                             )}
-                            {!order.archived && !isAccepted && (
+                            {!order.archived && (
                               <button
                                 onClick={() => handleReturn(order)}
                                 className="px-3 py-2 bg-orange-50 text-orange-700 dark:bg-orange-900/50 dark:text-orange-200 rounded text-xs font-semibold hover:bg-orange-100 dark:hover:bg-orange-900/70 transition flex items-center gap-1"
@@ -3037,7 +3071,7 @@ export default function Orders() {
                                   Ред.
                                 </button>
                               )}
-                              {!order.archived && !isAccepted && !isSupplier && (
+                              {!order.archived && !isSupplier && (
                                 <button
                                   onClick={() => handleReturn(order)}
                                   className="px-3 py-2 bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
