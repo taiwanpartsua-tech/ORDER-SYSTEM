@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase, Order, Supplier, TariffSettings } from '../lib/supabase';
+import { supabase, Order, Supplier, TariffSettings, Counterparty } from '../lib/supabase';
 import { Plus, CreditCard as Edit, Archive, X, ExternalLink, ChevronDown, Layers, ChevronUp, Check, RotateCcw, Printer, Download, Search, XCircle, LayoutGrid } from 'lucide-react';
 import Returns from './Returns';
 import { useToast } from '../contexts/ToastContext';
@@ -36,6 +36,9 @@ export default function Orders() {
   const [orders, setOrders] = useState<(Order & { supplier: Supplier })[]>([]);
   const [acceptedOrders, setAcceptedOrders] = useState<AcceptedOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [counterparties, setCounterparties] = useState<Counterparty[]>([]);
+  const [romanCounterpartyId, setRomanCounterpartyId] = useState<string>('');
+  const [selectedCounterpartyId, setSelectedCounterpartyId] = useState<string>('');
   const [managers, setManagers] = useState<Array<{ id: string; full_name: string; email: string }>>([]);
   const [returnsCount, setReturnsCount] = useState<number>(0);
   const [artTransId, setArtTransId] = useState<string>('');
@@ -91,6 +94,7 @@ export default function Orders() {
   const [newRowData, setNewRowData] = useState({
     order_number: '',
     supplier_id: '',
+    counterparty_id: '',
     manager_id: '',
     status: 'в роботі на сьогодні',
     order_date: new Date().toISOString().split('T')[0],
@@ -118,6 +122,7 @@ export default function Orders() {
   const [formData, setFormData] = useState({
     order_number: '',
     supplier_id: '',
+    counterparty_id: '',
     manager_id: '',
     status: 'в роботі на сьогодні',
     order_date: new Date().toISOString().split('T')[0],
@@ -139,6 +144,7 @@ export default function Orders() {
   });
 
   useEffect(() => {
+    loadCounterparties();
     loadOrders();
     loadAcceptedOrders();
     loadSuppliers();
@@ -151,6 +157,14 @@ export default function Orders() {
   useEffect(() => {
     loadOrders();
   }, [activeViewTab]);
+
+  useEffect(() => {
+    if (selectedCounterpartyId) {
+      loadOrders();
+      loadAcceptedOrders();
+      loadSuppliers();
+    }
+  }, [selectedCounterpartyId]);
 
   useEffect(() => {
     if (activeTab === 'returns') {
@@ -280,10 +294,16 @@ export default function Orders() {
   async function loadOrders() {
     try {
       console.log('🔄 Починаємо завантаження замовлень...');
-      const { data, error } = await supabase
+      let query = supabase
         .from('orders')
         .select('*, supplier:suppliers(*), manager:user_profiles!manager_id(id, full_name, email)')
         .order('created_at', { ascending: false });
+
+      if (selectedCounterpartyId) {
+        query = query.eq('counterparty_id', selectedCounterpartyId);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('❌ Помилка завантаження замовлень:', error);
@@ -302,10 +322,16 @@ export default function Orders() {
   }
 
   async function loadAcceptedOrders() {
-    const { data, error } = await supabase
+    let query = supabase
       .from('accepted_orders')
       .select('*')
       .order('accepted_at', { ascending: false });
+
+    if (selectedCounterpartyId) {
+      query = query.eq('counterparty_id', selectedCounterpartyId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Помилка завантаження прийнятих замовлень:', error);
@@ -346,11 +372,40 @@ export default function Orders() {
     window.print();
   }
 
-  async function loadSuppliers() {
+  async function loadCounterparties() {
     const { data, error } = await supabase
+      .from('counterparties')
+      .select('*')
+      .eq('is_active', true)
+      .order('name');
+
+    if (error) {
+      console.error('Помилка завантаження контрагентів:', error);
+    } else if (data) {
+      console.log('Контрагенти завантажено:', data.length);
+      setCounterparties(data);
+
+      const romanCounterparty = data.find(c => c.name === 'ROMAN');
+      if (romanCounterparty) {
+        setRomanCounterpartyId(romanCounterparty.id);
+        setSelectedCounterpartyId(romanCounterparty.id);
+        setFormData(prev => ({ ...prev, counterparty_id: romanCounterparty.id }));
+        setNewRowData(prev => ({ ...prev, counterparty_id: romanCounterparty.id }));
+      }
+    }
+  }
+
+  async function loadSuppliers() {
+    let query = supabase
       .from('suppliers')
       .select('*')
       .order('name');
+
+    if (selectedCounterpartyId) {
+      query = query.or(`counterparty_id.eq.${selectedCounterpartyId},counterparty_id.is.null`);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Помилка завантаження постачальників:', error);
@@ -1084,6 +1139,7 @@ export default function Orders() {
     setNewRowData({
       order_number: '',
       supplier_id: artTransId,
+      counterparty_id: romanCounterpartyId,
       status: 'в роботі на сьогодні',
       order_date: new Date().toISOString().split('T')[0],
       notes: '',
@@ -1105,6 +1161,11 @@ export default function Orders() {
   }
 
   async function saveNewRow() {
+    if (!newRowData.counterparty_id || newRowData.counterparty_id.trim() === '') {
+      showWarning('Контрагент є обов\'язковим полем!');
+      return;
+    }
+
     if (!newRowData.client_id || newRowData.client_id.trim() === '') {
       showWarning('ID клієнта є обов\'язковим полем!');
       return;
@@ -1498,6 +1559,24 @@ export default function Orders() {
     <div className="h-full flex flex-col p-4 max-w-[98%] mx-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <div className="flex justify-between items-center mb-4 flex-shrink-0">
         <div className="flex items-center gap-4">
+          <div className="flex flex-col">
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Контрагент *</label>
+            <select
+              value={selectedCounterpartyId}
+              onChange={(e) => setSelectedCounterpartyId(e.target.value)}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold min-w-[200px]"
+            >
+              {counterparties.map((counterparty) => (
+                <option
+                  key={counterparty.id}
+                  value={counterparty.id}
+                  className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  {counterparty.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Замовлення</h2>
           <div className="flex gap-2 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
             <button
@@ -2674,7 +2753,7 @@ export default function Orders() {
         </div>
       ) : null}
 
-      {activeTab === 'returns' && <Returns />}
+      {activeTab === 'returns' && <Returns selectedCounterpartyId={selectedCounterpartyId} romanCounterpartyId={romanCounterpartyId} />}
 
       {activeTab === 'orders' && openDropdown && dropdownPosition && (
         <div

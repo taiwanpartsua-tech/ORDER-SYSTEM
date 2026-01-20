@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Send, Check, ChevronDown, ChevronRight, Plus, X, FileText, ExternalLink, Search, XCircle, FileDown } from 'lucide-react';
+import { Send, Check, ChevronDown, ChevronRight, Plus, X, FileText, ExternalLink, Search, XCircle } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
@@ -790,64 +790,6 @@ export default function ReceiptManagement() {
   const draftReceipts = receipts.filter(r => r.status === 'draft');
   const approvedReceipts = receipts.filter(r => r.status === 'approved');
 
-  async function exportReceiptDetails(receiptId: string) {
-    const receipt = receipts.find(r => r.id === receiptId);
-    if (!receipt) {
-      showError('Прийомку не знайдено');
-      return;
-    }
-
-    if (!orders[receiptId]) {
-      await loadOrdersForReceipt(receiptId);
-    }
-
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    const receiptOrders = orders[receiptId] || [];
-    if (receiptOrders.length === 0) {
-      showWarning('Прийомка не містить замовлень');
-      return;
-    }
-
-    const dataToExport = receiptOrders.map(order => ({
-      client_id: order.client_id || '',
-      order_number: order.order_number || '',
-      title: order.title || '',
-      part_number: order.part_number || '',
-      tracking_pl: order.tracking_pl || '',
-      weight_kg: order.editableWeight || 0,
-      part_price: order.editableParts || 0,
-      delivery_cost: order.editableDelivery || 0,
-      received_pln: order.editableReceipt || 0,
-      cash_on_delivery: order.editableCash || 0,
-      transport_cost_usd: order.editableTransport || 0,
-      payment_type: order.payment_type || '',
-      order_date: order.order_date || '',
-      total: (order.editableParts || 0) + (order.editableDelivery || 0) + (order.editableReceipt || 0) + (order.editableCash || 0)
-    }));
-
-    const headers = {
-      client_id: 'ID Клієнта',
-      order_number: '№ Замовлення',
-      title: 'Назва',
-      part_number: 'Артикул',
-      tracking_pl: 'Трекінг PL',
-      weight_kg: 'Вага (кг)',
-      part_price: 'Деталі (zł)',
-      delivery_cost: 'Доставка (zł)',
-      received_pln: 'Прийом (zł)',
-      cash_on_delivery: 'Побранє (zł)',
-      transport_cost_usd: 'Транспорт ($)',
-      payment_type: 'Тип оплати',
-      order_date: 'Дата',
-      total: 'Всього (zł)'
-    };
-
-    const statusText = receipt.status === 'draft' ? 'chernetka' : 'pidtverdzheno';
-    exportToCSV(dataToExport, `priyomka_${receipt.receipt_number}_${statusText}`, headers);
-    showSuccess('Документ експортовано');
-  }
-
   const handleExportReceipts = () => {
     const dataToExport = receipts.map(receipt => ({
       receipt_number: receipt.receipt_number,
@@ -910,14 +852,6 @@ export default function ReceiptManagement() {
                 </div>
               </button>
               <div className="flex gap-2">
-                <button
-                  onClick={() => exportReceiptDetails(receipt.id)}
-                  className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 dark:bg-gradient-to-br dark:from-gray-700 dark:to-gray-600 dark:hover:from-gray-600 dark:hover:to-gray-500 transition flex items-center gap-1"
-                  title="Експортувати чернетку"
-                >
-                  <FileDown size={14} />
-                  Експорт
-                </button>
                 <button
                   onClick={() => {
                     const isOpening = showAddOrders !== receipt.id;
@@ -1020,21 +954,7 @@ export default function ReceiptManagement() {
           )}
 
           {expandedReceipt === receipt.id && orders[receipt.id] && (
-            <div>
-              <div className="px-4 py-3 bg-gray-50 dark:bg-gray-750 border-t border-b dark:border-gray-700 flex justify-between items-center">
-                <div className="text-sm text-gray-700 dark:text-gray-300">
-                  Замовлень у документі: <span className="font-semibold">{orders[receipt.id].length}</span>
-                </div>
-                <button
-                  onClick={() => exportReceiptDetails(receipt.id)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-gradient-to-br dark:from-blue-800 dark:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-600 transition flex items-center gap-2 shadow-sm"
-                  title="Експортувати документ в CSV"
-                >
-                  <FileDown size={16} />
-                  <span className="font-medium">Експортувати документ</span>
-                </button>
-              </div>
-              <div className="overflow-x-auto">
+            <div className="overflow-x-auto">
               <table className="w-full text-xs table-fixed">
                 <thead className="bg-gray-100 dark:bg-gray-700 sticky top-0">
                   <tr>
@@ -1141,7 +1061,6 @@ export default function ReceiptManagement() {
                   ))}
                 </tbody>
               </table>
-              </div>
             </div>
           )}
         </div>
@@ -1176,14 +1095,6 @@ export default function ReceiptManagement() {
                 </div>
               </button>
               <div className="flex gap-2">
-                <button
-                  onClick={() => exportReceiptDetails(receipt.id)}
-                  className="px-3 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 dark:bg-gradient-to-br dark:from-gray-700 dark:to-gray-600 dark:hover:from-gray-600 dark:hover:to-gray-500 transition flex items-center gap-1"
-                  title="Експортувати підтверджений документ"
-                >
-                  <FileDown size={16} />
-                  Експорт
-                </button>
                 <button
                   onClick={() => returnToDraft(receipt.id)}
                   className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-700 dark:hover:from-gray-700 dark:hover:to-gray-600 transition flex items-center gap-1"
@@ -1271,21 +1182,7 @@ export default function ReceiptManagement() {
           )}
 
           {expandedReceipt === receipt.id && orders[receipt.id] && (
-            <div>
-              <div className="px-4 py-3 bg-green-50 dark:bg-gradient-to-br dark:from-green-950 dark:to-green-900 border-t border-b dark:border-green-800 flex justify-between items-center">
-                <div className="text-sm text-green-700 dark:text-green-300">
-                  Замовлень у документі: <span className="font-semibold">{orders[receipt.id].length}</span>
-                </div>
-                <button
-                  onClick={() => exportReceiptDetails(receipt.id)}
-                  className="px-4 py-2 bg-green-700 text-white rounded-lg hover:bg-green-700 dark:bg-gradient-to-br dark:from-green-800 dark:to-green-700 dark:hover:from-green-700 dark:hover:to-green-600 transition flex items-center gap-2 shadow-sm"
-                  title="Експортувати підтверджений документ в CSV"
-                >
-                  <FileDown size={16} />
-                  <span className="font-medium">Експортувати документ</span>
-                </button>
-              </div>
-              <div className="overflow-x-auto">
+            <div className="overflow-x-auto">
               <table className="w-full text-xs table-fixed">
                 <thead className="bg-gray-100 dark:bg-gray-700 sticky top-0">
                   <tr>
@@ -1384,7 +1281,6 @@ export default function ReceiptManagement() {
                   ))}
                 </tbody>
               </table>
-              </div>
             </div>
           )}
         </div>
