@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase, Order, Supplier, TariffSettings, DraftOrder } from '../lib/supabase';
+import { supabase, Order, Supplier, TariffSettings } from '../lib/supabase';
 import { Plus, CreditCard as Edit, Archive, X, ExternalLink, ChevronDown, Layers, ChevronUp, Check, RotateCcw, Printer, Download, Search, XCircle, LayoutGrid } from 'lucide-react';
 import Returns from './Returns';
 import { useToast } from '../contexts/ToastContext';
@@ -9,8 +9,6 @@ import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
 import { ColumnViewType, getColumns, saveColumnView, loadColumnView } from '../utils/columnConfigs';
 import { getCurrentProjectId } from '../utils/projectAccess';
-import { useResizableColumns } from '../hooks/useResizableColumns';
-import { ResizableTableHeader } from './ResizableTableHeader';
 
 type AcceptedOrder = {
   id: string;
@@ -73,47 +71,29 @@ export default function Orders() {
   const [searchTerm, setSearchTerm] = useState('');
   const [tariffSettings, setTariffSettings] = useState<TariffSettings | null>(null);
   const [columnView, setColumnView] = useState<ColumnViewType>(loadColumnView());
-  const [draftRows, setDraftRows] = useState<DraftOrder[]>([]);
-  const [showArchivedDrafts, setShowArchivedDrafts] = useState(false);
-
-  const { columnWidths, resizingColumn, handleMouseDown, getColumnWidth } = useResizableColumns('orders_table', {
-    checkbox: 60,
-    status: 150,
-    verified: 60,
-    client_id: 120,
-    title: 200,
-    link: 60,
-    tracking_pl: 130,
-    part_price: 110,
-    delivery_cost: 100,
-    total_cost: 100,
-    part_number: 130,
-    payment_type: 120,
-    cash_on_delivery: 110,
-    actions: 100
-  });
-
-  const acceptedColumnsResizable = useResizableColumns('accepted_orders_table', {
-    receipt_number: 100,
-    status: 100,
-    title: 200,
-    client_id: 120,
-    part_number: 130,
-    link: 60,
-    tracking_number: 130,
-    weight_kg: 90,
-    part_price: 110,
-    delivery_cost: 110,
-    total: 100,
-    payment_type: 120,
-    cash_on_delivery: 110,
-    received_pln: 110,
-    transport_cost_usd: 130,
-    supplier: 120,
-    accepted_at: 150,
-    explanation: 200,
-    actions: 80
-  });
+  const [draftRows, setDraftRows] = useState<Array<{
+    id: string;
+    order_number: string;
+    supplier_id: string;
+    manager_id: string;
+    status: string;
+    order_date: string;
+    notes: string;
+    title: string;
+    link: string;
+    tracking_pl: string;
+    part_price: number;
+    delivery_cost: number;
+    total_cost: number;
+    part_number: string;
+    payment_type: string;
+    cash_on_delivery: number;
+    client_id: string;
+    received_pln: number;
+    transport_cost_usd: number;
+    weight_kg: number;
+    verified: boolean;
+  }>>([]);
   const [newRowData, setNewRowData] = useState({
     order_number: '',
     supplier_id: '',
@@ -172,16 +152,11 @@ export default function Orders() {
     loadArtTransId();
     loadReturnsCount();
     loadTariffSettings();
-    loadDraftOrders();
   }, []);
 
   useEffect(() => {
     loadOrders();
   }, [activeViewTab]);
-
-  useEffect(() => {
-    loadDraftOrders();
-  }, [showArchivedDrafts]);
 
   useEffect(() => {
     if (activeTab === 'returns') {
@@ -377,32 +352,6 @@ export default function Orders() {
     window.print();
   }
 
-  async function loadDraftOrders() {
-    try {
-      const projectId = await getCurrentProjectId();
-      if (!projectId) {
-        console.error('Не знайдено project_id для завантаження чернеток');
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('draft_orders')
-        .select('*')
-        .eq('project_id', projectId)
-        .eq('archived', showArchivedDrafts)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Помилка завантаження чернеток:', error);
-      } else if (data) {
-        console.log('Чернетки завантажено:', data.length);
-        setDraftRows(data);
-      }
-    } catch (err) {
-      console.error('Помилка при завантаженні чернеток:', err);
-    }
-  }
-
   async function loadSuppliers() {
     const { data, error } = await supabase
       .from('suppliers')
@@ -548,37 +497,9 @@ export default function Orders() {
   }
 
   async function handleReturn(order: Order & { supplier: Supplier }) {
-    const isAccepted = order.status === 'прийнято';
-
-    const confirmMessage = isAccepted
-      ? `Створити повернення з прийнятого замовлення?\n\nТовар: ${order.title || 'Без назви'}\nКлієнт: ${order.client_id || '-'}\n\nУвага: Це повернення не вплине на баланс постачальника, так як товар вже був оброблений.`
-      : 'Створити повернення з цього замовлення?';
-
-    const confirmed = await confirm(confirmMessage);
-
+    const confirmed = await confirm('Створити повернення з цього замовлення?');
     if (confirmed) {
-      const projectId = await getCurrentProjectId();
-      if (!projectId) {
-        showError('Помилка: не вдалося визначити проект');
-        return;
-      }
-
-      let acceptedOrderId = null;
-
-      if (isAccepted) {
-        const { data: acceptedOrder } = await supabase
-          .from('accepted_orders')
-          .select('id')
-          .eq('order_id', order.id)
-          .maybeSingle();
-
-        acceptedOrderId = acceptedOrder?.id || null;
-      }
-
       const { error } = await supabase.from('returns').insert({
-        order_id: !isAccepted ? order.id : null,
-        accepted_order_id: acceptedOrderId,
-        supplier_id: order.supplier_id,
         status: 'повернення',
         substatus: 'В Арта в хелмі',
         client_id: order.client_id || '',
@@ -591,33 +512,27 @@ export default function Orders() {
         part_number: order.part_number || '',
         payment_type: order.payment_type || '',
         cash_on_delivery: order.cash_on_delivery || 0,
-        order_date: order.order_date || new Date().toISOString().split('T')[0],
+        order_date: order.order_date || new Date().toISOString(),
         return_tracking_to_supplier: '',
         refund_status: '',
-        archived: false,
-        is_reversed: isAccepted,
-        project_id: projectId,
-        counterparty_id: order.counterparty_id
+        archived: false
       });
 
       if (!error) {
-        if (!isAccepted) {
-          await supabase
-            .from('orders')
-            .update({
-              status: 'повернення',
-              previous_status: order.status,
-              archived: true,
-              archived_at: new Date().toISOString()
-            })
-            .eq('id', order.id);
-        }
+        await supabase
+          .from('orders')
+          .update({
+            status: 'повернення',
+            previous_status: order.status,
+            archived: true,
+            archived_at: new Date().toISOString()
+          })
+          .eq('id', order.id);
 
-        showSuccess(isAccepted ? 'Повернення з прийнятого замовлення створено успішно!' : 'Повернення створено успішно!');
+        showSuccess('Повернення створено успішно!');
         loadReturnsCount();
         loadOrders();
       } else {
-        console.error('Помилка при створенні повернення:', error);
         showError('Помилка при створенні повернення');
       }
     }
@@ -1106,106 +1021,59 @@ export default function Orders() {
     });
   }
 
-  async function addDraftRows(count: number) {
+  function addDraftRows(count: number) {
     const defaultWeight = 1;
     const receivedPln = tariffSettings?.default_received_pln || 15;
     const transportCostUsd = tariffSettings ? defaultWeight * tariffSettings.default_transport_cost_per_kg_usd : 0;
 
-    try {
-      const projectId = await getCurrentProjectId();
-      if (!projectId) {
-        showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
-        return;
-      }
+    const newDrafts = Array.from({ length: count }, (_, index) => ({
+      id: `draft-${Date.now()}-${index}`,
+      order_number: '',
+      supplier_id: artTransId,
+      manager_id: '',
+      status: 'в роботі на сьогодні',
+      order_date: new Date().toISOString().split('T')[0],
+      notes: '',
+      title: '',
+      link: '',
+      tracking_pl: '',
+      part_price: 0,
+      delivery_cost: 0,
+      total_cost: 0,
+      part_number: '',
+      payment_type: 'не обрано',
+      cash_on_delivery: 0,
+      client_id: '',
+      received_pln: receivedPln,
+      transport_cost_usd: transportCostUsd,
+      weight_kg: defaultWeight,
+      verified: false
+    }));
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        showError('Помилка: не знайдено поточного користувача');
-        return;
-      }
-
-      const newDrafts = Array.from({ length: count }, () => ({
-        order_number: '',
-        supplier_id: artTransId,
-        manager_id: null,
-        status: 'в роботі на сьогодні',
-        order_date: new Date().toISOString().split('T')[0],
-        notes: '',
-        title: '',
-        link: '',
-        tracking_pl: '',
-        part_price: 0,
-        delivery_cost: 0,
-        total_cost: 0,
-        part_number: '',
-        payment_type: 'не обрано',
-        cash_on_delivery: 0,
-        client_id: '',
-        received_pln: receivedPln,
-        transport_cost_usd: transportCostUsd,
-        weight_kg: defaultWeight,
-        verified: false,
-        archived: false,
-        project_id: projectId,
-        created_by: user.id
-      }));
-
-      const { error } = await supabase.from('draft_orders').insert(newDrafts);
-
-      if (error) {
-        console.error('Error creating drafts:', error);
-        showError('Помилка при створенні чернеток: ' + error.message);
-        return;
-      }
-
-      showSuccess(`Створено ${count} чернет${count === 1 ? 'ку' : count <= 4 ? 'ки' : 'ок'}`);
-      loadDraftOrders();
-    } catch (err) {
-      console.error('Network error:', err);
-      showError('Помилка мережі: Перевірте підключення до інтернету');
-    }
+    setDraftRows(prev => [...prev, ...newDrafts]);
   }
 
-  async function updateDraftRow(draftId: string, field: string, value: any) {
-    const draft = draftRows.find(d => d.id === draftId);
-    if (!draft) return;
+  function updateDraftRow(draftId: string, field: string, value: any) {
+    setDraftRows(prev => prev.map(draft => {
+      if (draft.id === draftId) {
+        const updated = { ...draft, [field]: value };
 
-    const updated: any = { [field]: value };
+        if (field === 'payment_type' && value === 'оплачено') {
+          updated.cash_on_delivery = 0;
+        }
 
-    if (field === 'payment_type' && value === 'оплачено') {
-      updated.cash_on_delivery = 0;
-    }
+        if (field === 'weight_kg' && tariffSettings) {
+          updated.transport_cost_usd = Number(value) * tariffSettings.default_transport_cost_per_kg_usd;
+        }
 
-    if (field === 'weight_kg' && tariffSettings) {
-      updated.transport_cost_usd = Number(value) * tariffSettings.default_transport_cost_per_kg_usd;
-    }
+        if (field === 'part_price' || field === 'delivery_cost') {
+          updated.total_cost = updated.part_price + updated.delivery_cost;
+        }
 
-    if (field === 'part_price' || field === 'delivery_cost') {
-      const newPartPrice = field === 'part_price' ? Number(value) : draft.part_price;
-      const newDeliveryCost = field === 'delivery_cost' ? Number(value) : draft.delivery_cost;
-      updated.total_cost = newPartPrice + newDeliveryCost;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('draft_orders')
-        .update(updated)
-        .eq('id', draftId);
-
-      if (error) {
-        console.error('Error updating draft:', error);
-        showError('Помилка оновлення чернетки');
-        return;
+        return updated;
       }
-
-      // Оновлюємо локальний стан
-      setDraftRows(prev => prev.map(d =>
-        d.id === draftId ? { ...d, ...updated } : d
-      ));
-    } catch (err) {
-      console.error('Network error:', err);
-      showError('Помилка мережі');
-    }
+      return draft;
+    }));
   }
 
   async function saveDraftRow(draftId: string) {
@@ -1247,31 +1115,25 @@ export default function Orders() {
       return;
     }
 
-    const dataToSubmit: any = {
-      order_number: draft.order_number,
-      supplier_id: draft.supplier_id || null,
-      manager_id: draft.manager_id || null,
-      status: draft.status,
-      order_date: draft.order_date,
-      notes: draft.notes,
-      title: draft.title,
-      link: draft.link,
-      tracking_pl: draft.tracking_pl,
-      part_price: draft.part_price,
-      delivery_cost: draft.delivery_cost,
-      total_cost: draft.total_cost,
-      part_number: draft.part_number,
-      payment_type: draft.payment_type,
-      cash_on_delivery: draft.cash_on_delivery,
-      client_id: draft.client_id,
-      received_pln: draft.received_pln,
-      transport_cost_usd: draft.transport_cost_usd,
-      weight_kg: draft.weight_kg,
-      verified: draft.verified,
-      project_id: draft.project_id
-    };
+    const dataToSubmit: any = { ...draft };
+    delete dataToSubmit.id;
+
+    if (!dataToSubmit.supplier_id || dataToSubmit.supplier_id === '') {
+      delete dataToSubmit.supplier_id;
+    }
+
+    if (!dataToSubmit.manager_id || dataToSubmit.manager_id === '') {
+      delete dataToSubmit.manager_id;
+    }
 
     try {
+      const projectId = await getCurrentProjectId();
+      if (!projectId) {
+        showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
+        return;
+      }
+      dataToSubmit.project_id = projectId;
+
       const { error } = await supabase.from('orders').insert([dataToSubmit]);
       if (error) {
         console.error('Error inserting order:', error);
@@ -1279,11 +1141,8 @@ export default function Orders() {
         return;
       }
 
-      // Видаляємо чернетку після успішного створення замовлення
-      await supabase.from('draft_orders').delete().eq('id', draftId);
-
       showSuccess('Замовлення успішно створено!');
-      loadDraftOrders();
+      setDraftRows(prev => prev.filter(d => d.id !== draftId));
       loadOrders();
     } catch (err) {
       console.error('Network error:', err);
@@ -1291,73 +1150,8 @@ export default function Orders() {
     }
   }
 
-  async function deleteDraftRow(draftId: string) {
-    try {
-      const { error } = await supabase
-        .from('draft_orders')
-        .delete()
-        .eq('id', draftId);
-
-      if (error) {
-        console.error('Error deleting draft:', error);
-        showError('Помилка видалення чернетки');
-        return;
-      }
-
-      showSuccess('Чернетку видалено!');
-      loadDraftOrders();
-    } catch (err) {
-      console.error('Network error:', err);
-      showError('Помилка мережі');
-    }
-  }
-
-  async function archiveDraftRow(draftId: string) {
-    try {
-      const { error } = await supabase
-        .from('draft_orders')
-        .update({
-          archived: true,
-          archived_at: new Date().toISOString()
-        })
-        .eq('id', draftId);
-
-      if (error) {
-        console.error('Error archiving draft:', error);
-        showError('Помилка архівування чернетки');
-        return;
-      }
-
-      showSuccess('Чернетку архівовано!');
-      loadDraftOrders();
-    } catch (err) {
-      console.error('Network error:', err);
-      showError('Помилка мережі');
-    }
-  }
-
-  async function unarchiveDraftRow(draftId: string) {
-    try {
-      const { error } = await supabase
-        .from('draft_orders')
-        .update({
-          archived: false,
-          archived_at: null
-        })
-        .eq('id', draftId);
-
-      if (error) {
-        console.error('Error unarchiving draft:', error);
-        showError('Помилка розархівування чернетки');
-        return;
-      }
-
-      showSuccess('Чернетку розархівовано!');
-      loadDraftOrders();
-    } catch (err) {
-      console.error('Network error:', err);
-      showError('Помилка мережі');
-    }
+  function deleteDraftRow(draftId: string) {
+    setDraftRows(prev => prev.filter(d => d.id !== draftId));
   }
 
   function startAddingNewRow() {
@@ -1627,33 +1421,11 @@ export default function Orders() {
     if (!searchTerm.trim()) return true;
 
     const searchLower = searchTerm.toLowerCase().trim();
-    const manager = (order as any).manager;
-    const counterparty = (order as any).counterparty;
-
     return (
-      (order.order_number && order.order_number.toLowerCase().includes(searchLower)) ||
       (order.client_id && order.client_id.toLowerCase().includes(searchLower)) ||
       (order.title && order.title.toLowerCase().includes(searchLower)) ||
-      (order.link && order.link.toLowerCase().includes(searchLower)) ||
       (order.tracking_pl && order.tracking_pl.toLowerCase().includes(searchLower)) ||
-      (order.part_number && order.part_number.toLowerCase().includes(searchLower)) ||
-      (order.notes && order.notes.toLowerCase().includes(searchLower)) ||
-      (order.status && order.status.toLowerCase().includes(searchLower)) ||
-      (order.payment_type && order.payment_type.toLowerCase().includes(searchLower)) ||
-      (order.supplier?.name && order.supplier.name.toLowerCase().includes(searchLower)) ||
-      (order.supplier_inspection_status && order.supplier_inspection_status.toLowerCase().includes(searchLower)) ||
-      (order.supplier_notes && order.supplier_notes.toLowerCase().includes(searchLower)) ||
-      (manager && ((manager.full_name && manager.full_name.toLowerCase().includes(searchLower)) || (manager.email && manager.email.toLowerCase().includes(searchLower)))) ||
-      (counterparty && counterparty.name && counterparty.name.toLowerCase().includes(searchLower)) ||
-      (order.part_price && order.part_price.toString().includes(searchLower)) ||
-      (order.delivery_cost && order.delivery_cost.toString().includes(searchLower)) ||
-      (order.total_cost && order.total_cost.toString().includes(searchLower)) ||
-      (order.cash_on_delivery && order.cash_on_delivery.toString().includes(searchLower)) ||
-      (order.received_pln && order.received_pln.toString().includes(searchLower)) ||
-      (order.transport_cost_usd && order.transport_cost_usd.toString().includes(searchLower)) ||
-      (order.weight_kg && order.weight_kg.toString().includes(searchLower)) ||
-      (order.order_date && order.order_date.includes(searchLower)) ||
-      (order.verified && (order.verified ? 'підтверджено' : 'непідтверджено').includes(searchLower))
+      (order.part_number && order.part_number.toLowerCase().includes(searchLower))
     );
   });
 
@@ -2231,44 +2003,25 @@ export default function Orders() {
                   </button>
                 )}
                 {!isSupplier && (
-                  <>
-                    <div className="relative group">
-                      <button
-                        className="bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-800 transition text-sm font-medium"
-                      >
-                        <Layers size={18} />
-                        Чернетки
-                      </button>
-                      <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-700 shadow-lg rounded-lg overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-[140px]">
-                        {[1, 2, 3, 4, 5].map(count => (
-                          <button
-                            key={count}
-                            onClick={() => addDraftRows(count)}
-                            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-sm"
-                          >
-                            Додати {count} {count === 1 ? 'рядок' : count <= 4 ? 'рядки' : 'рядків'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                  <div className="relative group">
                     <button
-                      onClick={() => setShowArchivedDrafts(!showArchivedDrafts)}
-                      className={`px-4 py-2 rounded-lg flex items-center gap-2 transition text-sm font-medium ${
-                        showArchivedDrafts
-                          ? 'bg-gray-600 text-white hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600'
-                          : 'bg-purple-600 text-white hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800'
-                      }`}
-                      title={showArchivedDrafts ? 'Показати активні чернетки' : 'Показати архівовані чернетки'}
+                      className="bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-800 transition text-sm font-medium"
                     >
-                      <Archive size={18} />
-                      {showArchivedDrafts ? 'Архів чернеток' : 'Показати архів'}
-                      {!showArchivedDrafts && draftRows.length > 0 && (
-                        <span className="bg-purple-800 dark:bg-purple-900 px-2 py-0.5 rounded-full text-xs">
-                          {draftRows.length}
-                        </span>
-                      )}
+                      <Layers size={18} />
+                      Чернетки
                     </button>
-                  </>
+                    <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-700 shadow-lg rounded-lg overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-[140px]">
+                      {[1, 2, 3, 4, 5].map(count => (
+                        <button
+                          key={count}
+                          onClick={() => addDraftRows(count)}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-sm"
+                        >
+                          Додати {count} {count === 1 ? 'рядок' : count <= 4 ? 'рядки' : 'рядків'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
                 <button
                   onClick={toggleColumnView}
@@ -2341,46 +2094,22 @@ export default function Orders() {
               )}
             </div>
           )}
-          {isSupplier && draftRows.length > 0 && (
-            <div className="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 dark:border-blue-400 mb-2">
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
-                <span className="inline-block w-4 h-4 bg-yellow-200 dark:bg-yellow-900/50 border border-yellow-400 dark:border-yellow-600 rounded mr-2"></span>
-                Жовтим виділені поля які ви можете редагувати
-                <span className="mx-2">|</span>
-                <span className="inline-block w-4 h-4 bg-gray-300 dark:bg-gray-700 border border-gray-400 dark:border-gray-600 rounded mr-2"></span>
-                Сірим - поля заблоковані для редагування
-              </p>
-            </div>
-          )}
           <div className="flex-1 overflow-auto">
-          <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
+          <table className="w-full text-sm">
               <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
                 <tr>
-                  <ResizableTableHeader
-                    columnKey="checkbox"
-                    width={getColumnWidth('checkbox', 60)}
-                    className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
-                    onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 60))}
-                    isResizing={resizingColumn === 'checkbox'}
-                  >
+                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                     <input
                       type="checkbox"
                       checked={selectedOrders.size === filteredOrders.length && filteredOrders.length > 0}
                       onChange={toggleAllOrders}
                       className="w-4 h-4 rounded cursor-pointer text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600"
                     />
-                  </ResizableTableHeader>
+                  </th>
                   {getColumns(columnView).map((col) => (
-                    <ResizableTableHeader
-                      key={col.key}
-                      columnKey={col.key}
-                      width={getColumnWidth(col.key, 150)}
-                      className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
-                      onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 150))}
-                      isResizing={resizingColumn === col.key}
-                    >
+                    <th key={col.key} className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                       {col.key === 'link' ? <ExternalLink size={16} className="inline-block" /> : col.label}
-                    </ResizableTableHeader>
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -2595,61 +2324,24 @@ export default function Orders() {
                       if (col.key === 'actions') {
                         return (
                           <td key="actions" className="px-3 py-3 min-h-[48px]">
-                            {!isSupplier ? (
-                              <div className="flex gap-2 justify-start">
-                                {!showArchivedDrafts ? (
-                                  <>
-                                    <button
-                                      onClick={() => saveDraftRow(draft.id)}
-                                      className="px-3 py-2 bg-green-700 text-white rounded text-xs font-semibold hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition flex items-center gap-1"
-                                      title="Зберегти замовлення"
-                                    >
-                                      <Check size={14} />
-                                      Зберегти
-                                    </button>
-                                    <button
-                                      onClick={() => archiveDraftRow(draft.id)}
-                                      className="px-3 py-2 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 transition flex items-center gap-1"
-                                      title="Архівувати чернетку"
-                                    >
-                                      <Archive size={14} />
-                                      Архів
-                                    </button>
-                                    <button
-                                      onClick={() => deleteDraftRow(draft.id)}
-                                      className="px-3 py-2 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 transition flex items-center gap-1"
-                                      title="Видалити чернетку"
-                                    >
-                                      <X size={14} />
-                                      Видалити
-                                    </button>
-                                  </>
-                                ) : (
-                                  <>
-                                    <button
-                                      onClick={() => unarchiveDraftRow(draft.id)}
-                                      className="px-3 py-2 bg-orange-600 text-white rounded text-xs font-semibold hover:bg-orange-700 dark:bg-orange-600 dark:hover:bg-orange-700 transition flex items-center gap-1"
-                                      title="Розархівувати чернетку"
-                                    >
-                                      <RotateCcw size={14} />
-                                      Розархів
-                                    </button>
-                                    <button
-                                      onClick={() => deleteDraftRow(draft.id)}
-                                      className="px-3 py-2 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 transition flex items-center gap-1"
-                                      title="Видалити чернетку"
-                                    >
-                                      <X size={14} />
-                                      Видалити
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="text-xs text-gray-500 dark:text-gray-400 italic">
-                                Тільки перегляд
-                              </div>
-                            )}
+                            <div className="flex gap-2 justify-start">
+                              <button
+                                onClick={() => saveDraftRow(draft.id)}
+                                className="px-3 py-2 bg-green-700 text-white rounded text-xs font-semibold hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition flex items-center gap-1"
+                                title="Зберегти замовлення"
+                              >
+                                <Check size={14} />
+                                Зберегти
+                              </button>
+                              <button
+                                onClick={() => deleteDraftRow(draft.id)}
+                                className="px-3 py-2 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 transition flex items-center gap-1"
+                                title="Видалити чернетку"
+                              >
+                                <X size={14} />
+                                Видалити
+                              </button>
+                            </div>
                           </td>
                         );
                       }
@@ -2657,19 +2349,13 @@ export default function Orders() {
                       const value = (draft as any)[col.key];
                       const isRequired = ['client_id', 'title', 'link'].includes(col.key);
 
-                      // Поля які постачальник може редагувати
-                      const supplierEditableFields = ['order_number', 'delivery_date', 'cash_on_delivery', 'payment_type'];
-                      const isSupplierEditable = isSupplier && supplierEditableFields.includes(col.key);
-                      const isDisabledForSupplier = isSupplier && !supplierEditableFields.includes(col.key) && col.key !== 'actions';
-
                       if (col.key === 'status') {
                         return (
-                          <td key={col.key} className={`p-0 relative ${isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : ''}`}>
+                          <td key={col.key} className="p-0 relative">
                             <select
                               value={draft.status}
                               onChange={(e) => updateDraftRow(draft.id, 'status', e.target.value)}
-                              disabled={isDisabledForSupplier}
-                              className={`w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100 ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100"
                             >
                               {statuses.map((status) => (
                                 <option
@@ -2687,13 +2373,12 @@ export default function Orders() {
 
                       if (col.key === 'verified') {
                         return (
-                          <td key={col.key} className={`px-3 py-3 text-center min-h-[48px] ${isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : ''}`}>
+                          <td key={col.key} className="px-3 py-3 text-center min-h-[48px]">
                             <input
                               type="checkbox"
                               checked={draft.verified}
                               onChange={(e) => updateDraftRow(draft.id, 'verified', e.target.checked)}
-                              disabled={isDisabledForSupplier}
-                              className={`w-5 h-5 rounded cursor-pointer transition text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-600 ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              className="w-5 h-5 rounded cursor-pointer transition text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-600"
                             />
                           </td>
                         );
@@ -2701,14 +2386,13 @@ export default function Orders() {
 
                       if (col.key === 'link') {
                         return (
-                          <td key={col.key} className={`px-3 py-3 min-h-[48px] ${isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : ''}`}>
+                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
                             <input
                               type="text"
                               value={draft.link}
                               onChange={(e) => updateDraftRow(draft.id, 'link', e.target.value)}
                               placeholder="Посилання *"
-                              disabled={isDisabledForSupplier}
-                              className={`w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                             />
                           </td>
                         );
@@ -2716,11 +2400,11 @@ export default function Orders() {
 
                       if (col.key === 'payment_type') {
                         return (
-                          <td key={col.key} className={`p-0 relative ${isSupplierEditable ? 'bg-yellow-100 dark:bg-yellow-900/30' : ''}`}>
+                          <td key={col.key} className="p-0 relative">
                             <select
                               value={draft.payment_type}
                               onChange={(e) => updateDraftRow(draft.id, 'payment_type', e.target.value)}
-                              className={`w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100 ${isSupplierEditable ? 'ring-2 ring-yellow-400 dark:ring-yellow-600' : ''}`}
+                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100"
                             >
                               {paymentTypes.map((type) => (
                                 <option
@@ -2745,17 +2429,16 @@ export default function Orders() {
                       }
 
                       if (col.key === 'cash_on_delivery') {
-                        const isDisabled = draft.payment_type === 'оплачено';
                         return (
-                          <td key={col.key} className={`px-3 py-3 min-h-[48px] ${isSupplierEditable && !isDisabled ? 'bg-yellow-100 dark:bg-yellow-900/30' : ''}`}>
+                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
                             <input
                               type="number"
                               step="0.01"
                               value={draft.cash_on_delivery}
                               onChange={(e) => updateDraftRow(draft.id, 'cash_on_delivery', Number(e.target.value))}
-                              disabled={isDisabled}
+                              disabled={draft.payment_type === 'оплачено'}
                               placeholder="0"
-                              className={`w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed ${isSupplierEditable && !isDisabled ? 'ring-2 ring-yellow-400 dark:ring-yellow-600' : ''}`}
+                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                           </td>
                         );
@@ -2763,15 +2446,14 @@ export default function Orders() {
 
                       if (['part_price', 'delivery_cost'].includes(col.key)) {
                         return (
-                          <td key={col.key} className={`px-3 py-3 min-h-[48px] ${isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : ''}`}>
+                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
                             <input
                               type="number"
                               step="0.01"
                               value={value}
                               onChange={(e) => updateDraftRow(draft.id, col.key, Number(e.target.value))}
                               placeholder="0"
-                              disabled={isDisabledForSupplier}
-                              className={`w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                             />
                           </td>
                         );
@@ -2779,13 +2461,12 @@ export default function Orders() {
 
                       if (col.renderType === 'date') {
                         return (
-                          <td key={col.key} className={`px-3 py-3 min-h-[48px] ${isSupplierEditable ? 'bg-yellow-100 dark:bg-yellow-900/30' : (isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : '')}`}>
+                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
                             <input
                               type="date"
                               value={value || ''}
                               onChange={(e) => updateDraftRow(draft.id, col.key, e.target.value)}
-                              disabled={isDisabledForSupplier}
-                              className={`w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isSupplierEditable ? 'ring-2 ring-yellow-400 dark:ring-yellow-600' : ''} ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                             />
                           </td>
                         );
@@ -2793,12 +2474,11 @@ export default function Orders() {
 
                       if (col.key === 'manager') {
                         return (
-                          <td key={col.key} className={`p-0 relative ${isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : ''}`}>
+                          <td key={col.key} className="p-0 relative">
                             <select
                               value={draft.manager_id || ''}
                               onChange={(e) => updateDraftRow(draft.id, 'manager_id', e.target.value)}
-                              disabled={isDisabledForSupplier}
-                              className={`w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100 ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100"
                             >
                               <option value="" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Не обрано</option>
                               {managers.map((manager) => (
@@ -2816,14 +2496,13 @@ export default function Orders() {
                       }
 
                       return (
-                        <td key={col.key} className={`px-3 py-3 min-h-[48px] ${isSupplierEditable ? 'bg-yellow-100 dark:bg-yellow-900/30' : (isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : '')}`}>
+                        <td key={col.key} className="px-3 py-3 min-h-[48px]">
                           <input
                             type="text"
                             value={value || ''}
                             onChange={(e) => updateDraftRow(draft.id, col.key, e.target.value)}
                             placeholder={isRequired ? `${col.label} *` : col.label}
-                            disabled={isDisabledForSupplier}
-                            className={`w-full px-2 py-1 border ${isRequired ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'} rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isSupplierEditable ? 'ring-2 ring-yellow-400 dark:ring-yellow-600' : ''} ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className={`w-full px-2 py-1 border ${isRequired ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'} rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
                           />
                         </td>
                       );
@@ -2858,7 +2537,7 @@ export default function Orders() {
                                 Ред.
                               </button>
                             )}
-                            {!order.archived && (
+                            {!order.archived && !isAccepted && (
                               <button
                                 onClick={() => handleReturn(order)}
                                 className="px-3 py-2 bg-orange-50 text-orange-700 dark:bg-orange-900/50 dark:text-orange-200 rounded text-xs font-semibold hover:bg-orange-100 dark:hover:bg-orange-900/70 transition flex items-center gap-1"
@@ -2958,16 +2637,10 @@ export default function Orders() {
                 </button>
                 {!isCollapsed && (
                   <div className="overflow-x-auto overflow-y-visible">
-                  <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
+                  <table className="w-full text-sm">
                     <thead className="bg-gray-50 dark:bg-gray-700">
                       <tr>
-                        <ResizableTableHeader
-                          columnKey="checkbox"
-                          width={getColumnWidth('checkbox', 60)}
-                          className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
-                          onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 60))}
-                          isResizing={resizingColumn === 'checkbox'}
-                        >
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                           <input
                             type="checkbox"
                             checked={selectedOrders.size === filteredOrders.length && filteredOrders.length > 0}
@@ -2976,20 +2649,20 @@ export default function Orders() {
                             disabled={isSupplier}
                             title={isSupplier ? 'Заблоковано для постачальника' : ''}
                           />
-                        </ResizableTableHeader>
-                        <ResizableTableHeader columnKey="status" width={getColumnWidth('status', 150)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 150))} isResizing={resizingColumn === 'status'}>Статус</ResizableTableHeader>
-                        <ResizableTableHeader columnKey="verified" width={getColumnWidth('verified', 60)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 60))} isResizing={resizingColumn === 'verified'}>V</ResizableTableHeader>
-                        <ResizableTableHeader columnKey="client_id" width={getColumnWidth('client_id', 120)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 120))} isResizing={resizingColumn === 'client_id'}>ID клієнта</ResizableTableHeader>
-                        <ResizableTableHeader columnKey="title" width={getColumnWidth('title', 200)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 200))} isResizing={resizingColumn === 'title'}>Назва</ResizableTableHeader>
-                        <ResizableTableHeader columnKey="link" width={getColumnWidth('link', 60)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 60))} isResizing={resizingColumn === 'link'}><ExternalLink size={16} className="inline-block" /></ResizableTableHeader>
-                        <ResizableTableHeader columnKey="tracking_pl" width={getColumnWidth('tracking_pl', 130)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 130))} isResizing={resizingColumn === 'tracking_pl'}>Трекінг PL</ResizableTableHeader>
-                        <ResizableTableHeader columnKey="part_price" width={getColumnWidth('part_price', 110)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 110))} isResizing={resizingColumn === 'part_price'}>Вартість запч.</ResizableTableHeader>
-                        <ResizableTableHeader columnKey="delivery_cost" width={getColumnWidth('delivery_cost', 100)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 100))} isResizing={resizingColumn === 'delivery_cost'}>Доставка</ResizableTableHeader>
-                        <ResizableTableHeader columnKey="total_cost" width={getColumnWidth('total_cost', 100)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 100))} isResizing={resizingColumn === 'total_cost'}>Всього</ResizableTableHeader>
-                        <ResizableTableHeader columnKey="part_number" width={getColumnWidth('part_number', 130)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 130))} isResizing={resizingColumn === 'part_number'}>№ запчастини</ResizableTableHeader>
-                        <ResizableTableHeader columnKey="payment_type" width={getColumnWidth('payment_type', 120)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 120))} isResizing={resizingColumn === 'payment_type'}>Тип оплати</ResizableTableHeader>
-                        <ResizableTableHeader columnKey="cash_on_delivery" width={getColumnWidth('cash_on_delivery', 110)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 110))} isResizing={resizingColumn === 'cash_on_delivery'}>Побранє</ResizableTableHeader>
-                        <ResizableTableHeader columnKey="actions" width={getColumnWidth('actions', 100)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 100))} isResizing={resizingColumn === 'actions'}>Дії</ResizableTableHeader>
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Статус</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">V</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ID клієнта</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Назва</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"><ExternalLink size={16} className="inline-block" /></th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Трекінг PL</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Вартість запч.</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Доставка</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Всього</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">№ запчастини</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Тип оплати</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Побранє</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Дії</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
@@ -3071,7 +2744,7 @@ export default function Orders() {
                                   Ред.
                                 </button>
                               )}
-                              {!order.archived && !isSupplier && (
+                              {!order.archived && !isAccepted && !isSupplier && (
                                 <button
                                   onClick={() => handleReturn(order)}
                                   className="px-3 py-2 bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
@@ -3228,24 +2901,24 @@ export default function Orders() {
               </button>
             </div>
             <div className="flex-1 overflow-auto p-6">
-              <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
+              <table className="w-full border-collapse">
                 <thead className="bg-green-700 dark:bg-green-900 sticky top-0 z-10">
                   <tr>
-                    <ResizableTableHeader columnKey="receipt_number" width={acceptedColumnsResizable.getColumnWidth('receipt_number', 100)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 100))} isResizing={acceptedColumnsResizable.resizingColumn === 'receipt_number'}>№ Док</ResizableTableHeader>
-                    <ResizableTableHeader columnKey="status" width={acceptedColumnsResizable.getColumnWidth('status', 100)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 100))} isResizing={acceptedColumnsResizable.resizingColumn === 'status'}>Статус</ResizableTableHeader>
-                    <ResizableTableHeader columnKey="title" width={acceptedColumnsResizable.getColumnWidth('title', 200)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 200))} isResizing={acceptedColumnsResizable.resizingColumn === 'title'}>Назва</ResizableTableHeader>
-                    <ResizableTableHeader columnKey="client_id" width={acceptedColumnsResizable.getColumnWidth('client_id', 120)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 120))} isResizing={acceptedColumnsResizable.resizingColumn === 'client_id'}>ID Клієнта</ResizableTableHeader>
-                    <ResizableTableHeader columnKey="part_number" width={acceptedColumnsResizable.getColumnWidth('part_number', 130)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 130))} isResizing={acceptedColumnsResizable.resizingColumn === 'part_number'}>№ Запчастини</ResizableTableHeader>
-                    <ResizableTableHeader columnKey="link" width={acceptedColumnsResizable.getColumnWidth('link', 60)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-center text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 60))} isResizing={acceptedColumnsResizable.resizingColumn === 'link'}><ExternalLink size={16} className="inline-block" /></ResizableTableHeader>
-                    <ResizableTableHeader columnKey="tracking_number" width={acceptedColumnsResizable.getColumnWidth('tracking_number', 130)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 130))} isResizing={acceptedColumnsResizable.resizingColumn === 'tracking_number'}>ТТН</ResizableTableHeader>
-                    <ResizableTableHeader columnKey="weight_kg" width={acceptedColumnsResizable.getColumnWidth('weight_kg', 90)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 90))} isResizing={acceptedColumnsResizable.resizingColumn === 'weight_kg'}>Вага (кг)</ResizableTableHeader>
-                    <ResizableTableHeader columnKey="part_price" width={acceptedColumnsResizable.getColumnWidth('part_price', 110)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 110))} isResizing={acceptedColumnsResizable.resizingColumn === 'part_price'}>Запчастини</ResizableTableHeader>
-                    <ResizableTableHeader columnKey="delivery_cost" width={acceptedColumnsResizable.getColumnWidth('delivery_cost', 110)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 110))} isResizing={acceptedColumnsResizable.resizingColumn === 'delivery_cost'}>Доставка</ResizableTableHeader>
-                    <ResizableTableHeader columnKey="received_pln" width={acceptedColumnsResizable.getColumnWidth('received_pln', 110)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 110))} isResizing={acceptedColumnsResizable.resizingColumn === 'received_pln'}>Отримали PLN</ResizableTableHeader>
-                    <ResizableTableHeader columnKey="cash_on_delivery" width={acceptedColumnsResizable.getColumnWidth('cash_on_delivery', 110)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 110))} isResizing={acceptedColumnsResizable.resizingColumn === 'cash_on_delivery'}>Наложка</ResizableTableHeader>
-                    <ResizableTableHeader columnKey="transport_cost_usd" width={acceptedColumnsResizable.getColumnWidth('transport_cost_usd', 130)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 130))} isResizing={acceptedColumnsResizable.resizingColumn === 'transport_cost_usd'}>Транспорт USD</ResizableTableHeader>
-                    <ResizableTableHeader columnKey="payment_type" width={acceptedColumnsResizable.getColumnWidth('payment_type', 120)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 120))} isResizing={acceptedColumnsResizable.resizingColumn === 'payment_type'}>Тип оплати</ResizableTableHeader>
-                    <ResizableTableHeader columnKey="accepted_at" width={acceptedColumnsResizable.getColumnWidth('accepted_at', 150)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 150))} isResizing={acceptedColumnsResizable.resizingColumn === 'accepted_at'}>Дата прийому</ResizableTableHeader>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">№ Док</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">Статус</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">Назва</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">ID Клієнта</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">№ Запчастини</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-center text-sm font-semibold text-white"><ExternalLink size={16} className="inline-block" /></th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">ТТН</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Вага (кг)</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Запчастини</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Доставка</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Отримали PLN</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Наложка</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Транспорт USD</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">Тип оплати</th>
+                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">Дата прийому</th>
                   </tr>
                 </thead>
                 <tbody>
