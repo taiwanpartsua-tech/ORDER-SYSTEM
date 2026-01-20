@@ -1492,6 +1492,19 @@ export default function Orders() {
     }
   }
 
+  function toggleGroupOrders(groupOrders: (Order & { supplier: Supplier })[]) {
+    const groupOrderIds = groupOrders.map(o => o.id);
+    const allGroupSelected = groupOrderIds.every(id => selectedOrders.has(id));
+
+    const newSelected = new Set(selectedOrders);
+    if (allGroupSelected) {
+      groupOrderIds.forEach(id => newSelected.delete(id));
+    } else {
+      groupOrderIds.forEach(id => newSelected.add(id));
+    }
+    setSelectedOrders(newSelected);
+  }
+
   function toggleColumnView() {
     const newView: ColumnViewType = columnView === 'paska' ? 'monday' : 'paska';
     setColumnView(newView);
@@ -2970,11 +2983,11 @@ export default function Orders() {
                         >
                           <input
                             type="checkbox"
-                            checked={selectedOrders.size === filteredOrders.length && filteredOrders.length > 0}
-                            onChange={toggleAllOrders}
+                            checked={groupOrders.length > 0 && groupOrders.every(o => selectedOrders.has(o.id))}
+                            onChange={() => toggleGroupOrders(groupOrders)}
                             className={`w-4 h-4 rounded text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600 ${!isSupplier ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
                             disabled={isSupplier}
-                            title={isSupplier ? 'Заблоковано для постачальника' : ''}
+                            title={isSupplier ? 'Заблоковано для постачальника' : 'Вибрати всі в групі'}
                           />
                         </ResizableTableHeader>
                         <ResizableTableHeader columnKey="status" width={getColumnWidth('status', 150)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 150))} isResizing={resizingColumn === 'status'}>Статус</ResizableTableHeader>
