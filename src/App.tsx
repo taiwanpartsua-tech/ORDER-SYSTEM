@@ -21,7 +21,7 @@ function App() {
     return (savedTab as Tab) || 'orders';
   });
   const { isDark, toggleTheme } = useTheme();
-  const { user, profile, loading, signOut, isSuper, isAdmin } = useAuth();
+  const { user, profile, loading, signOut, isSuper, isAdmin, isSupplier } = useAuth();
 
   useEffect(() => {
     if (user) {
@@ -88,17 +88,19 @@ function App() {
               <Package size={20} />
               Замовлення
             </button>
-            <button
-              onClick={() => setActiveTab('receipts')}
-              className={`flex items-center gap-2 px-6 py-4 font-medium transition border-b-2 ${
-                activeTab === 'receipts'
-                  ? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-400'
-                  : 'border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600'
-              }`}
-            >
-              <ClipboardCheck size={20} />
-              Активний прийом
-            </button>
+            {!isSupplier && (
+              <button
+                onClick={() => setActiveTab('receipts')}
+                className={`flex items-center gap-2 px-6 py-4 font-medium transition border-b-2 ${
+                  activeTab === 'receipts'
+                    ? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-400'
+                    : 'border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600'
+                }`}
+              >
+                <ClipboardCheck size={20} />
+                Активний прийом
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('management')}
               className={`flex items-center gap-2 px-6 py-4 font-medium transition border-b-2 ${
@@ -121,17 +123,19 @@ function App() {
               <TrendingUp size={20} />
               Активний баланс
             </button>
-            <button
-              onClick={() => setActiveTab('settlement')}
-              className={`flex items-center gap-2 px-6 py-4 font-medium transition border-b-2 ${
-                activeTab === 'settlement'
-                  ? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-400'
-                  : 'border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600'
-              }`}
-            >
-              <DollarSign size={20} />
-              Взаєморозрахунок
-            </button>
+            {!isSupplier && (
+              <button
+                onClick={() => setActiveTab('settlement')}
+                className={`flex items-center gap-2 px-6 py-4 font-medium transition border-b-2 ${
+                  activeTab === 'settlement'
+                    ? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-400'
+                    : 'border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600'
+                }`}
+              >
+                <DollarSign size={20} />
+                Взаєморозрахунок
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('inspection')}
               className={`flex items-center gap-2 px-6 py-4 font-medium transition border-b-2 ${
@@ -143,17 +147,19 @@ function App() {
               <Camera size={20} />
               Перевірка товару
             </button>
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`flex items-center gap-2 px-6 py-4 font-medium transition border-b-2 ${
-                activeTab === 'settings'
-                  ? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-400'
-                  : 'border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600'
-              }`}
-            >
-              <Settings size={20} />
-              Налаштування
-            </button>
+            {!isSupplier && (
+              <button
+                onClick={() => setActiveTab('settings')}
+                className={`flex items-center gap-2 px-6 py-4 font-medium transition border-b-2 ${
+                  activeTab === 'settings'
+                    ? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-400'
+                    : 'border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600'
+                }`}
+              >
+                <Settings size={20} />
+                Налаштування
+              </button>
+            )}
             {isAdmin && (
               <>
                 <button

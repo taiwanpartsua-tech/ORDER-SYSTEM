@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase, Order, Supplier, TariffSettings } from '../lib/supabase';
+import { supabase, Order, Supplier, TariffSettings, DraftOrder } from '../lib/supabase';
 import { Plus, CreditCard as Edit, Archive, X, ExternalLink, ChevronDown, Layers, ChevronUp, Check, RotateCcw, Printer, Download, Search, XCircle, LayoutGrid } from 'lucide-react';
 import Returns from './Returns';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
 import { statusColors, paymentTypeColors, verifiedColors, formatEmptyValue } from '../utils/themeColors';
 import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
 import { ColumnViewType, getColumns, saveColumnView, loadColumnView } from '../utils/columnConfigs';
+import { getCurrentProjectId } from '../utils/projectAccess';
+import { useResizableColumns } from '../hooks/useResizableColumns';
+import { ResizableTableHeader } from './ResizableTableHeader';
 
 type AcceptedOrder = {
   id: string;
@@ -33,9 +37,14 @@ type AcceptedOrder = {
 
 export default function Orders() {
   const { showSuccess, showError, showWarning, confirm } = useToast();
+  const { isSupplier, profile } = useAuth();
+
+  console.log('DEBUG Orders - isSupplier:', isSupplier, 'profile.role:', profile?.role);
+
   const [orders, setOrders] = useState<(Order & { supplier: Supplier })[]>([]);
   const [acceptedOrders, setAcceptedOrders] = useState<AcceptedOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [managers, setManagers] = useState<Array<{ id: string; full_name: string; email: string }>>([]);
   const [returnsCount, setReturnsCount] = useState<number>(0);
   const [artTransId, setArtTransId] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -64,31 +73,51 @@ export default function Orders() {
   const [searchTerm, setSearchTerm] = useState('');
   const [tariffSettings, setTariffSettings] = useState<TariffSettings | null>(null);
   const [columnView, setColumnView] = useState<ColumnViewType>(loadColumnView());
-  const [draftRows, setDraftRows] = useState<Array<{
-    id: string;
-    order_number: string;
-    supplier_id: string;
-    status: string;
-    order_date: string;
-    notes: string;
-    title: string;
-    link: string;
-    tracking_pl: string;
-    part_price: number;
-    delivery_cost: number;
-    total_cost: number;
-    part_number: string;
-    payment_type: string;
-    cash_on_delivery: number;
-    client_id: string;
-    received_pln: number;
-    transport_cost_usd: number;
-    weight_kg: number;
-    verified: boolean;
-  }>>([]);
+  const [draftRows, setDraftRows] = useState<DraftOrder[]>([]);
+  const [showArchivedDrafts, setShowArchivedDrafts] = useState(false);
+
+  const { columnWidths, resizingColumn, handleMouseDown, getColumnWidth } = useResizableColumns('orders_table', {
+    checkbox: 60,
+    status: 150,
+    verified: 60,
+    client_id: 120,
+    title: 200,
+    link: 60,
+    tracking_pl: 130,
+    part_price: 110,
+    delivery_cost: 100,
+    total_cost: 100,
+    part_number: 130,
+    payment_type: 120,
+    cash_on_delivery: 110,
+    actions: 100
+  });
+
+  const acceptedColumnsResizable = useResizableColumns('accepted_orders_table', {
+    receipt_number: 100,
+    status: 100,
+    title: 200,
+    client_id: 120,
+    part_number: 130,
+    link: 60,
+    tracking_number: 130,
+    weight_kg: 90,
+    part_price: 110,
+    delivery_cost: 110,
+    total: 100,
+    payment_type: 120,
+    cash_on_delivery: 110,
+    received_pln: 110,
+    transport_cost_usd: 130,
+    supplier: 120,
+    accepted_at: 150,
+    explanation: 200,
+    actions: 80
+  });
   const [newRowData, setNewRowData] = useState({
     order_number: '',
     supplier_id: '',
+    manager_id: '',
     status: 'в роботі на сьогодні',
     order_date: new Date().toISOString().split('T')[0],
     notes: '',
@@ -115,6 +144,7 @@ export default function Orders() {
   const [formData, setFormData] = useState({
     order_number: '',
     supplier_id: '',
+    manager_id: '',
     status: 'в роботі на сьогодні',
     order_date: new Date().toISOString().split('T')[0],
     notes: '',
@@ -138,14 +168,20 @@ export default function Orders() {
     loadOrders();
     loadAcceptedOrders();
     loadSuppliers();
+    loadManagers();
     loadArtTransId();
     loadReturnsCount();
     loadTariffSettings();
+    loadDraftOrders();
   }, []);
 
   useEffect(() => {
     loadOrders();
   }, [activeViewTab]);
+
+  useEffect(() => {
+    loadDraftOrders();
+  }, [showArchivedDrafts]);
 
   useEffect(() => {
     if (activeTab === 'returns') {
@@ -277,7 +313,7 @@ export default function Orders() {
       console.log('🔄 Починаємо завантаження замовлень...');
       const { data, error } = await supabase
         .from('orders')
-        .select('*, supplier:suppliers(*)')
+        .select('*, supplier:suppliers(*), manager:user_profiles!manager_id(id, full_name, email)')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -341,6 +377,36 @@ export default function Orders() {
     window.print();
   }
 
+  async function loadDraftOrders() {
+    try {
+      const projectId = await getCurrentProjectId();
+      if (!projectId) {
+        console.error('Не знайдено project_id для завантаження чернеток');
+        return;
+      }
+
+      console.log('🔍 Завантаження чернеток для проекту:', projectId, 'archived:', showArchivedDrafts);
+
+      const { data, error } = await supabase
+        .from('draft_orders')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('archived', showArchivedDrafts)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Помилка завантаження чернеток:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+      } else if (data) {
+        console.log('✅ Чернетки завантажено:', data.length);
+        console.log('📋 Дані чернеток:', data);
+        setDraftRows(data);
+      }
+    } catch (err) {
+      console.error('❌ Помилка при завантаженні чернеток:', err);
+    }
+  }
+
   async function loadSuppliers() {
     const { data, error } = await supabase
       .from('suppliers')
@@ -352,6 +418,20 @@ export default function Orders() {
     } else if (data) {
       console.log('Постачальники завантажено:', data.length);
       setSuppliers(data);
+    }
+  }
+
+  async function loadManagers() {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('id, full_name, email')
+      .order('full_name');
+
+    if (error) {
+      console.error('Помилка завантаження менеджерів:', error);
+    } else if (data) {
+      console.log('Менеджерів завантажено:', data.length);
+      setManagers(data);
     }
   }
 
@@ -406,6 +486,10 @@ export default function Orders() {
       delete dataToSubmit.supplier_id;
     }
 
+    if (!dataToSubmit.manager_id || dataToSubmit.manager_id === '') {
+      delete dataToSubmit.manager_id;
+    }
+
     if (dataToSubmit.client_id === '') {
       delete dataToSubmit.client_id;
     }
@@ -423,6 +507,13 @@ export default function Orders() {
         }
         showSuccess('Замовлення успішно оновлено!');
       } else {
+        const projectId = await getCurrentProjectId();
+        if (!projectId) {
+          showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
+          return;
+        }
+        dataToSubmit.project_id = projectId;
+
         const { error } = await supabase.from('orders').insert([dataToSubmit]);
         if (error) {
           console.error('Error inserting order:', error);
@@ -461,9 +552,37 @@ export default function Orders() {
   }
 
   async function handleReturn(order: Order & { supplier: Supplier }) {
-    const confirmed = await confirm('Створити повернення з цього замовлення?');
+    const isAccepted = order.status === 'прийнято';
+
+    const confirmMessage = isAccepted
+      ? `Створити повернення з прийнятого замовлення?\n\nТовар: ${order.title || 'Без назви'}\nКлієнт: ${order.client_id || '-'}\n\nУвага: Це повернення не вплине на баланс постачальника, так як товар вже був оброблений.`
+      : 'Створити повернення з цього замовлення?';
+
+    const confirmed = await confirm(confirmMessage);
+
     if (confirmed) {
+      const projectId = await getCurrentProjectId();
+      if (!projectId) {
+        showError('Помилка: не вдалося визначити проект');
+        return;
+      }
+
+      let acceptedOrderId = null;
+
+      if (isAccepted) {
+        const { data: acceptedOrder } = await supabase
+          .from('accepted_orders')
+          .select('id')
+          .eq('order_id', order.id)
+          .maybeSingle();
+
+        acceptedOrderId = acceptedOrder?.id || null;
+      }
+
       const { error } = await supabase.from('returns').insert({
+        order_id: !isAccepted ? order.id : null,
+        accepted_order_id: acceptedOrderId,
+        supplier_id: order.supplier_id,
         status: 'повернення',
         substatus: 'В Арта в хелмі',
         client_id: order.client_id || '',
@@ -476,27 +595,33 @@ export default function Orders() {
         part_number: order.part_number || '',
         payment_type: order.payment_type || '',
         cash_on_delivery: order.cash_on_delivery || 0,
-        order_date: order.order_date || new Date().toISOString(),
+        order_date: order.order_date || new Date().toISOString().split('T')[0],
         return_tracking_to_supplier: '',
         refund_status: '',
-        archived: false
+        archived: false,
+        is_reversed: isAccepted,
+        project_id: projectId,
+        counterparty_id: order.counterparty_id
       });
 
       if (!error) {
-        await supabase
-          .from('orders')
-          .update({
-            status: 'повернення',
-            previous_status: order.status,
-            archived: true,
-            archived_at: new Date().toISOString()
-          })
-          .eq('id', order.id);
+        if (!isAccepted) {
+          await supabase
+            .from('orders')
+            .update({
+              status: 'повернення',
+              previous_status: order.status,
+              archived: true,
+              archived_at: new Date().toISOString()
+            })
+            .eq('id', order.id);
+        }
 
-        showSuccess('Повернення створено успішно!');
+        showSuccess(isAccepted ? 'Повернення з прийнятого замовлення створено успішно!' : 'Повернення створено успішно!');
         loadReturnsCount();
         loadOrders();
       } else {
+        console.error('Помилка при створенні повернення:', error);
         showError('Помилка при створенні повернення');
       }
     }
@@ -597,6 +722,31 @@ export default function Orders() {
   }
 
   function startEditing(orderId: string, field: string, currentValue: any) {
+    // Перевірка прав для постачальника
+    if (isSupplier) {
+      const allowedFields = ['cash_on_delivery'];
+      if (!allowedFields.includes(field)) {
+        showWarning('Ви можете редагувати тільки вартість побраня');
+        return;
+      }
+
+      // Перевірка чи це чернетка
+      const order = orders.find(o => o.id === orderId);
+      if (order && order.status !== 'чернетка') {
+        showWarning('Ви можете редагувати тільки замовлення в статусі "чернетка"');
+        return;
+      }
+
+      // Перевірка payment_type для побраня
+      if (field === 'cash_on_delivery' && order) {
+        const paidTypes = ['оплачено', 'оплачено по перерахунку', 'не обрано', 'готівка', 'банк карта'];
+        if (paidTypes.includes(order.payment_type || '')) {
+          showWarning('Побраня можна редагувати тільки для замовлень з типом оплати "побранє"');
+          return;
+        }
+      }
+    }
+
     setEditingCell({ orderId, field });
     let cleanValue = String(currentValue);
     cleanValue = cleanValue.replace(/ (zl|\$|кг)$/, '');
@@ -615,10 +765,34 @@ export default function Orders() {
       valueToSave = parseFloat(cleanValue) || 0;
     }
 
+    // Додаткова перевірка для постачальника
+    if (isSupplier) {
+      if (field !== 'cash_on_delivery') {
+        showError('Ви можете редагувати тільки вартість побраня');
+        setEditingCell(null);
+        setEditValue('');
+        return;
+      }
+
+      const order = orders.find(o => o.id === orderId);
+      if (order) {
+        const paidTypes = ['оплачено', 'оплачено по перерахунку', 'не обрано', 'готівка', 'банк карта'];
+        if (paidTypes.includes(order.payment_type || '')) {
+          showError('Побраня можна редагувати тільки для замовлень з типом оплати "побранє"');
+          setEditingCell(null);
+          setEditValue('');
+          return;
+        }
+      }
+    }
+
     const updateData: any = { [field]: valueToSave };
 
-    if (field === 'payment_type' && (valueToSave === 'оплачено' || valueToSave === 'не обрано')) {
-      updateData.cash_on_delivery = 0;
+    if (field === 'payment_type') {
+      const paidTypes = ['оплачено', 'оплачено по перерахунку', 'не обрано', 'готівка', 'банк карта'];
+      if (paidTypes.includes(valueToSave)) {
+        updateData.cash_on_delivery = 0;
+      }
     }
 
     if (field === 'part_price' || field === 'delivery_cost') {
@@ -678,10 +852,14 @@ export default function Orders() {
     return 'text-sm';
   }
 
-  function renderEditableCell(orderId: string, field: string, value: any, className: string = '', isAccepted: boolean = false) {
+  function renderEditableCell(orderId: string, field: string, value: any, className: string = '', isAccepted: boolean = false, order?: Order & { supplier: Supplier }) {
     const isEditing = editingCell?.orderId === orderId && editingCell?.field === field;
 
-    if (isEditing && !isAccepted) {
+    // Перевірка чи може постачальник редагувати це поле
+    const canSupplierEdit = isSupplier && field === 'cash_on_delivery' && order?.status === 'чернетка' && order.payment_type && ['побранє', 'самовивіз'].includes(order.payment_type);
+    const isFieldDisabled = isSupplier && !canSupplierEdit;
+
+    if (isEditing && !isAccepted && !isFieldDisabled) {
       return (
         <td className="px-3 py-3 min-h-[48px] bg-white dark:bg-gray-800">
           <input
@@ -703,9 +881,9 @@ export default function Orders() {
 
     return (
       <td
-        className={`px-3 py-3 ${!isAccepted ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} transition min-h-[48px] ${isTitle ? 'min-w-[200px]' : ''} ${className.replace(/text-(sm|xs|base)/g, '')} ${fontSizeClass} bg-white dark:bg-gray-800`}
-        onClick={() => !isAccepted && startEditing(orderId, field, value)}
-        title={displayValue}
+        className={`px-3 py-3 ${!isAccepted && !isFieldDisabled ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} ${isFieldDisabled ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-700' : ''} transition min-h-[48px] ${isTitle ? 'min-w-[200px]' : ''} ${className.replace(/text-(sm|xs|base)/g, '')} ${fontSizeClass} bg-white dark:bg-gray-800`}
+        onClick={() => !isAccepted && !isFieldDisabled && startEditing(orderId, field, value)}
+        title={isFieldDisabled ? 'Заблоковано для постачальника' : displayValue}
       >
         <div className={`w-full ${isTitle ? 'line-clamp-3 break-words' : 'break-words whitespace-normal'} text-gray-900 dark:text-gray-100`}>
           {displayValue}
@@ -717,8 +895,9 @@ export default function Orders() {
   function renderTrackingCell(orderId: string, order: Order & { supplier: Supplier }, isAccepted: boolean = false) {
     const isEditing = editingCell?.orderId === orderId && editingCell?.field === 'tracking_pl';
     const trackingValue = order.tracking_pl || '';
+    const isFieldDisabled = isSupplier;
 
-    if (isEditing && !isAccepted) {
+    if (isEditing && !isAccepted && !isFieldDisabled) {
       return (
         <td className="px-3 py-3 min-h-[48px]">
           <input
@@ -741,9 +920,9 @@ export default function Orders() {
 
     return (
       <td
-        className={`px-3 py-3 ${!isAccepted && !isOrderAccepted ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : isOrderAccepted ? 'cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-blue-600 dark:hover:text-blue-400 hover:underline' : ''} transition min-h-[48px] text-gray-900 dark:text-gray-100 text-center ${fontSizeClass} bg-white dark:bg-gray-800`}
+        className={`px-3 py-3 ${!isAccepted && !isOrderAccepted && !isFieldDisabled ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : isOrderAccepted ? 'cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-blue-600 dark:hover:text-blue-400 hover:underline' : ''} ${isFieldDisabled ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-700' : ''} transition min-h-[48px] text-gray-900 dark:text-gray-100 text-center ${fontSizeClass} bg-white dark:bg-gray-800`}
         onClick={() => {
-          if (!isAccepted && !isOrderAccepted) {
+          if (!isAccepted && !isOrderAccepted && !isFieldDisabled) {
             startEditing(orderId, 'tracking_pl', trackingValue);
           } else if (isOrderAccepted) {
             openReceiptByOrderId(orderId);
@@ -760,8 +939,9 @@ export default function Orders() {
 
   function renderLinkCell(orderId: string, link: string, isAccepted: boolean = false) {
     const isEditing = editingCell?.orderId === orderId && editingCell?.field === 'link';
+    const isFieldDisabled = isSupplier;
 
-    if (isEditing && !isAccepted) {
+    if (isEditing && !isAccepted && !isFieldDisabled) {
       return (
         <td className="px-3 py-3 text-center min-h-[48px]">
           <input
@@ -780,9 +960,9 @@ export default function Orders() {
 
     return (
       <td
-        className={`px-3 py-3 text-center ${!isAccepted ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} transition min-h-[48px] bg-white dark:bg-gray-800`}
-        onClick={() => !isAccepted && startEditing(orderId, 'link', link)}
-        title={isAccepted ? '' : "Клікніть для редагування посилання"}
+        className={`px-3 py-3 text-center ${!isAccepted && !isFieldDisabled ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} ${isFieldDisabled ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-700' : ''} transition min-h-[48px] bg-white dark:bg-gray-800`}
+        onClick={() => !isAccepted && !isFieldDisabled && startEditing(orderId, 'link', link)}
+        title={isFieldDisabled ? 'Заблоковано для постачальника' : (isAccepted ? '' : "Клікніть для редагування посилання")}
       >
         {link ? (
           <a
@@ -805,8 +985,9 @@ export default function Orders() {
 
   function renderDateCell(orderId: string, dateValue: string, className: string = '', isAccepted: boolean = false) {
     const isEditing = editingCell?.orderId === orderId && editingCell?.field === 'order_date';
+    const isFieldDisabled = isSupplier;
 
-    if (isEditing && !isAccepted) {
+    if (isEditing && !isAccepted && !isFieldDisabled) {
       return (
         <td className="px-3 py-3 min-h-[48px]">
           <input
@@ -828,9 +1009,9 @@ export default function Orders() {
 
     return (
       <td
-        className={`px-3 py-3 ${!isAccepted ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} transition min-h-[48px] ${className.replace(/text-(sm|xs|base)/g, '')} ${fontSizeClass} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100`}
-        onClick={() => !isAccepted && startEditing(orderId, 'order_date', dateValue)}
-        title={isAccepted ? '' : "Клікніть для редагування дати"}
+        className={`px-3 py-3 ${!isAccepted && !isFieldDisabled ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} ${isFieldDisabled ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-700' : ''} transition min-h-[48px] ${className.replace(/text-(sm|xs|base)/g, '')} ${fontSizeClass} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100`}
+        onClick={() => !isAccepted && !isFieldDisabled && startEditing(orderId, 'order_date', dateValue)}
+        title={isFieldDisabled ? 'Заблоковано для постачальника' : (isAccepted ? '' : "Клікніть для редагування дати")}
       >
         <div className="w-full break-words whitespace-normal">
           {displayValue}
@@ -841,11 +1022,13 @@ export default function Orders() {
 
   function renderPaymentTypeCell(orderId: string, paymentType: string, isAccepted: boolean = false) {
     const displayPaymentType = paymentType || 'не обрано';
+    const isFieldDisabled = isSupplier;
+
     return (
       <td className="p-0 relative">
         <button
           onClick={(e) => {
-            if (isAccepted) return;
+            if (isAccepted || isFieldDisabled) return;
             e.stopPropagation();
             const rect = e.currentTarget.getBoundingClientRect();
             const dropdownHeight = 300;
@@ -860,11 +1043,12 @@ export default function Orders() {
             setPaymentDropdownPosition({ top, left: rect.left + window.scrollX });
             setOpenPaymentDropdown(openPaymentDropdown === orderId ? null : orderId);
           }}
-          className={`w-full h-full px-3 py-3 text-xs font-semibold ${paymentTypeColors[displayPaymentType]} ${!isAccepted ? 'hover:opacity-80' : 'cursor-default'} transition flex items-center justify-center gap-1 min-h-[48px]`}
-          disabled={isAccepted}
+          className={`w-full h-full px-3 py-3 text-xs font-semibold ${paymentTypeColors[displayPaymentType]} ${!isAccepted && !isFieldDisabled ? 'hover:opacity-80' : 'cursor-default'} ${isFieldDisabled ? 'opacity-60 cursor-not-allowed' : ''} transition flex items-center justify-center gap-1 min-h-[48px]`}
+          disabled={isAccepted || isFieldDisabled}
+          title={isFieldDisabled ? 'Заблоковано для постачальника' : ''}
         >
           {paymentTypeLabels[displayPaymentType]}
-          {!isAccepted && <ChevronDown size={14} />}
+          {!isAccepted && !isFieldDisabled && <ChevronDown size={14} />}
         </button>
       </td>
     );
@@ -875,6 +1059,7 @@ export default function Orders() {
     setFormData({
       order_number: order.order_number,
       supplier_id: order.supplier_id,
+      manager_id: order.manager_id || '',
       status: order.status,
       order_date: order.order_date,
       notes: order.notes,
@@ -904,6 +1089,7 @@ export default function Orders() {
     setFormData({
       order_number: '',
       supplier_id: artTransId,
+      manager_id: '',
       status: 'в роботі на сьогодні',
       order_date: new Date().toISOString().split('T')[0],
       notes: '',
@@ -924,58 +1110,106 @@ export default function Orders() {
     });
   }
 
-  function addDraftRows(count: number) {
+  async function addDraftRows(count: number) {
     const defaultWeight = 1;
     const receivedPln = tariffSettings?.default_received_pln || 15;
     const transportCostUsd = tariffSettings ? defaultWeight * tariffSettings.default_transport_cost_per_kg_usd : 0;
 
-    const newDrafts = Array.from({ length: count }, (_, index) => ({
-      id: `draft-${Date.now()}-${index}`,
-      order_number: '',
-      supplier_id: artTransId,
-      status: 'в роботі на сьогодні',
-      order_date: new Date().toISOString().split('T')[0],
-      notes: '',
-      title: '',
-      link: '',
-      tracking_pl: '',
-      part_price: 0,
-      delivery_cost: 0,
-      total_cost: 0,
-      part_number: '',
-      payment_type: 'не обрано',
-      cash_on_delivery: 0,
-      client_id: '',
-      received_pln: receivedPln,
-      transport_cost_usd: transportCostUsd,
-      weight_kg: defaultWeight,
-      verified: false
-    }));
+    try {
+      const projectId = await getCurrentProjectId();
+      if (!projectId) {
+        showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
+        return;
+      }
 
-    setDraftRows(prev => [...prev, ...newDrafts]);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        showError('Помилка: не знайдено поточного користувача');
+        return;
+      }
+
+      const newDrafts = Array.from({ length: count }, () => ({
+        order_number: '',
+        supplier_id: artTransId,
+        manager_id: null,
+        status: 'в роботі на сьогодні',
+        order_date: new Date().toISOString().split('T')[0],
+        notes: '',
+        title: '',
+        link: '',
+        tracking_pl: '',
+        part_price: 0,
+        delivery_cost: 0,
+        total_cost: 0,
+        part_number: '',
+        payment_type: 'не обрано',
+        cash_on_delivery: 0,
+        client_id: '',
+        received_pln: receivedPln,
+        transport_cost_usd: transportCostUsd,
+        weight_kg: defaultWeight,
+        verified: false,
+        archived: false,
+        project_id: projectId,
+        created_by: user.id
+      }));
+
+      const { error } = await supabase.from('draft_orders').insert(newDrafts);
+
+      if (error) {
+        console.error('Error creating drafts:', error);
+        showError('Помилка при створенні чернеток: ' + error.message);
+        return;
+      }
+
+      showSuccess(`Створено ${count} чернет${count === 1 ? 'ку' : count <= 4 ? 'ки' : 'ок'}`);
+      loadDraftOrders();
+    } catch (err) {
+      console.error('Network error:', err);
+      showError('Помилка мережі: Перевірте підключення до інтернету');
+    }
   }
 
-  function updateDraftRow(draftId: string, field: string, value: any) {
-    setDraftRows(prev => prev.map(draft => {
-      if (draft.id === draftId) {
-        const updated = { ...draft, [field]: value };
+  async function updateDraftRow(draftId: string, field: string, value: any) {
+    const draft = draftRows.find(d => d.id === draftId);
+    if (!draft) return;
 
-        if (field === 'payment_type' && value === 'оплачено') {
-          updated.cash_on_delivery = 0;
-        }
+    const updated: any = { [field]: value };
 
-        if (field === 'weight_kg' && tariffSettings) {
-          updated.transport_cost_usd = Number(value) * tariffSettings.default_transport_cost_per_kg_usd;
-        }
+    if (field === 'payment_type' && value === 'оплачено') {
+      updated.cash_on_delivery = 0;
+    }
 
-        if (field === 'part_price' || field === 'delivery_cost') {
-          updated.total_cost = updated.part_price + updated.delivery_cost;
-        }
+    if (field === 'weight_kg' && tariffSettings) {
+      updated.transport_cost_usd = Number(value) * tariffSettings.default_transport_cost_per_kg_usd;
+    }
 
-        return updated;
+    if (field === 'part_price' || field === 'delivery_cost') {
+      const newPartPrice = field === 'part_price' ? Number(value) : draft.part_price;
+      const newDeliveryCost = field === 'delivery_cost' ? Number(value) : draft.delivery_cost;
+      updated.total_cost = newPartPrice + newDeliveryCost;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('draft_orders')
+        .update(updated)
+        .eq('id', draftId);
+
+      if (error) {
+        console.error('Error updating draft:', error);
+        showError('Помилка оновлення чернетки');
+        return;
       }
-      return draft;
-    }));
+
+      // Оновлюємо локальний стан
+      setDraftRows(prev => prev.map(d =>
+        d.id === draftId ? { ...d, ...updated } : d
+      ));
+    } catch (err) {
+      console.error('Network error:', err);
+      showError('Помилка мережі');
+    }
   }
 
   async function saveDraftRow(draftId: string) {
@@ -1017,12 +1251,29 @@ export default function Orders() {
       return;
     }
 
-    const dataToSubmit: any = { ...draft };
-    delete dataToSubmit.id;
-
-    if (!dataToSubmit.supplier_id || dataToSubmit.supplier_id === '') {
-      delete dataToSubmit.supplier_id;
-    }
+    const dataToSubmit: any = {
+      order_number: draft.order_number,
+      supplier_id: draft.supplier_id || null,
+      manager_id: draft.manager_id || null,
+      status: draft.status,
+      order_date: draft.order_date,
+      notes: draft.notes,
+      title: draft.title,
+      link: draft.link,
+      tracking_pl: draft.tracking_pl,
+      part_price: draft.part_price,
+      delivery_cost: draft.delivery_cost,
+      total_cost: draft.total_cost,
+      part_number: draft.part_number,
+      payment_type: draft.payment_type,
+      cash_on_delivery: draft.cash_on_delivery,
+      client_id: draft.client_id,
+      received_pln: draft.received_pln,
+      transport_cost_usd: draft.transport_cost_usd,
+      weight_kg: draft.weight_kg,
+      verified: draft.verified,
+      project_id: draft.project_id
+    };
 
     try {
       const { error } = await supabase.from('orders').insert([dataToSubmit]);
@@ -1032,8 +1283,11 @@ export default function Orders() {
         return;
       }
 
+      // Видаляємо чернетку після успішного створення замовлення
+      await supabase.from('draft_orders').delete().eq('id', draftId);
+
       showSuccess('Замовлення успішно створено!');
-      setDraftRows(prev => prev.filter(d => d.id !== draftId));
+      loadDraftOrders();
       loadOrders();
     } catch (err) {
       console.error('Network error:', err);
@@ -1041,8 +1295,73 @@ export default function Orders() {
     }
   }
 
-  function deleteDraftRow(draftId: string) {
-    setDraftRows(prev => prev.filter(d => d.id !== draftId));
+  async function deleteDraftRow(draftId: string) {
+    try {
+      const { error } = await supabase
+        .from('draft_orders')
+        .delete()
+        .eq('id', draftId);
+
+      if (error) {
+        console.error('Error deleting draft:', error);
+        showError('Помилка видалення чернетки');
+        return;
+      }
+
+      showSuccess('Чернетку видалено!');
+      loadDraftOrders();
+    } catch (err) {
+      console.error('Network error:', err);
+      showError('Помилка мережі');
+    }
+  }
+
+  async function archiveDraftRow(draftId: string) {
+    try {
+      const { error } = await supabase
+        .from('draft_orders')
+        .update({
+          archived: true,
+          archived_at: new Date().toISOString()
+        })
+        .eq('id', draftId);
+
+      if (error) {
+        console.error('Error archiving draft:', error);
+        showError('Помилка архівування чернетки');
+        return;
+      }
+
+      showSuccess('Чернетку архівовано!');
+      loadDraftOrders();
+    } catch (err) {
+      console.error('Network error:', err);
+      showError('Помилка мережі');
+    }
+  }
+
+  async function unarchiveDraftRow(draftId: string) {
+    try {
+      const { error } = await supabase
+        .from('draft_orders')
+        .update({
+          archived: false,
+          archived_at: null
+        })
+        .eq('id', draftId);
+
+      if (error) {
+        console.error('Error unarchiving draft:', error);
+        showError('Помилка розархівування чернетки');
+        return;
+      }
+
+      showSuccess('Чернетку розархівовано!');
+      loadDraftOrders();
+    } catch (err) {
+      console.error('Network error:', err);
+      showError('Помилка мережі');
+    }
   }
 
   function startAddingNewRow() {
@@ -1122,6 +1441,13 @@ export default function Orders() {
     }
 
     try {
+      const projectId = await getCurrentProjectId();
+      if (!projectId) {
+        showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
+        return;
+      }
+      dataToSubmit.project_id = projectId;
+
       const { error } = await supabase.from('orders').insert([dataToSubmit]);
       if (error) {
         console.error('Error inserting order:', error);
@@ -1168,6 +1494,19 @@ export default function Orders() {
     } else {
       setSelectedOrders(new Set(filteredOrders.map(o => o.id)));
     }
+  }
+
+  function toggleGroupOrders(groupOrders: (Order & { supplier: Supplier })[]) {
+    const groupOrderIds = groupOrders.map(o => o.id);
+    const allGroupSelected = groupOrderIds.every(id => selectedOrders.has(id));
+
+    const newSelected = new Set(selectedOrders);
+    if (allGroupSelected) {
+      groupOrderIds.forEach(id => newSelected.delete(id));
+    } else {
+      groupOrderIds.forEach(id => newSelected.add(id));
+    }
+    setSelectedOrders(newSelected);
   }
 
   function toggleColumnView() {
@@ -1305,41 +1644,68 @@ export default function Orders() {
     if (!searchTerm.trim()) return true;
 
     const searchLower = searchTerm.toLowerCase().trim();
+    const manager = (order as any).manager;
+    const counterparty = (order as any).counterparty;
+
     return (
+      (order.order_number && order.order_number.toLowerCase().includes(searchLower)) ||
       (order.client_id && order.client_id.toLowerCase().includes(searchLower)) ||
       (order.title && order.title.toLowerCase().includes(searchLower)) ||
+      (order.link && order.link.toLowerCase().includes(searchLower)) ||
       (order.tracking_pl && order.tracking_pl.toLowerCase().includes(searchLower)) ||
-      (order.part_number && order.part_number.toLowerCase().includes(searchLower))
+      (order.part_number && order.part_number.toLowerCase().includes(searchLower)) ||
+      (order.notes && order.notes.toLowerCase().includes(searchLower)) ||
+      (order.status && order.status.toLowerCase().includes(searchLower)) ||
+      (order.payment_type && order.payment_type.toLowerCase().includes(searchLower)) ||
+      (order.supplier?.name && order.supplier.name.toLowerCase().includes(searchLower)) ||
+      (order.supplier_inspection_status && order.supplier_inspection_status.toLowerCase().includes(searchLower)) ||
+      (order.supplier_notes && order.supplier_notes.toLowerCase().includes(searchLower)) ||
+      (manager && ((manager.full_name && manager.full_name.toLowerCase().includes(searchLower)) || (manager.email && manager.email.toLowerCase().includes(searchLower)))) ||
+      (counterparty && counterparty.name && counterparty.name.toLowerCase().includes(searchLower)) ||
+      (order.part_price && order.part_price.toString().includes(searchLower)) ||
+      (order.delivery_cost && order.delivery_cost.toString().includes(searchLower)) ||
+      (order.total_cost && order.total_cost.toString().includes(searchLower)) ||
+      (order.cash_on_delivery && order.cash_on_delivery.toString().includes(searchLower)) ||
+      (order.received_pln && order.received_pln.toString().includes(searchLower)) ||
+      (order.transport_cost_usd && order.transport_cost_usd.toString().includes(searchLower)) ||
+      (order.weight_kg && order.weight_kg.toString().includes(searchLower)) ||
+      (order.order_date && order.order_date.includes(searchLower)) ||
+      (order.verified && (order.verified ? 'підтверджено' : 'непідтверджено').includes(searchLower))
     );
   });
 
   const handleExportOrders = () => {
-    const dataToExport = filteredOrders.map(order => ({
-      client_id: order.client_id || '',
-      order_number: order.order_number || '',
-      supplier: order.supplier?.name || '',
-      status: order.status,
-      order_date: order.order_date,
-      title: order.title || '',
-      link: order.link || '',
-      tracking_pl: order.tracking_pl || '',
-      part_price: order.part_price,
-      delivery_cost: order.delivery_cost,
-      total_cost: order.total_cost,
-      part_number: order.part_number || '',
-      payment_type: order.payment_type || '',
-      cash_on_delivery: order.cash_on_delivery,
-      received_pln: order.received_pln,
-      transport_cost_usd: order.transport_cost_usd,
-      weight_kg: order.weight_kg,
-      verified: order.verified ? 'Так' : 'Ні',
-      notes: order.notes || ''
-    }));
+    const dataToExport = filteredOrders.map(order => {
+      const manager = (order as any).manager;
+      return {
+        client_id: order.client_id || '',
+        order_number: order.order_number || '',
+        supplier: order.supplier?.name || '',
+        manager: manager ? (manager.full_name || manager.email) : '',
+        status: order.status,
+        order_date: order.order_date,
+        title: order.title || '',
+        link: order.link || '',
+        tracking_pl: order.tracking_pl || '',
+        part_price: order.part_price,
+        delivery_cost: order.delivery_cost,
+        total_cost: order.total_cost,
+        part_number: order.part_number || '',
+        payment_type: order.payment_type || '',
+        cash_on_delivery: order.cash_on_delivery,
+        received_pln: order.received_pln,
+        transport_cost_usd: order.transport_cost_usd,
+        weight_kg: order.weight_kg,
+        verified: order.verified ? 'Так' : 'Ні',
+        notes: order.notes || ''
+      };
+    });
 
     const headers = {
       client_id: 'ID Клієнта',
       order_number: '№ Замовлення',
       supplier: 'Постачальник',
+      manager: 'Менеджер',
       status: 'Статус',
       order_date: 'Дата',
       title: 'Назва',
@@ -1418,10 +1784,16 @@ export default function Orders() {
         return renderTrackingCell(order.id, order, isAccepted);
 
       case 'part_price':
-        return renderEditableCell(order.id, 'part_price', `${formatNumber(order.part_price)} zl`, 'text-center font-medium', isAccepted);
+        return renderEditableCell(order.id, 'part_price', `${formatNumber(order.part_price)} zl`, 'text-center font-medium', isAccepted, order);
 
       case 'delivery_cost':
-        return renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-center', isAccepted);
+        return renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-center', isAccepted, order);
+
+      case 'weight_kg':
+        return renderEditableCell(order.id, 'weight_kg', `${formatNumber(order.weight_kg)} кг`, 'text-center', isAccepted, order);
+
+      case 'transport_cost_usd':
+        return renderEditableCell(order.id, 'transport_cost_usd', `${formatNumber(order.transport_cost_usd)} $`, 'text-center', isAccepted, order);
 
       case 'total_cost':
         return (
@@ -1434,7 +1806,7 @@ export default function Orders() {
         return renderPaymentTypeCell(order.id, order.payment_type || 'оплачено', isAccepted);
 
       case 'cash_on_delivery':
-        return renderEditableCell(order.id, 'cash_on_delivery', `${formatNumber(order.cash_on_delivery)} zl`, 'text-center', isAccepted);
+        return renderEditableCell(order.id, 'cash_on_delivery', `${formatNumber(order.cash_on_delivery)} zl`, 'text-center', isAccepted, order);
 
       case 'order_date':
         return renderDateCell(order.id, order.order_date, 'text-gray-900 text-center', isAccepted);
@@ -1443,10 +1815,19 @@ export default function Orders() {
       case 'client_id':
       case 'title':
       case 'part_number':
-        return renderEditableCell(order.id, columnKey, value || '', 'text-gray-900 text-center', isAccepted);
+        return renderEditableCell(order.id, columnKey, value || '', 'text-gray-900 text-center', isAccepted, order);
+
+      case 'manager':
+        const manager = (order as any).manager;
+        const managerName = manager ? (manager.full_name || manager.email) : '';
+        return (
+          <td className="px-3 py-3 text-center text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 min-h-[48px]" key="manager">
+            {managerName || '-'}
+          </td>
+        );
 
       default:
-        return renderEditableCell(order.id, columnKey, value || '', 'text-gray-900 text-center', isAccepted);
+        return renderEditableCell(order.id, columnKey, value || '', 'text-gray-900 text-center', isAccepted, order);
     }
   }
 
@@ -1455,6 +1836,15 @@ export default function Orders() {
       <div className="flex justify-between items-center mb-4 flex-shrink-0">
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Замовлення</h2>
+          {profile && (
+            <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
+              isSupplier
+                ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+            }`}>
+              {profile.role} | {profile.email}
+            </div>
+          )}
           <div className="flex gap-2 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
             <button
               onClick={() => setActiveTab('orders')}
@@ -1506,14 +1896,16 @@ export default function Orders() {
               </select>
             )}
             <ExportButton onClick={handleExportOrders} disabled={filteredOrders.length === 0} />
-            <button
-              onClick={() => setIsModalOpen(!isModalOpen)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition"
-            >
-              {isModalOpen ? <X size={20} /> : <Plus size={20} />}
-              {isModalOpen ? 'Скасувати' : 'Нове замовлення'}
-            </button>
-            {acceptedOrders.length > 0 && (
+            {!isSupplier && (
+              <button
+                onClick={() => setIsModalOpen(!isModalOpen)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition"
+              >
+                {isModalOpen ? <X size={20} /> : <Plus size={20} />}
+                {isModalOpen ? 'Скасувати' : 'Нове замовлення'}
+              </button>
+            )}
+            {!isSupplier && acceptedOrders.length > 0 && (
               <button
                 onClick={() => setIsAcceptedOrdersModalOpen(true)}
                 className="bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition"
@@ -1638,6 +2030,26 @@ export default function Orders() {
                   <option value="повернення" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Повернення</option>
                   <option value="проблемні" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Проблемні</option>
                   <option value="анульовано" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Анульовано</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Менеджер</label>
+                <select
+                  value={formData.manager_id}
+                  onChange={(e) => setFormData({ ...formData, manager_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Не обрано</option>
+                  {managers.map((manager) => (
+                    <option
+                      key={manager.id}
+                      value={manager.id}
+                      className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    >
+                      {manager.full_name || manager.email}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -1832,32 +2244,55 @@ export default function Orders() {
           {!isAddingNewRow && (
             <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
               <div className="flex items-center gap-3">
-                <button
-                  onClick={startAddingNewRow}
-                  className="bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition text-sm font-medium"
-                >
-                  <Plus size={18} />
-                  Додати рядок
-                </button>
-                <div className="relative group">
+                {!isSupplier && (
                   <button
-                    className="bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-800 transition text-sm font-medium"
+                    onClick={startAddingNewRow}
+                    className="bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition text-sm font-medium"
                   >
-                    <Layers size={18} />
-                    Чернетки
+                    <Plus size={18} />
+                    Додати рядок
                   </button>
-                  <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-700 shadow-lg rounded-lg overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-[140px]">
-                    {[1, 2, 3, 4, 5].map(count => (
+                )}
+                {!isSupplier && (
+                  <>
+                    <div className="relative group">
                       <button
-                        key={count}
-                        onClick={() => addDraftRows(count)}
-                        className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-sm"
+                        className="bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-800 transition text-sm font-medium"
                       >
-                        Додати {count} {count === 1 ? 'рядок' : count <= 4 ? 'рядки' : 'рядків'}
+                        <Layers size={18} />
+                        Чернетки
                       </button>
-                    ))}
-                  </div>
-                </div>
+                      <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-700 shadow-lg rounded-lg overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-[140px]">
+                        {[1, 2, 3, 4, 5].map(count => (
+                          <button
+                            key={count}
+                            onClick={() => addDraftRows(count)}
+                            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-sm"
+                          >
+                            Додати {count} {count === 1 ? 'рядок' : count <= 4 ? 'рядки' : 'рядків'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowArchivedDrafts(!showArchivedDrafts)}
+                      className={`px-4 py-2 rounded-lg flex items-center gap-2 transition text-sm font-medium ${
+                        showArchivedDrafts
+                          ? 'bg-gray-600 text-white hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600'
+                          : 'bg-purple-600 text-white hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800'
+                      }`}
+                      title={showArchivedDrafts ? 'Показати активні чернетки' : 'Показати архівовані чернетки'}
+                    >
+                      <Archive size={18} />
+                      {showArchivedDrafts ? 'Архів чернеток' : 'Показати архів'}
+                      {!showArchivedDrafts && draftRows.length > 0 && (
+                        <span className="bg-purple-800 dark:bg-purple-900 px-2 py-0.5 rounded-full text-xs">
+                          {draftRows.length}
+                        </span>
+                      )}
+                    </button>
+                  </>
+                )}
                 <button
                   onClick={toggleColumnView}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition text-sm font-medium"
@@ -1885,7 +2320,7 @@ export default function Orders() {
                   )}
                 </div>
               </div>
-              {selectedOrders.size > 0 && (
+              {selectedOrders.size > 0 && !isSupplier && (
                 <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900 px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-700">
                   <span className="text-sm font-medium text-blue-900 dark:text-blue-200">
                     Обрано: {selectedOrders.size}
@@ -1929,22 +2364,46 @@ export default function Orders() {
               )}
             </div>
           )}
+          {isSupplier && draftRows.length > 0 && (
+            <div className="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 dark:border-blue-400 mb-2">
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
+                <span className="inline-block w-4 h-4 bg-yellow-200 dark:bg-yellow-900/50 border border-yellow-400 dark:border-yellow-600 rounded mr-2"></span>
+                Жовтим виділені поля які ви можете редагувати
+                <span className="mx-2">|</span>
+                <span className="inline-block w-4 h-4 bg-gray-300 dark:bg-gray-700 border border-gray-400 dark:border-gray-600 rounded mr-2"></span>
+                Сірим - поля заблоковані для редагування
+              </p>
+            </div>
+          )}
           <div className="flex-1 overflow-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
               <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
                 <tr>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                  <ResizableTableHeader
+                    columnKey="checkbox"
+                    width={getColumnWidth('checkbox', 60)}
+                    className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                    onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 60))}
+                    isResizing={resizingColumn === 'checkbox'}
+                  >
                     <input
                       type="checkbox"
                       checked={selectedOrders.size === filteredOrders.length && filteredOrders.length > 0}
                       onChange={toggleAllOrders}
                       className="w-4 h-4 rounded cursor-pointer text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600"
                     />
-                  </th>
+                  </ResizableTableHeader>
                   {getColumns(columnView).map((col) => (
-                    <th key={col.key} className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    <ResizableTableHeader
+                      key={col.key}
+                      columnKey={col.key}
+                      width={getColumnWidth(col.key, 150)}
+                      className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                      onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 150))}
+                      isResizing={resizingColumn === col.key}
+                    >
                       {col.key === 'link' ? <ExternalLink size={16} className="inline-block" /> : col.label}
-                    </th>
+                    </ResizableTableHeader>
                   ))}
                 </tr>
               </thead>
@@ -1952,203 +2411,40 @@ export default function Orders() {
                 {isAddingNewRow && (
                   <tr className="bg-green-100 dark:bg-green-900/70">
                     <td className="px-3 py-3 text-center min-h-[48px]"></td>
-                    <td className="p-0 relative">
-                      <select
-                        value={newRowData.status}
-                        onChange={(e) => setNewRowData({ ...newRowData, status: e.target.value })}
-                        className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 text-gray-900 dark:text-gray-100"
-                      >
-                        {statuses.map((status) => (
-                          <option
-                            key={status}
-                            value={status}
-                            className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                          >
-                            {statusLabels[status]}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-3 py-3 text-center min-h-[48px]">
-                      <input
-                        type="checkbox"
-                        checked={newRowData.verified}
-                        onChange={(e) => setNewRowData({ ...newRowData, verified: e.target.checked })}
-                        className="w-5 h-5 rounded cursor-pointer transition text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-600"
-                      />
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <input
-                        type="text"
-                        value={newRowData.client_id}
-                        onChange={(e) => setNewRowData({ ...newRowData, client_id: e.target.value })}
-                        onKeyDown={handleNewRowKeyDown}
-                        placeholder="ID клієнта *"
-                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <input
-                        type="text"
-                        value={newRowData.title}
-                        onChange={(e) => setNewRowData({ ...newRowData, title: e.target.value })}
-                        onKeyDown={handleNewRowKeyDown}
-                        placeholder="Назва *"
-                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <input
-                        type="text"
-                        value={newRowData.link}
-                        onChange={(e) => setNewRowData({ ...newRowData, link: e.target.value })}
-                        onKeyDown={handleNewRowKeyDown}
-                        placeholder="Посилання *"
-                        className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <input
-                        type="text"
-                        value={newRowData.tracking_pl}
-                        onChange={(e) => setNewRowData({ ...newRowData, tracking_pl: e.target.value })}
-                        onKeyDown={handleNewRowKeyDown}
-                        placeholder="Трекінг"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={newRowData.part_price}
-                        onChange={(e) => setNewRowData({ ...newRowData, part_price: Number(e.target.value) })}
-                        onKeyDown={handleNewRowKeyDown}
-                        placeholder="0"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={newRowData.delivery_cost}
-                        onChange={(e) => setNewRowData({ ...newRowData, delivery_cost: Number(e.target.value) })}
-                        onKeyDown={handleNewRowKeyDown}
-                        placeholder="0"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </td>
-                    <td className="px-3 py-3 text-center text-gray-900 dark:text-gray-100 font-bold bg-gray-50 dark:bg-gray-700 min-h-[48px]">
-                      {formatNumber(newRowData.total_cost)} zl
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <input
-                        type="text"
-                        value={newRowData.part_number}
-                        onChange={(e) => setNewRowData({ ...newRowData, part_number: e.target.value })}
-                        onKeyDown={handleNewRowKeyDown}
-                        placeholder="№"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </td>
-                    <td className="p-0 relative">
-                      <select
-                        value={newRowData.payment_type}
-                        onChange={(e) => {
-                          const newPaymentType = e.target.value;
-                          setNewRowData({
-                            ...newRowData,
-                            payment_type: newPaymentType,
-                            cash_on_delivery: newPaymentType === 'оплачено' ? 0 : newRowData.cash_on_delivery
-                          });
-                        }}
-                        className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 text-gray-900 dark:text-gray-100"
-                      >
-                        {paymentTypes.map((type) => (
-                          <option
-                            key={type}
-                            value={type}
-                            className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                          >
-                            {paymentTypeLabels[type]}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={newRowData.cash_on_delivery}
-                        onChange={(e) => setNewRowData({ ...newRowData, cash_on_delivery: Number(e.target.value) })}
-                        onKeyDown={handleNewRowKeyDown}
-                        disabled={newRowData.payment_type === 'оплачено'}
-                        placeholder="0"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                      />
-                    </td>
-                    <td className="px-3 py-3 min-h-[48px]">
-                      <div className="flex gap-2 justify-start">
-                        <button
-                          onClick={saveNewRow}
-                          className="px-3 py-2 bg-green-700 text-white rounded text-xs font-semibold hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition flex items-center gap-1"
-                        >
-                          <Check size={14} />
-                          Зберегти
-                        </button>
-                        <button
-                          onClick={cancelNewRow}
-                          className="px-3 py-2 bg-gray-200 text-gray-800 rounded text-xs font-semibold hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 transition flex items-center gap-1"
-                        >
-                          <X size={14} />
-                          Скасувати
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-                {draftRows.map((draft) => (
-                  <tr key={draft.id} className="bg-orange-50 dark:bg-orange-900/30 border-2 border-orange-300 dark:border-orange-700">
-                    <td className="px-3 py-3 text-center min-h-[48px]">
-                      <span className="text-orange-600 dark:text-orange-400 text-xs font-bold">Чернетка</span>
-                    </td>
                     {getColumns(columnView).map((col) => {
                       if (col.key === 'actions') {
                         return (
                           <td key="actions" className="px-3 py-3 min-h-[48px]">
                             <div className="flex gap-2 justify-start">
                               <button
-                                onClick={() => saveDraftRow(draft.id)}
+                                onClick={saveNewRow}
                                 className="px-3 py-2 bg-green-700 text-white rounded text-xs font-semibold hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition flex items-center gap-1"
-                                title="Зберегти замовлення"
                               >
                                 <Check size={14} />
                                 Зберегти
                               </button>
                               <button
-                                onClick={() => deleteDraftRow(draft.id)}
-                                className="px-3 py-2 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 transition flex items-center gap-1"
-                                title="Видалити чернетку"
+                                onClick={cancelNewRow}
+                                className="px-3 py-2 bg-gray-200 text-gray-800 rounded text-xs font-semibold hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 transition flex items-center gap-1"
                               >
                                 <X size={14} />
-                                Видалити
+                                Скасувати
                               </button>
                             </div>
                           </td>
                         );
                       }
 
-                      const value = (draft as any)[col.key];
+                      const value = (newRowData as any)[col.key];
                       const isRequired = ['client_id', 'title', 'link'].includes(col.key);
 
                       if (col.key === 'status') {
                         return (
                           <td key={col.key} className="p-0 relative">
                             <select
-                              value={draft.status}
-                              onChange={(e) => updateDraftRow(draft.id, 'status', e.target.value)}
-                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100"
+                              value={newRowData.status}
+                              onChange={(e) => setNewRowData({ ...newRowData, status: e.target.value })}
+                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 text-gray-900 dark:text-gray-100"
                             >
                               {statuses.map((status) => (
                                 <option
@@ -2169,8 +2465,8 @@ export default function Orders() {
                           <td key={col.key} className="px-3 py-3 text-center min-h-[48px]">
                             <input
                               type="checkbox"
-                              checked={draft.verified}
-                              onChange={(e) => updateDraftRow(draft.id, 'verified', e.target.checked)}
+                              checked={newRowData.verified}
+                              onChange={(e) => setNewRowData({ ...newRowData, verified: e.target.checked })}
                               className="w-5 h-5 rounded cursor-pointer transition text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-600"
                             />
                           </td>
@@ -2182,10 +2478,11 @@ export default function Orders() {
                           <td key={col.key} className="px-3 py-3 min-h-[48px]">
                             <input
                               type="text"
-                              value={draft.link}
-                              onChange={(e) => updateDraftRow(draft.id, 'link', e.target.value)}
+                              value={newRowData.link}
+                              onChange={(e) => setNewRowData({ ...newRowData, link: e.target.value })}
+                              onKeyDown={handleNewRowKeyDown}
                               placeholder="Посилання *"
-                              className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                              className="w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                             />
                           </td>
                         );
@@ -2195,9 +2492,258 @@ export default function Orders() {
                         return (
                           <td key={col.key} className="p-0 relative">
                             <select
+                              value={newRowData.payment_type}
+                              onChange={(e) => {
+                                const newPaymentType = e.target.value;
+                                setNewRowData({
+                                  ...newRowData,
+                                  payment_type: newPaymentType,
+                                  cash_on_delivery: newPaymentType === 'оплачено' ? 0 : newRowData.cash_on_delivery
+                                });
+                              }}
+                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 text-gray-900 dark:text-gray-100"
+                            >
+                              {paymentTypes.map((type) => (
+                                <option
+                                  key={type}
+                                  value={type}
+                                  className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                >
+                                  {paymentTypeLabels[type]}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                        );
+                      }
+
+                      if (col.key === 'total_cost') {
+                        return (
+                          <td key={col.key} className="px-3 py-3 text-center text-gray-900 dark:text-gray-100 font-bold bg-gray-50 dark:bg-gray-700 min-h-[48px]">
+                            {formatNumber(newRowData.total_cost)} zl
+                          </td>
+                        );
+                      }
+
+                      if (col.key === 'cash_on_delivery') {
+                        return (
+                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={newRowData.cash_on_delivery}
+                              onChange={(e) => setNewRowData({ ...newRowData, cash_on_delivery: Number(e.target.value) })}
+                              onKeyDown={handleNewRowKeyDown}
+                              disabled={newRowData.payment_type === 'оплачено'}
+                              placeholder="0"
+                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            />
+                          </td>
+                        );
+                      }
+
+                      if (['part_price', 'delivery_cost'].includes(col.key)) {
+                        return (
+                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={value}
+                              onChange={(e) => setNewRowData({ ...newRowData, [col.key]: Number(e.target.value) })}
+                              onKeyDown={handleNewRowKeyDown}
+                              placeholder="0"
+                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                            />
+                          </td>
+                        );
+                      }
+
+                      if (col.renderType === 'date') {
+                        return (
+                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
+                            <input
+                              type="date"
+                              value={value || ''}
+                              onChange={(e) => setNewRowData({ ...newRowData, [col.key]: e.target.value })}
+                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                            />
+                          </td>
+                        );
+                      }
+
+                      if (col.key === 'manager') {
+                        return (
+                          <td key={col.key} className="p-0 relative">
+                            <select
+                              value={newRowData.manager_id || ''}
+                              onChange={(e) => setNewRowData({ ...newRowData, manager_id: e.target.value })}
+                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 text-gray-900 dark:text-gray-100"
+                            >
+                              <option value="" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Не обрано</option>
+                              {managers.map((manager) => (
+                                <option
+                                  key={manager.id}
+                                  value={manager.id}
+                                  className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                >
+                                  {manager.full_name || manager.email}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                        );
+                      }
+
+                      return (
+                        <td key={col.key} className="px-3 py-3 min-h-[48px]">
+                          <input
+                            type="text"
+                            value={value || ''}
+                            onChange={(e) => setNewRowData({ ...newRowData, [col.key]: e.target.value })}
+                            onKeyDown={handleNewRowKeyDown}
+                            placeholder={isRequired ? `${col.label} *` : col.label}
+                            className={`w-full px-2 py-1 border ${isRequired ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'} rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-600 dark:focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+                          />
+                        </td>
+                      );
+                    })}
+                  </tr>
+                )}
+                {draftRows.map((draft) => (
+                  <tr key={draft.id} className="bg-orange-50 dark:bg-orange-900/30 border-2 border-orange-300 dark:border-orange-700">
+                    <td className="px-3 py-3 text-center min-h-[48px]">
+                      <span className="text-orange-600 dark:text-orange-400 text-xs font-bold">Чернетка</span>
+                    </td>
+                    {getColumns(columnView).map((col) => {
+                      if (col.key === 'actions') {
+                        return (
+                          <td key="actions" className="px-3 py-3 min-h-[48px]">
+                            {!isSupplier ? (
+                              <div className="flex gap-2 justify-start">
+                                {!showArchivedDrafts ? (
+                                  <>
+                                    <button
+                                      onClick={() => saveDraftRow(draft.id)}
+                                      className="px-3 py-2 bg-green-700 text-white rounded text-xs font-semibold hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800 transition flex items-center gap-1"
+                                      title="Зберегти замовлення"
+                                    >
+                                      <Check size={14} />
+                                      Зберегти
+                                    </button>
+                                    <button
+                                      onClick={() => archiveDraftRow(draft.id)}
+                                      className="px-3 py-2 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 transition flex items-center gap-1"
+                                      title="Архівувати чернетку"
+                                    >
+                                      <Archive size={14} />
+                                      Архів
+                                    </button>
+                                    <button
+                                      onClick={() => deleteDraftRow(draft.id)}
+                                      className="px-3 py-2 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 transition flex items-center gap-1"
+                                      title="Видалити чернетку"
+                                    >
+                                      <X size={14} />
+                                      Видалити
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={() => unarchiveDraftRow(draft.id)}
+                                      className="px-3 py-2 bg-orange-600 text-white rounded text-xs font-semibold hover:bg-orange-700 dark:bg-orange-600 dark:hover:bg-orange-700 transition flex items-center gap-1"
+                                      title="Розархівувати чернетку"
+                                    >
+                                      <RotateCcw size={14} />
+                                      Розархів
+                                    </button>
+                                    <button
+                                      onClick={() => deleteDraftRow(draft.id)}
+                                      className="px-3 py-2 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 transition flex items-center gap-1"
+                                      title="Видалити чернетку"
+                                    >
+                                      <X size={14} />
+                                      Видалити
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="text-xs text-gray-500 dark:text-gray-400 italic">
+                                Тільки перегляд
+                              </div>
+                            )}
+                          </td>
+                        );
+                      }
+
+                      const value = (draft as any)[col.key];
+                      const isRequired = ['client_id', 'title', 'link'].includes(col.key);
+
+                      // Поля які постачальник може редагувати
+                      const supplierEditableFields = ['order_number', 'delivery_date', 'cash_on_delivery', 'payment_type'];
+                      const isSupplierEditable = isSupplier && supplierEditableFields.includes(col.key);
+                      const isDisabledForSupplier = isSupplier && !supplierEditableFields.includes(col.key) && col.key !== 'actions';
+
+                      if (col.key === 'status') {
+                        return (
+                          <td key={col.key} className={`p-0 relative ${isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : ''}`}>
+                            <select
+                              value={draft.status}
+                              onChange={(e) => updateDraftRow(draft.id, 'status', e.target.value)}
+                              disabled={isDisabledForSupplier}
+                              className={`w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100 ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              {statuses.map((status) => (
+                                <option
+                                  key={status}
+                                  value={status}
+                                  className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                >
+                                  {statusLabels[status]}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                        );
+                      }
+
+                      if (col.key === 'verified') {
+                        return (
+                          <td key={col.key} className={`px-3 py-3 text-center min-h-[48px] ${isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : ''}`}>
+                            <input
+                              type="checkbox"
+                              checked={draft.verified}
+                              onChange={(e) => updateDraftRow(draft.id, 'verified', e.target.checked)}
+                              disabled={isDisabledForSupplier}
+                              className={`w-5 h-5 rounded cursor-pointer transition text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-600 ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            />
+                          </td>
+                        );
+                      }
+
+                      if (col.key === 'link') {
+                        return (
+                          <td key={col.key} className={`px-3 py-3 min-h-[48px] ${isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : ''}`}>
+                            <input
+                              type="text"
+                              value={draft.link}
+                              onChange={(e) => updateDraftRow(draft.id, 'link', e.target.value)}
+                              placeholder="Посилання *"
+                              disabled={isDisabledForSupplier}
+                              className={`w-full px-2 py-1 border border-red-300 dark:border-red-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            />
+                          </td>
+                        );
+                      }
+
+                      if (col.key === 'payment_type') {
+                        return (
+                          <td key={col.key} className={`p-0 relative ${isSupplierEditable ? 'bg-yellow-100 dark:bg-yellow-900/30' : ''}`}>
+                            <select
                               value={draft.payment_type}
                               onChange={(e) => updateDraftRow(draft.id, 'payment_type', e.target.value)}
-                              className="w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100"
+                              className={`w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100 ${isSupplierEditable ? 'ring-2 ring-yellow-400 dark:ring-yellow-600' : ''}`}
                             >
                               {paymentTypes.map((type) => (
                                 <option
@@ -2222,31 +2768,33 @@ export default function Orders() {
                       }
 
                       if (col.key === 'cash_on_delivery') {
+                        const isDisabled = draft.payment_type === 'оплачено';
                         return (
-                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
+                          <td key={col.key} className={`px-3 py-3 min-h-[48px] ${isSupplierEditable && !isDisabled ? 'bg-yellow-100 dark:bg-yellow-900/30' : ''}`}>
                             <input
                               type="number"
                               step="0.01"
                               value={draft.cash_on_delivery}
                               onChange={(e) => updateDraftRow(draft.id, 'cash_on_delivery', Number(e.target.value))}
-                              disabled={draft.payment_type === 'оплачено'}
+                              disabled={isDisabled}
                               placeholder="0"
-                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className={`w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed ${isSupplierEditable && !isDisabled ? 'ring-2 ring-yellow-400 dark:ring-yellow-600' : ''}`}
                             />
                           </td>
                         );
                       }
 
-                      if (['part_price', 'delivery_cost'].includes(col.key)) {
+                      if (['part_price', 'delivery_cost', 'weight_kg', 'transport_cost_usd'].includes(col.key)) {
                         return (
-                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
+                          <td key={col.key} className={`px-3 py-3 min-h-[48px] ${isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : ''}`}>
                             <input
                               type="number"
                               step="0.01"
                               value={value}
                               onChange={(e) => updateDraftRow(draft.id, col.key, Number(e.target.value))}
                               placeholder="0"
-                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                              disabled={isDisabledForSupplier}
+                              className={`w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
                             />
                           </td>
                         );
@@ -2254,25 +2802,51 @@ export default function Orders() {
 
                       if (col.renderType === 'date') {
                         return (
-                          <td key={col.key} className="px-3 py-3 min-h-[48px]">
+                          <td key={col.key} className={`px-3 py-3 min-h-[48px] ${isSupplierEditable ? 'bg-yellow-100 dark:bg-yellow-900/30' : (isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : '')}`}>
                             <input
                               type="date"
                               value={value || ''}
                               onChange={(e) => updateDraftRow(draft.id, col.key, e.target.value)}
-                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                              disabled={isDisabledForSupplier}
+                              className={`w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isSupplierEditable ? 'ring-2 ring-yellow-400 dark:ring-yellow-600' : ''} ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
                             />
                           </td>
                         );
                       }
 
+                      if (col.key === 'manager') {
+                        return (
+                          <td key={col.key} className={`p-0 relative ${isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : ''}`}>
+                            <select
+                              value={draft.manager_id || ''}
+                              onChange={(e) => updateDraftRow(draft.id, 'manager_id', e.target.value)}
+                              disabled={isDisabledForSupplier}
+                              className={`w-full h-full px-2 py-3 text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 text-gray-900 dark:text-gray-100 ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              <option value="" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">Не обрано</option>
+                              {managers.map((manager) => (
+                                <option
+                                  key={manager.id}
+                                  value={manager.id}
+                                  className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                >
+                                  {manager.full_name || manager.email}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                        );
+                      }
+
                       return (
-                        <td key={col.key} className="px-3 py-3 min-h-[48px]">
+                        <td key={col.key} className={`px-3 py-3 min-h-[48px] ${isSupplierEditable ? 'bg-yellow-100 dark:bg-yellow-900/30' : (isDisabledForSupplier ? 'bg-gray-200 dark:bg-gray-800' : '')}`}>
                           <input
                             type="text"
                             value={value || ''}
                             onChange={(e) => updateDraftRow(draft.id, col.key, e.target.value)}
                             placeholder={isRequired ? `${col.label} *` : col.label}
-                            className={`w-full px-2 py-1 border ${isRequired ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'} rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+                            disabled={isDisabledForSupplier}
+                            className={`w-full px-2 py-1 border ${isRequired ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'} rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 dark:focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isSupplierEditable ? 'ring-2 ring-yellow-400 dark:ring-yellow-600' : ''} ${isDisabledForSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
                           />
                         </td>
                       );
@@ -2307,7 +2881,7 @@ export default function Orders() {
                                 Ред.
                               </button>
                             )}
-                            {!order.archived && !isAccepted && (
+                            {!order.archived && (
                               <button
                                 onClick={() => handleReturn(order)}
                                 className="px-3 py-2 bg-orange-50 text-orange-700 dark:bg-orange-900/50 dark:text-orange-200 rounded text-xs font-semibold hover:bg-orange-100 dark:hover:bg-orange-900/70 transition flex items-center gap-1"
@@ -2342,7 +2916,7 @@ export default function Orders() {
         </div>
       ) : activeTab === 'orders' ? (
         <div className="flex-1 overflow-auto min-h-0 flex flex-col bg-gray-100 dark:bg-gray-900">
-          {selectedOrders.size > 0 && (
+          {selectedOrders.size > 0 && !isSupplier && (
             <div className="flex-shrink-0 p-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-end items-center">
               <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900 px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-700">
                 <span className="text-sm font-medium text-blue-900 dark:text-blue-200">
@@ -2407,30 +2981,40 @@ export default function Orders() {
                 </button>
                 {!isCollapsed && (
                   <div className="overflow-x-auto overflow-y-visible">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
                     <thead className="bg-gray-50 dark:bg-gray-700">
                       <tr>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                        <ResizableTableHeader
+                          columnKey="checkbox"
+                          width={getColumnWidth('checkbox', 60)}
+                          className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                          onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 60))}
+                          isResizing={resizingColumn === 'checkbox'}
+                        >
                           <input
                             type="checkbox"
-                            checked={selectedOrders.size === filteredOrders.length && filteredOrders.length > 0}
-                            onChange={toggleAllOrders}
-                            className="w-4 h-4 rounded cursor-pointer text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600"
+                            checked={groupOrders.length > 0 && groupOrders.every(o => selectedOrders.has(o.id))}
+                            onChange={() => toggleGroupOrders(groupOrders)}
+                            className={`w-4 h-4 rounded text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600 ${!isSupplier ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
+                            disabled={isSupplier}
+                            title={isSupplier ? 'Заблоковано для постачальника' : 'Вибрати всі в групі'}
                           />
-                        </th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Статус</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">V</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ID клієнта</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Назва</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"><ExternalLink size={16} className="inline-block" /></th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Трекінг PL</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Вартість запч.</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Доставка</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Всього</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">№ запчастини</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Тип оплати</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Побранє</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Дії</th>
+                        </ResizableTableHeader>
+                        <ResizableTableHeader columnKey="status" width={getColumnWidth('status', 150)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 150))} isResizing={resizingColumn === 'status'}>Статус</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="verified" width={getColumnWidth('verified', 60)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 60))} isResizing={resizingColumn === 'verified'}>V</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="client_id" width={getColumnWidth('client_id', 120)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 120))} isResizing={resizingColumn === 'client_id'}>ID клієнта</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="title" width={getColumnWidth('title', 200)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 200))} isResizing={resizingColumn === 'title'}>Назва</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="link" width={getColumnWidth('link', 60)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 60))} isResizing={resizingColumn === 'link'}><ExternalLink size={16} className="inline-block" /></ResizableTableHeader>
+                        <ResizableTableHeader columnKey="tracking_pl" width={getColumnWidth('tracking_pl', 130)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 130))} isResizing={resizingColumn === 'tracking_pl'}>Трекінг PL</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="part_price" width={getColumnWidth('part_price', 110)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 110))} isResizing={resizingColumn === 'part_price'}>Вартість запч.</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="delivery_cost" width={getColumnWidth('delivery_cost', 100)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 100))} isResizing={resizingColumn === 'delivery_cost'}>Доставка</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="weight_kg" width={getColumnWidth('weight_kg', 100)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 100))} isResizing={resizingColumn === 'weight_kg'}>Вага (кг)</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="transport_cost_usd" width={getColumnWidth('transport_cost_usd', 120)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 120))} isResizing={resizingColumn === 'transport_cost_usd'}>Перевезення ($)</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="total_cost" width={getColumnWidth('total_cost', 100)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 100))} isResizing={resizingColumn === 'total_cost'}>Всього</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="part_number" width={getColumnWidth('part_number', 130)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 130))} isResizing={resizingColumn === 'part_number'}>№ запчастини</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="payment_type" width={getColumnWidth('payment_type', 120)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 120))} isResizing={resizingColumn === 'payment_type'}>Тип оплати</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="cash_on_delivery" width={getColumnWidth('cash_on_delivery', 110)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 110))} isResizing={resizingColumn === 'cash_on_delivery'}>Побранє</ResizableTableHeader>
+                        <ResizableTableHeader columnKey="actions" width={getColumnWidth('actions', 100)} className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase" onResize={(key, e) => handleMouseDown(e, key, getColumnWidth(key, 100))} isResizing={resizingColumn === 'actions'}>Дії</ResizableTableHeader>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
@@ -2443,15 +3027,16 @@ export default function Orders() {
                               type="checkbox"
                               checked={selectedOrders.has(order.id)}
                               onChange={() => toggleOrderSelection(order.id)}
-                              className="w-4 h-4 rounded cursor-pointer text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600"
+                              className={`w-4 h-4 rounded text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600 ${!isAccepted && !isSupplier ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
                               onClick={(e) => e.stopPropagation()}
-                              disabled={isAccepted}
+                              disabled={isAccepted || isSupplier}
+                              title={isSupplier ? 'Заблоковано для постачальника' : ''}
                             />
                           </td>
                           <td className="p-0 relative">
                             <button
                               onClick={(e) => {
-                                if (isAccepted) return;
+                                if (isAccepted || isSupplier) return;
                                 e.stopPropagation();
                                 const rect = e.currentTarget.getBoundingClientRect();
                                 const dropdownHeight = 400;
@@ -2466,11 +3051,12 @@ export default function Orders() {
                                 setDropdownPosition({ top, left: rect.left + window.scrollX });
                                 setOpenDropdown(openDropdown === order.id ? null : order.id);
                               }}
-                              className={`w-full h-full px-3 py-2 text-xs font-semibold ${statusColors[order.status]} ${!isAccepted ? 'hover:opacity-80' : 'cursor-default'} transition flex items-center justify-center gap-1 min-h-[40px]`}
-                              disabled={isAccepted}
+                              className={`w-full h-full px-3 py-2 text-xs font-semibold ${statusColors[order.status]} ${!isAccepted && !isSupplier ? 'hover:opacity-80' : 'cursor-default'} ${isSupplier ? 'opacity-60' : ''} transition flex items-center justify-center gap-1 min-h-[40px]`}
+                              disabled={isAccepted || isSupplier}
+                              title={isSupplier ? 'Заблоковано для постачальника' : ''}
                             >
                               {statusLabels[order.status]}
-                              {!isAccepted && <ChevronDown size={14} />}
+                              {!isAccepted && !isSupplier && <ChevronDown size={14} />}
                             </button>
                           </td>
                           <td className="px-3 py-3 text-center min-h-[48px]">
@@ -2478,29 +3064,32 @@ export default function Orders() {
                               type="checkbox"
                               checked={order.verified}
                               onChange={() => handleVerifiedChange(order.id, order.verified)}
-                              className={`w-5 h-5 rounded cursor-pointer transition ${
+                              className={`w-5 h-5 rounded transition ${
                                 order.verified
                                   ? 'accent-green-700 bg-green-700 dark:accent-green-600 dark:bg-green-600'
                                   : 'border-2 border-gray-800 dark:border-gray-400 accent-gray-800 dark:accent-gray-400 bg-white dark:bg-gray-600'
-                              }`}
-                              disabled={isAccepted}
+                              } ${!isAccepted && !isSupplier ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
+                              disabled={isAccepted || isSupplier}
+                              title={isSupplier ? 'Заблоковано для постачальника' : ''}
                             />
                           </td>
-                          {renderEditableCell(order.id, 'client_id', order.client_id, 'text-gray-900 text-center', isAccepted)}
-                          {renderEditableCell(order.id, 'title', order.title, 'text-gray-900 text-center', isAccepted)}
+                          {renderEditableCell(order.id, 'client_id', order.client_id, 'text-gray-900 text-center', isAccepted, order)}
+                          {renderEditableCell(order.id, 'title', order.title, 'text-gray-900 text-center', isAccepted, order)}
                           {renderLinkCell(order.id, order.link || '', isAccepted)}
-                          {renderEditableCell(order.id, 'tracking_pl', order.tracking_pl || '', 'text-gray-600 text-center', isAccepted)}
-                          {renderEditableCell(order.id, 'part_price', `${formatNumber(order.part_price)} zl`, 'text-gray-900 font-medium text-center', isAccepted)}
-                          {renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-gray-900 text-center', isAccepted)}
+                          {renderEditableCell(order.id, 'tracking_pl', order.tracking_pl || '', 'text-gray-600 text-center', isAccepted, order)}
+                          {renderEditableCell(order.id, 'part_price', `${formatNumber(order.part_price)} zl`, 'text-gray-900 font-medium text-center', isAccepted, order)}
+                          {renderEditableCell(order.id, 'delivery_cost', `${formatNumber(order.delivery_cost)} zl`, 'text-gray-900 text-center', isAccepted, order)}
+                          {renderEditableCell(order.id, 'weight_kg', `${formatNumber(order.weight_kg)} кг`, 'text-gray-900 text-center', isAccepted, order)}
+                          {renderEditableCell(order.id, 'transport_cost_usd', `${formatNumber(order.transport_cost_usd)} $`, 'text-gray-900 text-center', isAccepted, order)}
                           <td className="px-3 py-3 text-center text-gray-900 dark:text-gray-100 font-bold bg-gray-50 dark:bg-gray-700 min-h-[48px]">
                             {formatNumber(order.total_cost)} zl
                           </td>
-                          {renderEditableCell(order.id, 'part_number', order.part_number || '', 'text-gray-600 text-center', isAccepted)}
+                          {renderEditableCell(order.id, 'part_number', order.part_number || '', 'text-gray-600 text-center', isAccepted, order)}
                           {renderPaymentTypeCell(order.id, order.payment_type || 'оплачено', isAccepted)}
-                          {renderEditableCell(order.id, 'cash_on_delivery', `${formatNumber(order.cash_on_delivery)} zl`, 'text-gray-900 text-center', isAccepted)}
+                          {renderEditableCell(order.id, 'cash_on_delivery', `${formatNumber(order.cash_on_delivery)} zl`, 'text-gray-900 text-center', isAccepted, order)}
                           <td className="px-3 py-3 min-h-[48px]">
                             <div className="flex gap-2 justify-center">
-                              {!isAccepted && (
+                              {!isAccepted && !isSupplier && (
                                 <button
                                   onClick={() => openEditModal(order)}
                                   className="px-3 py-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
@@ -2509,7 +3098,7 @@ export default function Orders() {
                                   Ред.
                                 </button>
                               )}
-                              {!order.archived && !isAccepted && (
+                              {!order.archived && !isSupplier && (
                                 <button
                                   onClick={() => handleReturn(order)}
                                   className="px-3 py-2 bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
@@ -2519,7 +3108,7 @@ export default function Orders() {
                                   Пов.
                                 </button>
                               )}
-                              {!isAccepted && (
+                              {!isAccepted && !isSupplier && (
                                 <button
                                   onClick={() => handleArchive(order.id)}
                                   className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
@@ -2666,24 +3255,24 @@ export default function Orders() {
               </button>
             </div>
             <div className="flex-1 overflow-auto p-6">
-              <table className="w-full border-collapse">
+              <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                 <thead className="bg-green-700 dark:bg-green-900 sticky top-0 z-10">
                   <tr>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">№ Док</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">Статус</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">Назва</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">ID Клієнта</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">№ Запчастини</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-center text-sm font-semibold text-white"><ExternalLink size={16} className="inline-block" /></th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">ТТН</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Вага (кг)</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Запчастини</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Доставка</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Отримали PLN</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Наложка</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white">Транспорт USD</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">Тип оплати</th>
-                    <th className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white">Дата прийому</th>
+                    <ResizableTableHeader columnKey="receipt_number" width={acceptedColumnsResizable.getColumnWidth('receipt_number', 100)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 100))} isResizing={acceptedColumnsResizable.resizingColumn === 'receipt_number'}>№ Док</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="status" width={acceptedColumnsResizable.getColumnWidth('status', 100)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 100))} isResizing={acceptedColumnsResizable.resizingColumn === 'status'}>Статус</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="title" width={acceptedColumnsResizable.getColumnWidth('title', 200)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 200))} isResizing={acceptedColumnsResizable.resizingColumn === 'title'}>Назва</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="client_id" width={acceptedColumnsResizable.getColumnWidth('client_id', 120)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 120))} isResizing={acceptedColumnsResizable.resizingColumn === 'client_id'}>ID Клієнта</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="part_number" width={acceptedColumnsResizable.getColumnWidth('part_number', 130)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 130))} isResizing={acceptedColumnsResizable.resizingColumn === 'part_number'}>№ Запчастини</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="link" width={acceptedColumnsResizable.getColumnWidth('link', 60)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-center text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 60))} isResizing={acceptedColumnsResizable.resizingColumn === 'link'}><ExternalLink size={16} className="inline-block" /></ResizableTableHeader>
+                    <ResizableTableHeader columnKey="tracking_number" width={acceptedColumnsResizable.getColumnWidth('tracking_number', 130)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 130))} isResizing={acceptedColumnsResizable.resizingColumn === 'tracking_number'}>ТТН</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="weight_kg" width={acceptedColumnsResizable.getColumnWidth('weight_kg', 90)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 90))} isResizing={acceptedColumnsResizable.resizingColumn === 'weight_kg'}>Вага (кг)</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="part_price" width={acceptedColumnsResizable.getColumnWidth('part_price', 110)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 110))} isResizing={acceptedColumnsResizable.resizingColumn === 'part_price'}>Запчастини</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="delivery_cost" width={acceptedColumnsResizable.getColumnWidth('delivery_cost', 110)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 110))} isResizing={acceptedColumnsResizable.resizingColumn === 'delivery_cost'}>Доставка</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="received_pln" width={acceptedColumnsResizable.getColumnWidth('received_pln', 110)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 110))} isResizing={acceptedColumnsResizable.resizingColumn === 'received_pln'}>Отримали PLN</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="cash_on_delivery" width={acceptedColumnsResizable.getColumnWidth('cash_on_delivery', 110)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 110))} isResizing={acceptedColumnsResizable.resizingColumn === 'cash_on_delivery'}>Наложка</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="transport_cost_usd" width={acceptedColumnsResizable.getColumnWidth('transport_cost_usd', 130)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-right text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 130))} isResizing={acceptedColumnsResizable.resizingColumn === 'transport_cost_usd'}>Транспорт USD</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="payment_type" width={acceptedColumnsResizable.getColumnWidth('payment_type', 120)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 120))} isResizing={acceptedColumnsResizable.resizingColumn === 'payment_type'}>Тип оплати</ResizableTableHeader>
+                    <ResizableTableHeader columnKey="accepted_at" width={acceptedColumnsResizable.getColumnWidth('accepted_at', 150)} className="border border-green-600 dark:border-green-800 px-3 py-3 text-left text-sm font-semibold text-white" onResize={(key, e) => acceptedColumnsResizable.handleMouseDown(e, key, acceptedColumnsResizable.getColumnWidth(key, 150))} isResizing={acceptedColumnsResizable.resizingColumn === 'accepted_at'}>Дата прийому</ResizableTableHeader>
                   </tr>
                 </thead>
                 <tbody>

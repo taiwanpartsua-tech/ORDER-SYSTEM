@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
-import { supabase, Order, Supplier } from '../lib/supabase';
-import { ChevronRight, Send, X, AlertCircle, ExternalLink, Search, XCircle } from 'lucide-react';
+import { supabase, Order, Supplier, ReceiptFieldChange, DraftOrder } from '../lib/supabase';
+import { ChevronRight, Send, X, AlertCircle, ExternalLink, Search, XCircle, History, ChevronDown, ChevronUp, Archive, Check } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
+import { getCurrentProjectId } from '../utils/projectAccess';
+import { useResizableColumns } from '../hooks/useResizableColumns';
+import { ResizableTableHeader } from './ResizableTableHeader';
 
 type OrderWithSupplier = Order & { supplier: Supplier };
 
@@ -28,9 +31,32 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
   const [cashOnDeliveryOrders, setCashOnDeliveryOrders] = useState<EditableOrder[]>([]);
   const [paidOrders, setPaidOrders] = useState<EditableOrder[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [draftOrders, setDraftOrders] = useState<DraftOrder[]>([]);
+  const [archivedDrafts, setArchivedDrafts] = useState<DraftOrder[]>([]);
+  const [showArchivedDrafts, setShowArchivedDrafts] = useState(false);
 
   const [cashOnDeliveryReceiptNumber, setCashOnDeliveryReceiptNumber] = useState<string>('');
   const [paidReceiptNumber, setPaidReceiptNumber] = useState<string>('');
+  const [orderChanges, setOrderChanges] = useState<Record<string, ReceiptFieldChange[]>>({});
+  const [expandedChanges, setExpandedChanges] = useState<Set<string>>(new Set());
+
+  const { columnWidths, resizingColumn, handleMouseDown, getColumnWidth } = useResizableColumns('active_receipts_table', {
+    checkbox: 50,
+    client_id: 120,
+    title: 200,
+    link: 60,
+    tracking_pl: 130,
+    part_price: 110,
+    delivery_cost: 110,
+    total_cost: 100,
+    part_number: 130,
+    payment_type: 120,
+    cash_on_delivery: 110,
+    received_pln: 110,
+    transport_cost_usd: 130,
+    weight_kg: 90,
+    actions: 150
+  });
 
   function generateReceiptNumber(group: PaymentGroup): string {
     const now = new Date();
@@ -92,6 +118,8 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
   useEffect(() => {
     loadAvailableOrders();
     loadActiveReceiptOrders();
+    loadDraftOrders();
+    loadArchivedDrafts();
   }, []);
 
   async function loadAvailableOrders() {
@@ -106,6 +134,210 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
     }
   }
 
+  async function loadDraftOrders() {
+    try {
+      const projectId = await getCurrentProjectId();
+      if (!projectId) {
+        console.error('Не знайдено project_id для завантаження чернеток');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('draft_orders')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('archived', false)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Помилка завантаження чернеток:', error);
+      } else if (data) {
+        setDraftOrders(data);
+      }
+    } catch (err) {
+      console.error('Помилка при завантаженні чернеток:', err);
+    }
+  }
+
+  async function loadArchivedDrafts() {
+    try {
+      const projectId = await getCurrentProjectId();
+      if (!projectId) {
+        console.error('Не знайдено project_id для завантаження архіву чернеток');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('draft_orders')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('archived', true)
+        .order('archived_at', { ascending: false });
+
+      if (error) {
+        console.error('Помилка завантаження архіву чернеток:', error);
+      } else if (data) {
+        setArchivedDrafts(data);
+      }
+    } catch (err) {
+      console.error('Помилка при завантаженні архіву чернеток:', err);
+    }
+  }
+
+  async function moveDraftToActiveReceipt(draft: DraftOrder, group: PaymentGroup) {
+    if (!draft.client_id || draft.client_id.trim() === '') {
+      showWarning('ID клієнта є обов\'язковим полем!');
+      return;
+    }
+
+    if (!draft.title || draft.title.trim() === '') {
+      showWarning('Назва є обов\'язковим полем!');
+      return;
+    }
+
+    if (!draft.link || draft.link.trim() === '') {
+      showWarning('Посилання є обов\'язковим полем!');
+      return;
+    }
+
+    if (!draft.part_price || draft.part_price <= 0) {
+      showWarning('Вартість запчастини є обов\'язковим полем і повинна бути більше 0!');
+      return;
+    }
+
+    if (!draft.part_number || draft.part_number.trim() === '') {
+      showWarning('Номер запчастини є обов\'язковим полем!');
+      return;
+    }
+
+    if (!draft.payment_type || draft.payment_type === 'не обрано') {
+      showWarning('Необхідно обрати тип оплати!');
+      return;
+    }
+
+    const dataToSubmit: any = {
+      order_number: draft.order_number,
+      supplier_id: draft.supplier_id || null,
+      manager_id: draft.manager_id || null,
+      status: 'в активному прийомі',
+      active_receipt_group: group,
+      order_date: draft.order_date,
+      notes: draft.notes,
+      title: draft.title,
+      link: draft.link,
+      tracking_pl: draft.tracking_pl,
+      part_price: draft.part_price,
+      delivery_cost: draft.delivery_cost,
+      total_cost: draft.total_cost,
+      part_number: draft.part_number,
+      payment_type: draft.payment_type,
+      cash_on_delivery: draft.cash_on_delivery,
+      client_id: draft.client_id,
+      received_pln: draft.received_pln,
+      transport_cost_usd: draft.transport_cost_usd,
+      weight_kg: draft.weight_kg,
+      verified: draft.verified,
+      project_id: draft.project_id
+    };
+
+    try {
+      const { error: insertError } = await supabase.from('orders').insert([dataToSubmit]);
+      if (insertError) {
+        console.error('Error inserting order:', insertError);
+        showError('Помилка при створенні замовлення: ' + insertError.message);
+        return;
+      }
+
+      // Видаляємо чернетку після успішного створення замовлення
+      await supabase.from('draft_orders').delete().eq('id', draft.id);
+
+      showSuccess('Чернетку додано до активного прийому!');
+      loadDraftOrders();
+      loadActiveReceiptOrders();
+    } catch (err) {
+      console.error('Network error:', err);
+      showError('Помилка мережі: Перевірте підключення до інтернету');
+    }
+  }
+
+  async function archiveDraft(draftId: string) {
+    try {
+      const { error } = await supabase
+        .from('draft_orders')
+        .update({
+          archived: true,
+          archived_at: new Date().toISOString()
+        })
+        .eq('id', draftId);
+
+      if (error) {
+        console.error('Error archiving draft:', error);
+        showError('Помилка архівування чернетки');
+        return;
+      }
+
+      showSuccess('Чернетку архівовано!');
+      loadDraftOrders();
+      loadArchivedDrafts();
+    } catch (err) {
+      console.error('Network error:', err);
+      showError('Помилка мережі');
+    }
+  }
+
+  async function unarchiveDraft(draftId: string) {
+    try {
+      const { error } = await supabase
+        .from('draft_orders')
+        .update({
+          archived: false,
+          archived_at: null
+        })
+        .eq('id', draftId);
+
+      if (error) {
+        console.error('Error unarchiving draft:', error);
+        showError('Помилка розархівування чернетки');
+        return;
+      }
+
+      showSuccess('Чернетку розархівовано!');
+      loadDraftOrders();
+      loadArchivedDrafts();
+    } catch (err) {
+      console.error('Network error:', err);
+      showError('Помилка мережі');
+    }
+  }
+
+  async function loadOrderChanges(orderId: string) {
+    const { data } = await supabase
+      .from('receipt_field_changes')
+      .select('*')
+      .eq('order_id', orderId)
+      .order('changed_at', { ascending: false });
+
+    if (data) {
+      setOrderChanges(prev => ({
+        ...prev,
+        [orderId]: data
+      }));
+    }
+  }
+
+  function toggleOrderChanges(orderId: string) {
+    const newExpanded = new Set(expandedChanges);
+    if (newExpanded.has(orderId)) {
+      newExpanded.delete(orderId);
+    } else {
+      newExpanded.add(orderId);
+      if (!orderChanges[orderId]) {
+        loadOrderChanges(orderId);
+      }
+    }
+    setExpandedChanges(newExpanded);
+  }
+
   function getOrderGroup(order: OrderWithSupplier | EditableOrder): PaymentGroup {
     const paymentType = order.payment_type?.toLowerCase() || '';
     if (paymentType.includes('побран') || paymentType.includes('самовив')) {
@@ -118,10 +350,24 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
     if (!searchTerm.trim()) return true;
     const searchLower = searchTerm.toLowerCase().trim();
     return (
+      (order.order_number && order.order_number.toLowerCase().includes(searchLower)) ||
       (order.client_id && order.client_id.toLowerCase().includes(searchLower)) ||
       (order.title && order.title.toLowerCase().includes(searchLower)) ||
+      (order.link && order.link.toLowerCase().includes(searchLower)) ||
       (order.tracking_pl && order.tracking_pl.toLowerCase().includes(searchLower)) ||
-      (order.part_number && order.part_number.toLowerCase().includes(searchLower))
+      (order.part_number && order.part_number.toLowerCase().includes(searchLower)) ||
+      (order.notes && order.notes.toLowerCase().includes(searchLower)) ||
+      (order.status && order.status.toLowerCase().includes(searchLower)) ||
+      (order.payment_type && order.payment_type.toLowerCase().includes(searchLower)) ||
+      (order.supplier?.name && order.supplier.name.toLowerCase().includes(searchLower)) ||
+      (order.part_price && order.part_price.toString().includes(searchLower)) ||
+      (order.delivery_cost && order.delivery_cost.toString().includes(searchLower)) ||
+      (order.total_cost && order.total_cost.toString().includes(searchLower)) ||
+      (order.cash_on_delivery && order.cash_on_delivery.toString().includes(searchLower)) ||
+      (order.received_pln && order.received_pln.toString().includes(searchLower)) ||
+      (order.transport_cost_usd && order.transport_cost_usd.toString().includes(searchLower)) ||
+      (order.weight_kg && order.weight_kg.toString().includes(searchLower)) ||
+      (order.order_date && order.order_date.includes(searchLower))
     );
   });
 
@@ -132,10 +378,24 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
     if (!searchTerm.trim()) return true;
     const searchLower = searchTerm.toLowerCase().trim();
     return (
+      (order.order_number && order.order_number.toLowerCase().includes(searchLower)) ||
       (order.client_id && order.client_id.toLowerCase().includes(searchLower)) ||
       (order.title && order.title.toLowerCase().includes(searchLower)) ||
+      (order.link && order.link.toLowerCase().includes(searchLower)) ||
       (order.tracking_pl && order.tracking_pl.toLowerCase().includes(searchLower)) ||
-      (order.part_number && order.part_number.toLowerCase().includes(searchLower))
+      (order.part_number && order.part_number.toLowerCase().includes(searchLower)) ||
+      (order.notes && order.notes.toLowerCase().includes(searchLower)) ||
+      (order.status && order.status.toLowerCase().includes(searchLower)) ||
+      (order.payment_type && order.payment_type.toLowerCase().includes(searchLower)) ||
+      (order.supplier?.name && order.supplier.name.toLowerCase().includes(searchLower)) ||
+      (order.part_price && order.part_price.toString().includes(searchLower)) ||
+      (order.delivery_cost && order.delivery_cost.toString().includes(searchLower)) ||
+      (order.total_cost && order.total_cost.toString().includes(searchLower)) ||
+      (order.cash_on_delivery && order.cash_on_delivery.toString().includes(searchLower)) ||
+      (order.received_pln && order.received_pln.toString().includes(searchLower)) ||
+      (order.transport_cost_usd && order.transport_cost_usd.toString().includes(searchLower)) ||
+      (order.weight_kg && order.weight_kg.toString().includes(searchLower)) ||
+      (order.order_date && order.order_date.includes(searchLower))
     );
   });
 
@@ -143,10 +403,24 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
     if (!searchTerm.trim()) return true;
     const searchLower = searchTerm.toLowerCase().trim();
     return (
+      (order.order_number && order.order_number.toLowerCase().includes(searchLower)) ||
       (order.client_id && order.client_id.toLowerCase().includes(searchLower)) ||
       (order.title && order.title.toLowerCase().includes(searchLower)) ||
+      (order.link && order.link.toLowerCase().includes(searchLower)) ||
       (order.tracking_pl && order.tracking_pl.toLowerCase().includes(searchLower)) ||
-      (order.part_number && order.part_number.toLowerCase().includes(searchLower))
+      (order.part_number && order.part_number.toLowerCase().includes(searchLower)) ||
+      (order.notes && order.notes.toLowerCase().includes(searchLower)) ||
+      (order.status && order.status.toLowerCase().includes(searchLower)) ||
+      (order.payment_type && order.payment_type.toLowerCase().includes(searchLower)) ||
+      (order.supplier?.name && order.supplier.name.toLowerCase().includes(searchLower)) ||
+      (order.part_price && order.part_price.toString().includes(searchLower)) ||
+      (order.delivery_cost && order.delivery_cost.toString().includes(searchLower)) ||
+      (order.total_cost && order.total_cost.toString().includes(searchLower)) ||
+      (order.cash_on_delivery && order.cash_on_delivery.toString().includes(searchLower)) ||
+      (order.received_pln && order.received_pln.toString().includes(searchLower)) ||
+      (order.transport_cost_usd && order.transport_cost_usd.toString().includes(searchLower)) ||
+      (order.weight_kg && order.weight_kg.toString().includes(searchLower)) ||
+      (order.order_date && order.order_date.includes(searchLower))
     );
   });
 
@@ -247,6 +521,12 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
         return;
       }
 
+      const projectId = await getCurrentProjectId();
+      if (!projectId) {
+        showError('Помилка: не знайдено доступу до проекту. Зв\'яжіться з адміністратором.');
+        return;
+      }
+
       let supplier = orders[0].supplier;
 
       if (!supplier) {
@@ -291,6 +571,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
           receipt_date: receiptDate,
           status: 'draft',
           supplier_id: supplier.id,
+          project_id: projectId,
           parts_cost_pln: totals.parts_cost_pln,
           delivery_cost_pln: totals.delivery_cost_pln,
           receipt_cost_pln: totals.receipt_cost_pln,
@@ -338,7 +619,91 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
         console.error('Помилка збереження знімків замовлень:', snapshotsError);
       }
 
+      const fieldChanges = [];
+
       for (const order of orders) {
+        const changes = [];
+
+        if (order.editableWeight !== (order.weight_kg || 0)) {
+          changes.push({
+            receipt_id: receipt.id,
+            order_id: order.id,
+            project_id: projectId,
+            field_name: 'Вага (кг)',
+            old_value: String(order.weight_kg || 0),
+            new_value: String(order.editableWeight),
+            changed_by: user.id,
+            changed_at: new Date().toISOString()
+          });
+        }
+
+        if (order.editableParts !== (order.part_price || 0)) {
+          changes.push({
+            receipt_id: receipt.id,
+            order_id: order.id,
+            project_id: projectId,
+            field_name: 'Ціна деталі (PLN)',
+            old_value: String(order.part_price || 0),
+            new_value: String(order.editableParts),
+            changed_by: user.id,
+            changed_at: new Date().toISOString()
+          });
+        }
+
+        if (order.editableDelivery !== (order.delivery_cost || 0)) {
+          changes.push({
+            receipt_id: receipt.id,
+            order_id: order.id,
+            project_id: projectId,
+            field_name: 'Доставка (PLN)',
+            old_value: String(order.delivery_cost || 0),
+            new_value: String(order.editableDelivery),
+            changed_by: user.id,
+            changed_at: new Date().toISOString()
+          });
+        }
+
+        if (order.editableReceipt !== (order.received_pln || 0)) {
+          changes.push({
+            receipt_id: receipt.id,
+            order_id: order.id,
+            project_id: projectId,
+            field_name: 'Прийом (PLN)',
+            old_value: String(order.received_pln || 0),
+            new_value: String(order.editableReceipt),
+            changed_by: user.id,
+            changed_at: new Date().toISOString()
+          });
+        }
+
+        if (order.editableCash !== (order.cash_on_delivery || 0)) {
+          changes.push({
+            receipt_id: receipt.id,
+            order_id: order.id,
+            project_id: projectId,
+            field_name: 'Накладений платіж (PLN)',
+            old_value: String(order.cash_on_delivery || 0),
+            new_value: String(order.editableCash),
+            changed_by: user.id,
+            changed_at: new Date().toISOString()
+          });
+        }
+
+        if (order.editableTransport !== (order.transport_cost_usd || 0)) {
+          changes.push({
+            receipt_id: receipt.id,
+            order_id: order.id,
+            project_id: projectId,
+            field_name: 'Транспорт (USD)',
+            old_value: String(order.transport_cost_usd || 0),
+            new_value: String(order.editableTransport),
+            changed_by: user.id,
+            changed_at: new Date().toISOString()
+          });
+        }
+
+        fieldChanges.push(...changes);
+
         await supabase
           .from('orders')
           .update({
@@ -353,6 +718,16 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
             active_receipt_group: null
           })
           .eq('id', order.id);
+      }
+
+      if (fieldChanges.length > 0) {
+        const { error: changesError } = await supabase
+          .from('receipt_field_changes')
+          .insert(fieldChanges);
+
+        if (changesError) {
+          console.error('Помилка збереження історії змін:', changesError);
+        }
       }
 
       if (group === 'cash_on_delivery') {
@@ -448,10 +823,17 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow flex flex-col overflow-hidden">
           <div className="p-4 border-b flex-shrink-0">
             <div className="flex justify-between items-center mb-3">
-              <h3 className="font-semibold text-gray-800 dark:text-gray-100">Доступні замовлення ({availableOrders.length})</h3>
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100">
+                Доступні замовлення ({availableOrders.length + draftOrders.length})
+                {draftOrders.length > 0 && (
+                  <span className="ml-2 text-purple-600 dark:text-purple-400 text-sm">
+                    (+{draftOrders.length} чернеток)
+                  </span>
+                )}
+              </h3>
               <ExportButton
                 onClick={handleExportReceipts}
-                disabled={availableOrders.length === 0 && cashOnDeliveryOrders.length === 0 && paidOrders.length === 0}
+                disabled={availableOrders.length === 0 && cashOnDeliveryOrders.length === 0 && paidOrders.length === 0 && draftOrders.length === 0}
               />
             </div>
             <div className="relative">
@@ -529,7 +911,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
             )}
 
             {availablePaidOrders.length > 0 && (
-              <div>
+              <div className="mb-4">
                 <div className="bg-green-100 dark:bg-gradient-to-br dark:from-green-950 dark:to-green-900 px-3 py-2 font-semibold text-sm text-green-900 dark:text-green-200 sticky top-0 z-20">
                   Оплачені ({availablePaidOrders.length})
                 </div>
@@ -581,6 +963,159 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
                 </table>
               </div>
             )}
+
+            {draftOrders.length > 0 && (
+              <div className="mb-4">
+                <div className="bg-purple-100 dark:bg-gradient-to-br dark:from-purple-950 dark:to-purple-900 px-3 py-2 font-semibold text-sm text-purple-900 dark:text-purple-200 sticky top-0 z-20">
+                  Чернетки ({draftOrders.length})
+                </div>
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 dark:bg-gray-700 sticky top-8 z-10">
+                    <tr>
+                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">ID</th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Назва</th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">№ запч.</th>
+                      <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 text-xs w-10">Посил.</th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Трекінг</th>
+                      <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 text-xs">Тип оплати</th>
+                      <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 w-16"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {draftOrders.map((draft) => {
+                      const draftGroup = draft.payment_type?.toLowerCase().includes('побран') ||
+                                        draft.payment_type?.toLowerCase().includes('самовив')
+                                        ? 'cash_on_delivery' : 'paid';
+
+                      return (
+                        <tr key={draft.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
+                          <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs">{draft.client_id || '-'}</td>
+                          <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs max-w-[150px] truncate" title={draft.title || '-'}>{draft.title || '-'}</td>
+                          <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs">{draft.part_number || '-'}</td>
+                          <td className="px-2 py-2 text-center">
+                            {draft.link ? (
+                              <a
+                                href={draft.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-900 inline-block"
+                                title="Відкрити посилання"
+                              >
+                                <ExternalLink size={14} />
+                              </a>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs">{draft.tracking_pl || '-'}</td>
+                          <td className="px-2 py-2 text-center text-gray-600 dark:text-gray-300 text-xs">
+                            {draft.payment_type || 'не обрано'}
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={() => moveDraftToActiveReceipt(draft, draftGroup)}
+                                className="text-green-600 hover:text-green-900 hover:bg-green-50 p-1 rounded transition"
+                                title="Додати до прийомки"
+                              >
+                                <Check size={16} />
+                              </button>
+                              <button
+                                onClick={() => archiveDraft(draft.id)}
+                                className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-1 rounded transition"
+                                title="Архівувати"
+                              >
+                                <Archive size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {archivedDrafts.length > 0 && (
+              <div>
+                <button
+                  onClick={() => setShowArchivedDrafts(!showArchivedDrafts)}
+                  className="w-full bg-gray-200 dark:bg-gray-700 px-3 py-2 font-semibold text-sm text-gray-700 dark:text-gray-300 sticky top-0 z-20 flex items-center justify-between hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                >
+                  <span>Архів чернеток ({archivedDrafts.length})</span>
+                  {showArchivedDrafts ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+
+                {showArchivedDrafts && (
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 dark:bg-gray-700 sticky top-8 z-10">
+                      <tr>
+                        <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">ID</th>
+                        <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Назва</th>
+                        <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">№ запч.</th>
+                        <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 text-xs w-10">Посил.</th>
+                        <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Трекінг</th>
+                        <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 text-xs">Тип оплати</th>
+                        <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 w-16"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {archivedDrafts.map((draft) => {
+                        const draftGroup = draft.payment_type?.toLowerCase().includes('побран') ||
+                                          draft.payment_type?.toLowerCase().includes('самовив')
+                                          ? 'cash_on_delivery' : 'paid';
+
+                        return (
+                          <tr key={draft.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700 opacity-60">
+                            <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs">{draft.client_id || '-'}</td>
+                            <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs max-w-[150px] truncate" title={draft.title || '-'}>{draft.title || '-'}</td>
+                            <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs">{draft.part_number || '-'}</td>
+                            <td className="px-2 py-2 text-center">
+                              {draft.link ? (
+                                <a
+                                  href={draft.link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-900 inline-block"
+                                  title="Відкрити посилання"
+                                >
+                                  <ExternalLink size={14} />
+                                </a>
+                              ) : (
+                                <span className="text-gray-400">-</span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs">{draft.tracking_pl || '-'}</td>
+                            <td className="px-2 py-2 text-center text-gray-600 dark:text-gray-300 text-xs">
+                              {draft.payment_type || 'не обрано'}
+                            </td>
+                            <td className="px-2 py-2 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  onClick={() => moveDraftToActiveReceipt(draft, draftGroup)}
+                                  className="text-green-600 hover:text-green-900 hover:bg-green-50 dark:hover:bg-green-900 p-1 rounded transition"
+                                  title="Додати до прийомки"
+                                >
+                                  <Check size={16} />
+                                </button>
+                                <button
+                                  onClick={() => unarchiveDraft(draft.id)}
+                                  className="text-orange-600 hover:text-orange-900 hover:bg-orange-50 dark:hover:bg-orange-900 p-1 rounded transition"
+                                  title="Розархівувати"
+                                >
+                                  <Archive size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -625,12 +1160,14 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
                       <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Перев. ($)</th>
                       <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Тип оплати</th>
                       <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 w-10"></th>
+                      <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 w-10"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {filteredCashOnDeliveryOrders.map((order) => (
-                      <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
-                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300 max-w-[150px] truncate">{order.title || '-'}</td>
+                      <>
+                        <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
+                          <td className="px-2 py-2 text-gray-600 dark:text-gray-300 max-w-[150px] truncate">{order.title || '-'}</td>
                         <td className="px-2 py-2">
                           <input
                             type="number"
@@ -676,17 +1213,59 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
                             className="w-20 px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                           />
                         </td>
-                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300">{order.payment_type || '-'}</td>
-                        <td className="px-2 py-2 text-center">
-                          <button
-                            onClick={() => removeFromActiveReceipt(order, 'cash_on_delivery')}
-                            className="text-red-600 hover:text-red-900 hover:bg-red-50 p-1 rounded transition"
-                            title="Видалити з прійомки"
-                          >
-                            <X size={16} />
-                          </button>
-                        </td>
-                      </tr>
+                          <td className="px-2 py-2 text-gray-600 dark:text-gray-300">{order.payment_type || '-'}</td>
+                          <td className="px-2 py-2 text-center">
+                            <button
+                              onClick={() => toggleOrderChanges(order.id)}
+                              className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded transition"
+                              title="Історія змін"
+                            >
+                              {expandedChanges.has(order.id) ? <ChevronUp size={16} /> : <History size={16} />}
+                            </button>
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <button
+                              onClick={() => removeFromActiveReceipt(order, 'cash_on_delivery')}
+                              className="text-red-600 hover:text-red-900 hover:bg-red-50 p-1 rounded transition"
+                              title="Видалити з прійомки"
+                            >
+                              <X size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                        {expandedChanges.has(order.id) && (
+                          <tr className="bg-blue-50 dark:bg-blue-900/20">
+                            <td colSpan={9} className="px-4 py-3">
+                              <div className="text-sm">
+                                <div className="flex items-center gap-2 mb-2 text-blue-700 dark:text-blue-300 font-medium">
+                                  <History size={16} />
+                                  <span>Історія змін</span>
+                                </div>
+                                {orderChanges[order.id]?.length > 0 ? (
+                                  <div className="space-y-1">
+                                    {orderChanges[order.id].map((change) => (
+                                      <div key={change.id} className="text-xs bg-white dark:bg-gray-800 rounded p-2 border border-blue-200 dark:border-blue-800">
+                                        <div className="flex justify-between items-start">
+                                          <div>
+                                            <span className="font-medium text-gray-900 dark:text-gray-100">{change.field_name}:</span>
+                                            <span className="text-gray-600 dark:text-gray-400"> {change.old_value} → </span>
+                                            <span className="text-blue-600 dark:text-blue-400 font-medium">{change.new_value}</span>
+                                          </div>
+                                          <span className="text-gray-500 dark:text-gray-400 text-xs">
+                                            {new Date(change.changed_at).toLocaleString('uk-UA')}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-gray-500 dark:text-gray-400 text-xs">Немає історії змін</p>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
                     ))}
                   </tbody>
                 </table>
@@ -741,12 +1320,14 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
                       <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Перев. ($)</th>
                       <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Тип оплати</th>
                       <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 w-10"></th>
+                      <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 w-10"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {filteredPaidOrders.map((order) => (
-                      <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
-                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300 max-w-[150px] truncate">{order.title || '-'}</td>
+                      <>
+                        <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
+                          <td className="px-2 py-2 text-gray-600 dark:text-gray-300 max-w-[150px] truncate">{order.title || '-'}</td>
                         <td className="px-2 py-2">
                           <input
                             type="number"
@@ -796,17 +1377,59 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
                             className="w-20 px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                           />
                         </td>
-                        <td className="px-2 py-2 text-gray-600 dark:text-gray-300">{order.payment_type || '-'}</td>
-                        <td className="px-2 py-2 text-center">
-                          <button
-                            onClick={() => removeFromActiveReceipt(order, 'paid')}
-                            className="text-red-600 hover:text-red-900 hover:bg-red-50 p-1 rounded transition"
-                            title="Видалити з прійомки"
-                          >
-                            <X size={16} />
-                          </button>
-                        </td>
-                      </tr>
+                          <td className="px-2 py-2 text-gray-600 dark:text-gray-300">{order.payment_type || '-'}</td>
+                          <td className="px-2 py-2 text-center">
+                            <button
+                              onClick={() => toggleOrderChanges(order.id)}
+                              className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded transition"
+                              title="Історія змін"
+                            >
+                              {expandedChanges.has(order.id) ? <ChevronUp size={16} /> : <History size={16} />}
+                            </button>
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <button
+                              onClick={() => removeFromActiveReceipt(order, 'paid')}
+                              className="text-red-600 hover:text-red-900 hover:bg-red-50 p-1 rounded transition"
+                              title="Видалити з прійомки"
+                            >
+                              <X size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                        {expandedChanges.has(order.id) && (
+                          <tr className="bg-blue-50 dark:bg-blue-900/20">
+                            <td colSpan={9} className="px-4 py-3">
+                              <div className="text-sm">
+                                <div className="flex items-center gap-2 mb-2 text-blue-700 dark:text-blue-300 font-medium">
+                                  <History size={16} />
+                                  <span>Історія змін</span>
+                                </div>
+                                {orderChanges[order.id]?.length > 0 ? (
+                                  <div className="space-y-1">
+                                    {orderChanges[order.id].map((change) => (
+                                      <div key={change.id} className="text-xs bg-white dark:bg-gray-800 rounded p-2 border border-blue-200 dark:border-blue-800">
+                                        <div className="flex justify-between items-start">
+                                          <div>
+                                            <span className="font-medium text-gray-900 dark:text-gray-100">{change.field_name}:</span>
+                                            <span className="text-gray-600 dark:text-gray-400"> {change.old_value} → </span>
+                                            <span className="text-blue-600 dark:text-blue-400 font-medium">{change.new_value}</span>
+                                          </div>
+                                          <span className="text-gray-500 dark:text-gray-400 text-xs">
+                                            {new Date(change.changed_at).toLocaleString('uk-UA')}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-gray-500 dark:text-gray-400 text-xs">Немає історії змін</p>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
                     ))}
                   </tbody>
                 </table>

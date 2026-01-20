@@ -64,6 +64,8 @@ export type Order = {
   supplier_notes?: string;
   inspection_date?: string;
   inspected_by?: string;
+  manager_id?: string;
+  counterparty_id?: string;
   created_at: string;
 };
 
@@ -85,6 +87,9 @@ export type Manager = {
 
 export type Return = {
   id: string;
+  supplier_id?: string;
+  order_id?: string;
+  accepted_order_id?: string;
   status?: string;
   substatus: string;
   client_id?: string;
@@ -104,8 +109,40 @@ export type Return = {
   situation_description?: string;
   manager_id?: string;
   archived?: boolean;
+  is_reversed?: boolean;
+  project_id?: string;
+  counterparty_id?: string;
   created_at: string;
   updated_at?: string;
+};
+
+export type DraftOrder = {
+  id: string;
+  order_number: string;
+  supplier_id: string;
+  manager_id?: string;
+  status: string;
+  order_date: string;
+  notes: string;
+  title: string;
+  link: string;
+  tracking_pl: string;
+  part_price: number;
+  delivery_cost: number;
+  total_cost: number;
+  part_number: string;
+  payment_type: string;
+  cash_on_delivery: number;
+  client_id: string;
+  received_pln: number;
+  transport_cost_usd: number;
+  weight_kg: number;
+  verified: boolean;
+  archived: boolean;
+  archived_at?: string;
+  project_id: string;
+  created_by?: string;
+  created_at: string;
 };
 
 export type ActiveReceipt = {
@@ -238,4 +275,16 @@ export type AuditLog = {
   ip_address: string | null;
   created_at: string;
   user_profile?: UserProfile;
+};
+
+export type ReceiptFieldChange = {
+  id: string;
+  receipt_id: string | null;
+  order_id: string | null;
+  field_name: string;
+  old_value: string | null;
+  new_value: string | null;
+  changed_by: string | null;
+  changed_at: string;
+  created_at: string;
 };

@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Send, Check, ChevronDown, ChevronRight, Plus, X, FileText, ExternalLink, Search, XCircle } from 'lucide-react';
-import { useToast } from '../contexts/ToastContext';
-import { ExportButton } from './ExportButton';
-import { exportToCSV } from '../utils/exportData';
+import { Send, Check, ChevronDown, ChevronRight, Plus } from 'lucide-react';
 
 type Receipt = {
   id: string;
@@ -21,23 +18,8 @@ type Receipt = {
   approved_at?: string;
   settlement_date?: string;
   settled_date?: string;
-  created_by?: string;
-  approved_by?: string;
-  settled_by?: string;
   supplier?: {
     name: string;
-  };
-  created_by_profile?: {
-    full_name: string | null;
-    email: string;
-  };
-  approved_by_profile?: {
-    full_name: string | null;
-    email: string;
-  };
-  settled_by_profile?: {
-    full_name: string | null;
-    email: string;
   };
 };
 
@@ -82,26 +64,19 @@ type AvailableOrder = {
   order_number: string;
   client_id: string;
   title: string;
-  tracking_pl?: string;
-  part_number?: string;
   payment_type: string;
   order_date: string;
   part_price: number;
   delivery_cost: number;
   total_cost: number;
-  received_pln?: number;
-  cash_on_delivery?: number;
-  transport_cost_usd?: number;
 };
 
 export default function ReceiptManagement() {
-  const { showSuccess, showError, showWarning, confirm, prompt } = useToast();
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [expandedReceipt, setExpandedReceipt] = useState<string | null>(null);
   const [orders, setOrders] = useState<{ [receiptId: string]: EditableOrder[] }>({});
   const [showAddOrders, setShowAddOrders] = useState<string | null>(null);
   const [availableOrders, setAvailableOrders] = useState<AvailableOrder[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     loadReceipts();
@@ -112,10 +87,7 @@ export default function ReceiptManagement() {
       .from('active_receipts')
       .select(`
         *,
-        supplier:suppliers(name),
-        created_by_profile:user_profiles!active_receipts_created_by_fkey(full_name, email),
-        approved_by_profile:user_profiles!active_receipts_approved_by_fkey(full_name, email),
-        settled_by_profile:user_profiles!active_receipts_settled_by_fkey(full_name, email)
+        supplier:suppliers(name)
       `)
       .in('status', ['draft', 'approved'])
       .order('created_at', { ascending: false });
@@ -184,7 +156,7 @@ export default function ReceiptManagement() {
 
     let query = supabase
       .from('orders')
-      .select('id, order_number, client_id, title, link, tracking_pl, part_number, payment_type, order_date, part_price, delivery_cost, total_cost, received_pln, cash_on_delivery, transport_cost_usd')
+      .select('id, order_number, client_id, title, link, tracking_pl, payment_type, order_date, part_price, delivery_cost, total_cost')
       .eq('supplier_id', receipt.supplier_id)
       .not('status', 'in', '("проблемні","анульовано","повернення")');
 
@@ -249,31 +221,6 @@ export default function ReceiptManagement() {
     const receiptOrders = orders[receiptId];
     if (!receiptOrders) return;
 
-    const paidOrdersWithCash = receiptOrders.filter(order =>
-      order.payment_type?.toLowerCase().includes('оплачено') && order.editableCash !== 0
-    );
-
-    if (paidOrdersWithCash.length > 0) {
-      const ordersList = paidOrdersWithCash.map(o => `- ${o.client_id}: ${o.title}`).join('\n');
-      const reason = await prompt(
-        `УВАГА! Наступні замовлення мають тип оплати "оплачено", але встановлено побрання:\n\n${ordersList}\n\nЯкщо це не помилка, опишіть причину:`,
-        ''
-      );
-
-      if (reason === null) {
-        return;
-      }
-
-      if (!reason || reason.trim() === '') {
-        const confirmed = await confirm(
-          'Ви не вказали причину. Ви впевнені, що хочете продовжити без пояснення?'
-        );
-        if (!confirmed) {
-          return;
-        }
-      }
-    }
-
     for (const order of receiptOrders) {
       await supabase
         .from('orders')
@@ -319,222 +266,53 @@ export default function ReceiptManagement() {
       })
       .eq('id', receiptId);
 
-    showSuccess('Зміни збережено');
+    alert('Зміни збережено');
     loadReceipts();
   }
 
   async function sendToSupplier(receiptId: string) {
     await saveChanges(receiptId);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      showError('Помилка авторизації. Увійдіть знову.');
-      return;
-    }
-
-    const { data: receipt } = await supabase
-      .from('active_receipts')
-      .select('receipt_number')
-      .eq('id', receiptId)
-      .single();
-
-    if (!receipt) {
-      showError('Помилка: прийомку не знайдено');
-      return;
-    }
-
-    const { data: receiptOrders } = await supabase
-      .from('receipt_orders')
-      .select('order_id, orders(*)')
-      .eq('receipt_id', receiptId);
-
-    if (receiptOrders && receiptOrders.length > 0) {
-      const acceptedOrdersData = receiptOrders
-        .filter((ro: any) => ro.orders)
-        .map((ro: any) => ({
-          order_id: ro.order_id,
-          receipt_id: receiptId,
-          receipt_number: receipt.receipt_number,
-          order_number: ro.orders.order_number,
-          tracking_number: ro.orders.tracking_number,
-          supplier_id: ro.orders.supplier_id,
-          title: ro.orders.title,
-          client_id: ro.orders.client_id,
-          part_number: ro.orders.part_number,
-          link: ro.orders.link,
-          weight_kg: ro.orders.weight_kg,
-          part_price: ro.orders.part_price,
-          delivery_cost: ro.orders.delivery_cost,
-          received_pln: ro.orders.received_pln,
-          cash_on_delivery: ro.orders.cash_on_delivery,
-          transport_cost_usd: ro.orders.transport_cost_usd,
-          payment_type: ro.orders.payment_type,
-          accepted_at: new Date().toISOString()
-        }));
-
-      const { error: acceptedError } = await supabase
-        .from('accepted_orders')
-        .insert(acceptedOrdersData);
-
-      if (acceptedError) {
-        console.error('Помилка створення прийнятих замовлень:', acceptedError);
-        showError('Помилка при збереженні прийнятих замовлень');
-        return;
-      }
-
-      const orderIds = receiptOrders.map((ro: any) => ro.order_id);
-      const { error: statusError } = await supabase
-        .from('orders')
-        .update({ status: 'прийнято' })
-        .in('id', orderIds);
-
-      if (statusError) {
-        console.error('Помилка оновлення статусу замовлень:', statusError);
-        showError('Помилка при оновленні статусу замовлень');
-        return;
-      }
-    }
-
     const { error } = await supabase
       .from('active_receipts')
       .update({
         status: 'approved',
-        approved_at: new Date().toISOString(),
-        approved_by: user.id
+        approved_at: new Date().toISOString()
       })
       .eq('id', receiptId);
 
     if (!error) {
-      showSuccess('Прийомку затверджено! Замовлення переміщено до вкладки "Прийняті"');
+      alert('Прийомку затверджено');
       loadReceipts();
     }
   }
 
   async function confirmReceipt(receipt: Receipt) {
-    const { data: supplierData } = await supabase
-      .from('suppliers')
-      .select('*')
-      .eq('id', receipt.supplier_id)
-      .single();
-
-    if (!supplierData) {
-      showError('Помилка: постачальник не знайдений');
-      return;
-    }
-
-    const { data: receiptOrderLinks } = await supabase
-      .from('receipt_orders')
-      .select('order_id')
-      .eq('receipt_id', receipt.id);
-
-    let cardPartsCost = 0;
-    let cardDeliveryCost = 0;
-
-    if (receiptOrderLinks && receiptOrderLinks.length > 0) {
-      const orderIds = receiptOrderLinks.map(ro => ro.order_id);
-      const { data: ordersData } = await supabase
-        .from('orders')
-        .select('*')
-        .in('id', orderIds);
-
-      if (ordersData) {
-        ordersData.forEach(order => {
-          if (order.payment_type === 'оплачено') {
-            cardPartsCost += order.part_price || 0;
-            cardDeliveryCost += order.delivery_cost || 0;
-          }
-        });
-      }
-    }
-
     const { error: receiptError } = await supabase
       .from('active_receipts')
       .update({
         status: 'sent_for_settlement',
-        settlement_date: new Date().toISOString(),
-        settled_date: null
+        settlement_date: new Date().toISOString()
       })
       .eq('id', receipt.id);
 
     if (receiptError) {
-      showError('Помилка переведення на розрахунок');
+      alert('Помилка переведення на розрахунок');
       return;
     }
 
-    if (receiptOrderLinks && receiptOrderLinks.length > 0) {
-      const orderIds = receiptOrderLinks.map(ro => ro.order_id);
-      console.log('Оновлення статусу для замовлень:', orderIds);
-
-      for (const orderId of orderIds) {
-        const { data: otherReceipts } = await supabase
-          .from('receipt_orders')
-          .select('receipt_id, active_receipts(status)')
-          .eq('order_id', orderId)
-          .neq('receipt_id', receipt.id);
-
-        const hasOtherActiveReceipts = otherReceipts?.some((ro: any) =>
-          ro.active_receipts?.status === 'draft' || ro.active_receipts?.status === 'approved'
-        );
-
-        if (!hasOtherActiveReceipts) {
-          const { error: orderError } = await supabase
-            .from('orders')
-            .update({
-              status: 'на звірці',
-              previous_status: null
-            })
-            .eq('id', orderId);
-
-          if (orderError) {
-            console.error(`Помилка при оновленні замовлення ${orderId}:`, orderError);
-          } else {
-            console.log(`Замовлення ${orderId} переведено на звірку`);
-          }
-        } else {
-          console.log(`Замовлення ${orderId} залишається в активному прийомі (є в інших прийомках)`);
-        }
-      }
-    }
-
-    const receiptCashPln = (receipt.receipt_cost_pln || 0) + (receipt.cash_on_delivery_pln || 0);
-    const transportUsd = receipt.transport_cost_usd || 0;
-
-    const { error: txError } = await supabase
-      .from('transactions')
-      .insert({
-        transaction_type: 'debit',
-        amount_pln: 0,
-        amount_usd: 0,
-        cash_on_delivery_pln: receiptCashPln,
-        transport_cost_usd: transportUsd,
-        parts_delivery_pln: (receipt.parts_cost_pln || 0) + (receipt.delivery_cost_pln || 0),
-        description: `Нарахування за накладну №${receipt.receipt_number}`,
-        transaction_date: new Date().toISOString().split('T')[0],
-        receipt_id: receipt.id,
-        created_by: 'system'
-      });
-
-    if (txError) {
-      console.error('Помилка при створенні транзакції:', txError);
-    }
-
-    if (cardPartsCost > 0 || cardDeliveryCost > 0) {
-      const cardTotalAmount = cardPartsCost + cardDeliveryCost;
-      const { error: cardTxError } = await supabase
-        .from('card_transactions')
-        .insert({
-          transaction_type: 'charge',
-          amount: cardTotalAmount,
-          description: `Нарахування за накладну №${receipt.receipt_number} (картка)`,
-          transaction_date: new Date().toISOString().split('T')[0],
-          receipt_id: receipt.id,
-          created_by: 'system'
-        });
-
-      if (cardTxError) {
-        console.error('Помилка при створенні картової транзакції:', cardTxError);
-      }
-    }
+    await supabase.from('transactions').insert([{
+      transaction_type: 'debit',
+      amount_pln: 0,
+      amount_usd: 0,
+      cash_on_delivery_pln: receipt.receipt_cost_pln + receipt.cash_on_delivery_pln,
+      transport_cost_usd: receipt.transport_cost_usd,
+      parts_delivery_pln: receipt.parts_cost_pln + receipt.delivery_cost_pln,
+      description: `Прийомка ${receipt.receipt_number}`,
+      receipt_id: receipt.id,
+      transaction_date: new Date().toISOString().split('T')[0],
+      created_by: 'system'
+    }]);
 
     await supabase.from('supplier_transactions').insert([{
       supplier_id: receipt.supplier_id,
@@ -558,13 +336,11 @@ export default function ReceiptManagement() {
         balance_delivery_pln: Number(supplierData.balance_delivery_pln) + Number(receipt.delivery_cost_pln),
         balance_receipt_pln: Number(supplierData.balance_receipt_pln) + Number(receipt.receipt_cost_pln),
         balance_cash_on_delivery_pln: Number(supplierData.balance_cash_on_delivery_pln) + Number(receipt.cash_on_delivery_pln),
-        balance_transport_usd: Number(supplierData.balance_transport_usd) + Number(receipt.transport_cost_usd),
-        card_balance_parts_pln: Number(supplierData.card_balance_parts_pln || 0) + Number(cardPartsCost),
-        card_balance_delivery_pln: Number(supplierData.card_balance_delivery_pln || 0) + Number(cardDeliveryCost)
+        balance_transport_usd: Number(supplierData.balance_transport_usd) + Number(receipt.transport_cost_usd)
       })
       .eq('id', receipt.supplier_id);
 
-    showSuccess('Прійомку передано на розрахунок!');
+    alert('Прийомку передано на розрахунок! Створено транзакцію у взаєморозрахунку.');
     loadReceipts();
   }
 
@@ -572,22 +348,6 @@ export default function ReceiptManagement() {
     try {
       console.log('Починаємо додавання замовлення:', { receiptId, orderId });
       console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
-
-      const { data: receiptData } = await supabase
-        .from('active_receipts')
-        .select('status')
-        .eq('id', receiptId)
-        .single();
-
-      if (!receiptData) {
-        showError('Прійомку не знайдено');
-        return;
-      }
-
-      if (receiptData.status === 'sent_for_settlement' || receiptData.status === 'settled') {
-        showWarning('Неможливо додати замовлення до прийомки, яка вже на розрахунку');
-        return;
-      }
 
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
@@ -599,22 +359,14 @@ export default function ReceiptManagement() {
 
       if (orderError) {
         console.error('Помилка при отриманні замовлення:', orderError);
-        showError(`Помилка при отриманні замовлення: ${orderError.message}`);
+        alert(`Помилка при отриманні замовлення: ${orderError.message}`);
         return;
       }
 
       if (!orderData) {
-        showError('Замовлення не знайдено');
+        alert('Замовлення не знайдено');
         return;
       }
-
-      await supabase
-        .from('orders')
-        .update({
-          previous_status: orderData.status,
-          status: 'в активному прийомі'
-        })
-        .eq('id', orderId);
 
       console.log('Додаємо зв\'язок receipt_orders...');
       const { error: receiptOrderError } = await supabase.from('receipt_orders').insert({
@@ -625,7 +377,7 @@ export default function ReceiptManagement() {
 
       if (receiptOrderError) {
         console.error('Помилка при додаванні зв\'язку:', receiptOrderError);
-        showError(`Помилка при додаванні зв'язку: ${receiptOrderError.message}`);
+        alert(`Помилка при додаванні зв'язку: ${receiptOrderError.message}`);
         return;
       }
 
@@ -643,194 +395,33 @@ export default function ReceiptManagement() {
 
       if (snapshotError) {
         console.error('Помилка при створенні snapshot:', snapshotError);
-        showError(`Помилка при створенні snapshot: ${snapshotError.message}`);
+        alert(`Помилка при створенні snapshot: ${snapshotError.message}`);
         return;
       }
 
       console.log('Замовлення успішно додано!');
-      showSuccess('Замовлення додано до прийомки');
+      alert('Замовлення додано до прийомки');
       setShowAddOrders(null);
       loadOrdersForReceipt(receiptId);
       loadReceipts();
     } catch (err) {
       console.error('Помилка при створенні замовлення (catch):', err);
-      showError(`Помилка при створенні замовлення: ${err instanceof Error ? err.message : String(err)}`);
+      alert(`Помилка при створенні замовлення: ${err instanceof Error ? err.message : String(err)}`);
     }
-  }
-
-  async function removeOrderFromReceipt(receiptId: string, orderId: string) {
-    try {
-      const { data: receiptData } = await supabase
-        .from('active_receipts')
-        .select('status')
-        .eq('id', receiptId)
-        .single();
-
-      if (!receiptData) {
-        showError('Прійомку не знайдено');
-        return;
-      }
-
-      const { data: orderData } = await supabase
-        .from('orders')
-        .select('previous_status, status')
-        .eq('id', orderId)
-        .single();
-
-      if (!orderData) {
-        showError('Замовлення не знайдено');
-        return;
-      }
-
-      const { data: otherReceipts } = await supabase
-        .from('receipt_orders')
-        .select('receipt_id, active_receipts(status)')
-        .eq('order_id', orderId)
-        .neq('receipt_id', receiptId);
-
-      const hasOtherActiveReceipts = otherReceipts?.some((ro: any) =>
-        ro.active_receipts?.status === 'draft' || ro.active_receipts?.status === 'approved'
-      );
-
-      let newStatus = orderData.status;
-      if (receiptData.status === 'sent_for_settlement' || receiptData.status === 'settled') {
-        if (!hasOtherActiveReceipts) {
-          newStatus = 'на звірці';
-        }
-      } else {
-        newStatus = orderData.previous_status || orderData.status;
-      }
-
-      await supabase
-        .from('orders')
-        .update({
-          status: newStatus,
-          previous_status: null
-        })
-        .eq('id', orderId);
-
-      await supabase
-        .from('receipt_orders')
-        .delete()
-        .eq('receipt_id', receiptId)
-        .eq('order_id', orderId);
-
-      await supabase
-        .from('receipt_order_snapshots')
-        .delete()
-        .eq('receipt_id', receiptId)
-        .eq('order_id', orderId);
-
-      loadOrdersForReceipt(receiptId);
-      loadReceipts();
-      if (showAddOrders === receiptId) {
-        loadAvailableOrders(receiptId);
-      }
-    } catch (err) {
-      console.error('Помилка при видаленні замовлення:', err);
-      showError(`Помилка при видаленні замовлення: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
-
-  async function returnToDraft(receiptId: string) {
-    const confirmed = confirm('Повернути прийомку в статус чернетки?');
-    if (!confirmed) return;
-
-    const { data: receiptOrders } = await supabase
-      .from('receipt_orders')
-      .select('order_id')
-      .eq('receipt_id', receiptId);
-
-    if (receiptOrders && receiptOrders.length > 0) {
-      const orderIds = receiptOrders.map(ro => ro.order_id);
-
-      await supabase
-        .from('accepted_orders')
-        .delete()
-        .eq('receipt_id', receiptId);
-
-      for (const orderId of orderIds) {
-        await supabase
-          .from('orders')
-          .update({
-            status: 'в активному прийомі',
-            previous_status: null
-          })
-          .eq('id', orderId);
-      }
-    }
-
-    await supabase
-      .from('active_receipts')
-      .update({
-        status: 'draft',
-        approved_at: null
-      })
-      .eq('id', receiptId);
-
-    showSuccess('Прийомку повернуто в чернетку');
-    loadReceipts();
   }
 
   function formatNumber(num: number) {
     return new Intl.NumberFormat('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
   }
 
-  const filteredAvailableOrders = availableOrders.filter(order => {
-    if (!searchTerm.trim()) return true;
-    const searchLower = searchTerm.toLowerCase().trim();
-    return (
-      (order.client_id && order.client_id.toLowerCase().includes(searchLower)) ||
-      (order.title && order.title.toLowerCase().includes(searchLower)) ||
-      (order.tracking_pl && order.tracking_pl.toLowerCase().includes(searchLower)) ||
-      (order.part_number && order.part_number.toLowerCase().includes(searchLower))
-    );
-  });
-
   const draftReceipts = receipts.filter(r => r.status === 'draft');
   const approvedReceipts = receipts.filter(r => r.status === 'approved');
 
-  const handleExportReceipts = () => {
-    const dataToExport = receipts.map(receipt => ({
-      receipt_number: receipt.receipt_number,
-      receipt_date: receipt.receipt_date,
-      status: receipt.status === 'draft' ? 'Чернетка' : receipt.status === 'approved' ? 'Затверджено' : receipt.status === 'sent_for_settlement' ? 'Відправлено' : 'Розраховано',
-      supplier: receipt.supplier?.name || '',
-      parts_cost_pln: receipt.parts_cost_pln,
-      delivery_cost_pln: receipt.delivery_cost_pln,
-      receipt_cost_pln: receipt.receipt_cost_pln,
-      cash_on_delivery_pln: receipt.cash_on_delivery_pln,
-      transport_cost_usd: receipt.transport_cost_usd,
-      total_pln: receipt.total_pln,
-      total_usd: receipt.total_usd
-    }));
-
-    const headers = {
-      receipt_number: '№ Прийомки',
-      receipt_date: 'Дата',
-      status: 'Статус',
-      supplier: 'Постачальник',
-      parts_cost_pln: 'Деталі PLN',
-      delivery_cost_pln: 'Доставка PLN',
-      receipt_cost_pln: 'Прийомка PLN',
-      cash_on_delivery_pln: 'Побранє PLN',
-      transport_cost_usd: 'Транспорт USD',
-      total_pln: 'Всього PLN',
-      total_usd: 'Всього USD'
-    };
-
-    exportToCSV(dataToExport, 'upravlinnya_priyomkamy', headers);
-  };
-
   return (
     <div className="max-w-[98%] mx-auto px-4 py-6 space-y-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Управління прийомками</h2>
-        <ExportButton onClick={handleExportReceipts} disabled={receipts.length === 0} />
-      </div>
       {draftReceipts.map(receipt => (
         <div key={receipt.id} className="bg-white dark:bg-gray-800 rounded-lg shadow">
-          <div className="p-4 border-b bg-gray-50 dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-750 dark:border-gray-700">
+          <div className="p-4 border-b bg-gray-50 dark:bg-gray-700">
             <div className="flex items-center justify-between">
               <button
                 onClick={() => toggleReceipt(receipt.id)}
@@ -843,39 +434,29 @@ export default function ReceiptManagement() {
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
                     PLN: {formatNumber(receipt.total_pln)} | USD: {formatNumber(receipt.total_usd)}
-                    {receipt.created_by_profile && (
-                      <span className="ml-3 text-blue-600 dark:text-blue-400">
-                        Створив: {receipt.created_by_profile.full_name || receipt.created_by_profile.email}
-                      </span>
-                    )}
                   </p>
                 </div>
               </button>
               <div className="flex gap-2">
                 <button
                   onClick={() => {
-                    const isOpening = showAddOrders !== receipt.id;
-                    setShowAddOrders(isOpening ? receipt.id : null);
-                    if (isOpening) {
-                      loadAvailableOrders(receipt.id);
-                    } else {
-                      setSearchTerm('');
-                    }
+                    setShowAddOrders(showAddOrders === receipt.id ? null : receipt.id);
+                    if (showAddOrders !== receipt.id) loadAvailableOrders(receipt.id);
                   }}
-                  className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-700 dark:hover:from-gray-700 dark:hover:to-gray-600 transition flex items-center gap-1"
+                  className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition flex items-center gap-1"
                 >
                   <Plus size={14} />
                   Додати замовлення
                 </button>
                 <button
                   onClick={() => saveChanges(receipt.id)}
-                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 dark:bg-gradient-to-br dark:from-blue-800 dark:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-600 transition"
+                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
                 >
                   Зберегти зміни
                 </button>
                 <button
                   onClick={() => sendToSupplier(receipt.id)}
-                  className="px-3 py-1 bg-green-700 text-white rounded hover:bg-green-700 dark:bg-gradient-to-br dark:from-green-800 dark:to-green-700 dark:hover:from-green-700 dark:hover:to-green-600 transition flex items-center gap-1"
+                  className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition flex items-center gap-1"
                 >
                   <Check size={14} />
                   Затвердити
@@ -885,28 +466,10 @@ export default function ReceiptManagement() {
           </div>
 
           {showAddOrders === receipt.id && (
-            <div className="p-4 bg-blue-50 dark:bg-gradient-to-br dark:from-blue-950 dark:to-blue-900 border-b dark:border-blue-800">
-              <h4 className="font-medium mb-2 text-gray-900 dark:text-blue-200">Доступні замовлення для додавання:</h4>
-              <div className="mb-3 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={18} />
-                <input
-                  type="text"
-                  placeholder="Пошук за ID клієнта, назвою, трекінгом або номером запчастини..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-9 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition"
-                  >
-                    <XCircle size={16} />
-                  </button>
-                )}
-              </div>
+            <div className="p-4 bg-blue-50 border-b">
+              <h4 className="font-medium mb-2">Доступні замовлення для додавання:</h4>
               <div className="overflow-x-auto max-h-96 overflow-y-auto">
-                {filteredAvailableOrders.length > 0 ? (
+                {availableOrders.length > 0 ? (
                   <table className="w-full text-xs bg-white dark:bg-gray-800 rounded table-fixed">
                     <thead className="bg-gray-100 dark:bg-gray-700 sticky top-0">
                       <tr>
@@ -921,23 +484,19 @@ export default function ReceiptManagement() {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {filteredAvailableOrders.map(order => (
+                      {availableOrders.map(order => (
                         <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
-                          <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.title || '***'}</td>
-                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{order.part_price ? formatNumber(order.part_price) : '***'}</td>
-                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{order.delivery_cost ? formatNumber(order.delivery_cost) : '***'}</td>
-                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{order.received_pln ? formatNumber(order.received_pln) : '***'}</td>
-                          <td className={`px-2 py-2 text-right tabular-nums ${
-                            order.payment_type?.toLowerCase().includes('оплачено') && (order.cash_on_delivery || 0) !== 0
-                              ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 font-semibold'
-                              : 'text-gray-900 dark:text-gray-100'
-                          }`}>{order.cash_on_delivery ? formatNumber(order.cash_on_delivery) : '***'}</td>
-                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{order.transport_cost_usd ? formatNumber(order.transport_cost_usd) : '***'}</td>
-                          <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.payment_type || '***'}</td>
+                          <td className="px-2 py-2 truncate">{order.title || '-'}</td>
+                          <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.part_price)}</td>
+                          <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.delivery_cost)}</td>
+                          <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.received_pln || 0)}</td>
+                          <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.cash_on_delivery || 0)}</td>
+                          <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.transport_cost_usd || 0)}</td>
+                          <td className="px-2 py-2 truncate">{order.payment_type}</td>
                           <td className="px-2 py-2 text-center">
                             <button
                               onClick={() => addOrderToReceipt(receipt.id, order.id)}
-                              className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 dark:bg-gradient-to-br dark:from-blue-800 dark:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-600 text-xs"
+                              className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
                             >
                               Додати
                             </button>
@@ -947,7 +506,7 @@ export default function ReceiptManagement() {
                     </tbody>
                   </table>
                 ) : (
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Немає доступних замовлень</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Немає доступних замовлень</p>
                 )}
               </div>
             </div>
@@ -972,21 +531,20 @@ export default function ReceiptManagement() {
                     <th className="w-24 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Тип оплати</th>
                     <th className="w-24 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Дата</th>
                     <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Всього</th>
-                    <th className="w-12 px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200">Дія</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {orders[receipt.id].map(order => (
-                    <tr key={order.id} className={hasChanges(order) ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}>
-                      <td className="px-2 py-2 text-gray-900 dark:text-gray-100">{order.client_id || '***'}</td>
-                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.part_number || '***'}</td>
+                    <tr key={order.id} className={hasChanges(order) ? 'bg-yellow-50' : 'hover:bg-gray-50'}>
+                      <td className="px-2 py-2">{order.client_id}</td>
+                      <td className="px-2 py-2 truncate">{order.part_number}</td>
                       <td className="px-2 py-2 text-right">
                         <input
                           type="number"
                           step="0.001"
                           value={order.editableWeight}
                           onChange={(e) => updateOrderField(receipt.id, order.id, 'editableWeight', parseFloat(e.target.value) || 0)}
-                          className={`w-20 px-1 py-1 border rounded text-right tabular-nums bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isFieldChanged(order, 'editableWeight') ? 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-400 dark:border-yellow-500' : 'border-gray-300 dark:border-gray-600'}`}
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableWeight') ? 'bg-yellow-100 border-yellow-400' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -995,7 +553,7 @@ export default function ReceiptManagement() {
                           step="0.01"
                           value={order.editableParts}
                           onChange={(e) => updateOrderField(receipt.id, order.id, 'editableParts', parseFloat(e.target.value) || 0)}
-                          className={`w-20 px-1 py-1 border rounded text-right tabular-nums bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isFieldChanged(order, 'editableParts') ? 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-400 dark:border-yellow-500' : 'border-gray-300 dark:border-gray-600'}`}
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableParts') ? 'bg-yellow-100 border-yellow-400' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -1004,7 +562,7 @@ export default function ReceiptManagement() {
                           step="0.01"
                           value={order.editableDelivery}
                           onChange={(e) => updateOrderField(receipt.id, order.id, 'editableDelivery', parseFloat(e.target.value) || 0)}
-                          className={`w-20 px-1 py-1 border rounded text-right tabular-nums bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isFieldChanged(order, 'editableDelivery') ? 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-400 dark:border-yellow-500' : 'border-gray-300 dark:border-gray-600'}`}
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableDelivery') ? 'bg-yellow-100 border-yellow-400' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -1013,7 +571,7 @@ export default function ReceiptManagement() {
                           step="0.01"
                           value={order.editableReceipt}
                           onChange={(e) => updateOrderField(receipt.id, order.id, 'editableReceipt', parseFloat(e.target.value) || 0)}
-                          className={`w-20 px-1 py-1 border rounded text-right tabular-nums bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isFieldChanged(order, 'editableReceipt') ? 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-400 dark:border-yellow-500' : 'border-gray-300 dark:border-gray-600'}`}
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableReceipt') ? 'bg-yellow-100 border-yellow-400' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -1022,13 +580,7 @@ export default function ReceiptManagement() {
                           step="0.01"
                           value={order.editableCash}
                           onChange={(e) => updateOrderField(receipt.id, order.id, 'editableCash', parseFloat(e.target.value) || 0)}
-                          className={`w-20 px-1 py-1 border rounded text-right tabular-nums bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                            order.payment_type?.toLowerCase().includes('оплачено') && order.editableCash !== 0
-                              ? 'border-red-500 bg-red-50 dark:bg-red-900/30 dark:border-red-400'
-                              : isFieldChanged(order, 'editableCash')
-                              ? 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-400 dark:border-yellow-500'
-                              : 'border-gray-300 dark:border-gray-600'
-                          }`}
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableCash') ? 'bg-yellow-100 border-yellow-400' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -1037,26 +589,17 @@ export default function ReceiptManagement() {
                           step="0.01"
                           value={order.editableTransport}
                           onChange={(e) => updateOrderField(receipt.id, order.id, 'editableTransport', parseFloat(e.target.value) || 0)}
-                          className={`w-20 px-1 py-1 border rounded text-right tabular-nums bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${isFieldChanged(order, 'editableTransport') ? 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-400 dark:border-yellow-500' : 'border-gray-300 dark:border-gray-600'}`}
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableTransport') ? 'bg-yellow-100 border-yellow-400' : ''}`}
                         />
                       </td>
-                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.title || '***'}</td>
-                      <td className="px-2 py-2 text-center">
-                        {order.link ? <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 inline-flex"><ExternalLink size={16} /></a> : <span className="text-gray-900 dark:text-gray-100">***</span>}
+                      <td className="px-2 py-2 truncate">{order.title}</td>
+                      <td className="px-2 py-2">
+                        {order.link && <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Посилання</a>}
                       </td>
-                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.tracking_pl || '***'}</td>
-                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.payment_type || '***'}</td>
-                      <td className="px-2 py-2 text-gray-900 dark:text-gray-100">{order.order_date || '***'}</td>
-                      <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{order.total_cost ? formatNumber(order.total_cost) : '***'}</td>
-                      <td className="px-2 py-2 text-center">
-                        <button
-                          onClick={() => removeOrderFromReceipt(receipt.id, order.id)}
-                          className="text-red-600 hover:text-red-900 hover:bg-red-50 p-1 rounded transition"
-                          title="Видалити з прийомки"
-                        >
-                          <X size={16} />
-                        </button>
-                      </td>
+                      <td className="px-2 py-2 truncate">{order.tracking_pl}</td>
+                      <td className="px-2 py-2 truncate">{order.payment_type}</td>
+                      <td className="px-2 py-2">{order.order_date}</td>
+                      <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.total_cost)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1067,8 +610,8 @@ export default function ReceiptManagement() {
       ))}
 
       {approvedReceipts.map(receipt => (
-        <div key={receipt.id} className="bg-white dark:bg-gray-800 rounded-lg shadow border-2 border-green-300 dark:border-green-800">
-          <div className="p-4 border-b bg-green-50 dark:bg-gradient-to-br dark:from-green-950 dark:to-green-900 dark:border-green-800">
+        <div key={receipt.id} className="bg-white dark:bg-gray-800 rounded-lg shadow border-2 border-green-300">
+          <div className="p-4 border-b bg-green-50">
             <div className="flex items-center justify-between">
               <button
                 onClick={() => toggleReceipt(receipt.id)}
@@ -1081,29 +624,13 @@ export default function ReceiptManagement() {
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
                     PLN: {formatNumber(receipt.total_pln)} | USD: {formatNumber(receipt.total_usd)}
-                    {receipt.created_by_profile && (
-                      <span className="ml-3 text-blue-600 dark:text-blue-400">
-                        Створив: {receipt.created_by_profile.full_name || receipt.created_by_profile.email}
-                      </span>
-                    )}
-                    {receipt.approved_by_profile && (
-                      <span className="ml-3 text-green-600 dark:text-green-400">
-                        Затвердив: {receipt.approved_by_profile.full_name || receipt.approved_by_profile.email}
-                      </span>
-                    )}
                   </p>
                 </div>
               </button>
               <div className="flex gap-2">
                 <button
-                  onClick={() => returnToDraft(receipt.id)}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-700 dark:hover:from-gray-700 dark:hover:to-gray-600 transition flex items-center gap-1"
-                >
-                  Повернути в чернетку
-                </button>
-                <button
                   onClick={() => confirmReceipt(receipt)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 dark:bg-gradient-to-br dark:from-blue-800 dark:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-600 transition flex items-center gap-1"
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center gap-1"
                 >
                   <Send size={16} />
                   Передати на розрахунок
@@ -1113,28 +640,10 @@ export default function ReceiptManagement() {
           </div>
 
           {showAddOrders === receipt.id && (
-            <div className="p-4 bg-blue-50 dark:bg-gradient-to-br dark:from-blue-950 dark:to-blue-900 border-b dark:border-blue-800">
-              <h4 className="font-medium mb-2 text-gray-900 dark:text-blue-200">Доступні замовлення для додавання:</h4>
-              <div className="mb-3 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={18} />
-                <input
-                  type="text"
-                  placeholder="Пошук за ID клієнта, назвою, трекінгом або номером запчастини..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-9 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition"
-                  >
-                    <XCircle size={16} />
-                  </button>
-                )}
-              </div>
+            <div className="p-4 bg-blue-50 border-b">
+              <h4 className="font-medium mb-2">Доступні замовлення для додавання:</h4>
               <div className="overflow-x-auto max-h-96 overflow-y-auto">
-                {filteredAvailableOrders.length > 0 ? (
+                {availableOrders.length > 0 ? (
                   <table className="w-full text-xs bg-white dark:bg-gray-800 rounded table-fixed">
                     <thead className="bg-gray-100 dark:bg-gray-700 sticky top-0">
                       <tr>
@@ -1149,23 +658,19 @@ export default function ReceiptManagement() {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {filteredAvailableOrders.map(order => (
+                      {availableOrders.map(order => (
                         <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
-                          <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.title || '***'}</td>
-                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{order.part_price ? formatNumber(order.part_price) : '***'}</td>
-                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{order.delivery_cost ? formatNumber(order.delivery_cost) : '***'}</td>
-                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{order.received_pln ? formatNumber(order.received_pln) : '***'}</td>
-                          <td className={`px-2 py-2 text-right tabular-nums ${
-                            order.payment_type?.toLowerCase().includes('оплачено') && (order.cash_on_delivery || 0) !== 0
-                              ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 font-semibold'
-                              : 'text-gray-900 dark:text-gray-100'
-                          }`}>{order.cash_on_delivery ? formatNumber(order.cash_on_delivery) : '***'}</td>
-                          <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{order.transport_cost_usd ? formatNumber(order.transport_cost_usd) : '***'}</td>
-                          <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.payment_type || '***'}</td>
+                          <td className="px-2 py-2 truncate">{order.title || '-'}</td>
+                          <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.part_price)}</td>
+                          <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.delivery_cost)}</td>
+                          <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.received_pln || 0)}</td>
+                          <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.cash_on_delivery || 0)}</td>
+                          <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.transport_cost_usd || 0)}</td>
+                          <td className="px-2 py-2 truncate">{order.payment_type}</td>
                           <td className="px-2 py-2 text-center">
                             <button
                               onClick={() => addOrderToReceipt(receipt.id, order.id)}
-                              className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 dark:bg-gradient-to-br dark:from-blue-800 dark:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-600 text-xs"
+                              className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
                             >
                               Додати
                             </button>
@@ -1175,7 +680,7 @@ export default function ReceiptManagement() {
                     </tbody>
                   </table>
                 ) : (
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Немає доступних замовлень</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Немає доступних замовлень</p>
                 )}
               </div>
             </div>
@@ -1200,21 +705,20 @@ export default function ReceiptManagement() {
                     <th className="w-24 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Тип оплати</th>
                     <th className="w-24 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Дата</th>
                     <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Всього</th>
-                    <th className="w-12 px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200">Дія</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {orders[receipt.id].map(order => (
-                    <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <td className="px-2 py-2 text-gray-900 dark:text-gray-100">{order.client_id || '***'}</td>
-                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.part_number || '***'}</td>
+                    <tr key={order.id} className={hasChanges(order) ? 'bg-yellow-50' : 'hover:bg-gray-50'}>
+                      <td className="px-2 py-2">{order.client_id}</td>
+                      <td className="px-2 py-2 truncate">{order.part_number}</td>
                       <td className="px-2 py-2 text-right">
                         <input
                           type="number"
                           step="0.001"
                           value={order.editableWeight}
-                          disabled
-                          className="w-20 px-1 py-1 border border-gray-300 dark:border-gray-600 rounded text-right tabular-nums bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 cursor-not-allowed"
+                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableWeight', parseFloat(e.target.value) || 0)}
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableWeight') ? 'bg-yellow-100 border-yellow-400' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -1222,8 +726,8 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.01"
                           value={order.editableParts}
-                          disabled
-                          className="w-20 px-1 py-1 border border-gray-300 dark:border-gray-600 rounded text-right tabular-nums bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 cursor-not-allowed"
+                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableParts', parseFloat(e.target.value) || 0)}
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableParts') ? 'bg-yellow-100 border-yellow-400' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -1231,8 +735,8 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.01"
                           value={order.editableDelivery}
-                          disabled
-                          className="w-20 px-1 py-1 border border-gray-300 dark:border-gray-600 rounded text-right tabular-nums bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 cursor-not-allowed"
+                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableDelivery', parseFloat(e.target.value) || 0)}
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableDelivery') ? 'bg-yellow-100 border-yellow-400' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -1240,8 +744,8 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.01"
                           value={order.editableReceipt}
-                          disabled
-                          className="w-20 px-1 py-1 border border-gray-300 dark:border-gray-600 rounded text-right tabular-nums bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 cursor-not-allowed"
+                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableReceipt', parseFloat(e.target.value) || 0)}
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableReceipt') ? 'bg-yellow-100 border-yellow-400' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -1249,12 +753,8 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.01"
                           value={order.editableCash}
-                          disabled
-                          className={`w-20 px-1 py-1 border rounded text-right tabular-nums cursor-not-allowed text-gray-500 dark:text-gray-300 ${
-                            order.payment_type?.toLowerCase().includes('оплачено') && order.editableCash !== 0
-                              ? 'border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/30'
-                              : 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-600'
-                          }`}
+                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableCash', parseFloat(e.target.value) || 0)}
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableCash') ? 'bg-yellow-100 border-yellow-400' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -1262,21 +762,18 @@ export default function ReceiptManagement() {
                           type="number"
                           step="0.01"
                           value={order.editableTransport}
-                          disabled
-                          className="w-20 px-1 py-1 border border-gray-300 dark:border-gray-600 rounded text-right tabular-nums bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 cursor-not-allowed"
+                          onChange={(e) => updateOrderField(receipt.id, order.id, 'editableTransport', parseFloat(e.target.value) || 0)}
+                          className={`w-full px-1 py-1 border rounded text-right tabular-nums ${isFieldChanged(order, 'editableTransport') ? 'bg-yellow-100 border-yellow-400' : ''}`}
                         />
                       </td>
-                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.title || '***'}</td>
-                      <td className="px-2 py-2 text-center">
-                        {order.link ? <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 inline-flex"><ExternalLink size={16} /></a> : <span className="text-gray-900 dark:text-gray-100">***</span>}
+                      <td className="px-2 py-2 truncate">{order.title}</td>
+                      <td className="px-2 py-2">
+                        {order.link && <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Посилання</a>}
                       </td>
-                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.tracking_pl || '***'}</td>
-                      <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.payment_type || '***'}</td>
-                      <td className="px-2 py-2 text-gray-900 dark:text-gray-100">{order.order_date || '***'}</td>
-                      <td className="px-2 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">{order.total_cost ? formatNumber(order.total_cost) : '***'}</td>
-                      <td className="px-2 py-2 text-center">
-                        <span className="text-gray-400 dark:text-gray-500 text-xs">Заблоковано</span>
-                      </td>
+                      <td className="px-2 py-2 truncate">{order.tracking_pl}</td>
+                      <td className="px-2 py-2 truncate">{order.payment_type}</td>
+                      <td className="px-2 py-2">{order.order_date}</td>
+                      <td className="px-2 py-2 text-right tabular-nums">{formatNumber(order.total_cost)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1288,20 +785,8 @@ export default function ReceiptManagement() {
 
 
       {receipts.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 px-4">
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-12 shadow-lg border border-blue-100 dark:border-gray-700 max-w-md w-full">
-            <div className="flex justify-center mb-6">
-              <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded-full">
-                <FileText size={48} className="text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-            <h3 className="text-2xl font-semibold text-gray-800 dark:text-gray-100 text-center mb-3">
-              Немає прийомок
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 text-center text-sm leading-relaxed">
-              Наразі немає жодної прийомки для обробки. Прийомки з'являться тут після створення.
-            </p>
-          </div>
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-8 text-center text-gray-500 dark:text-gray-400 dark:text-gray-500">
+          Немає прийомок для обробки
         </div>
       )}
     </div>
