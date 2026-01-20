@@ -680,7 +680,7 @@ export default function Returns() {
             <div className="flex gap-2 justify-center">
               <button
                 onClick={() => handleReturnToOrders(returnItem)}
-                className="px-3 py-2 bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200 rounded text-xs font-semibold hover:opacity-80 transition flex items-center gap-1"
+                className="px-3 py-2 bg-orange-500 dark:bg-orange-600 text-white rounded text-xs font-semibold hover:bg-orange-600 dark:hover:bg-orange-700 transition flex items-center gap-1 shadow-sm"
               >
                 <RotateCcw size={14} />
                 Повернути в замовлення
