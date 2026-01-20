@@ -87,6 +87,9 @@ export type Manager = {
 
 export type Return = {
   id: string;
+  supplier_id?: string;
+  order_id?: string;
+  accepted_order_id?: string;
   status?: string;
   substatus: string;
   client_id?: string;
@@ -106,6 +109,9 @@ export type Return = {
   situation_description?: string;
   manager_id?: string;
   archived?: boolean;
+  is_reversed?: boolean;
+  project_id?: string;
+  counterparty_id?: string;
   created_at: string;
   updated_at?: string;
 };
