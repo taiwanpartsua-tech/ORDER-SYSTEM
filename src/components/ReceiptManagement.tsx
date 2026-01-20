@@ -100,6 +100,7 @@ export default function ReceiptManagement() {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [expandedReceipt, setExpandedReceipt] = useState<string | null>(null);
   const [orders, setOrders] = useState<{ [receiptId: string]: EditableOrder[] }>({});
+  const [loadingOrders, setLoadingOrders] = useState<{ [receiptId: string]: boolean }>({});
   const [showAddOrders, setShowAddOrders] = useState<string | null>(null);
   const [availableOrders, setAvailableOrders] = useState<AvailableOrder[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -123,54 +124,65 @@ export default function ReceiptManagement() {
 
     if (data) {
       setReceipts(data);
-      // Завантажуємо замовлення для кожної накладної
-      data.forEach(receipt => loadOrdersForReceipt(receipt.id));
     }
   }
 
   async function loadOrdersForReceipt(receiptId: string) {
-    const { data: receiptOrders } = await supabase
-      .from('receipt_orders')
-      .select('order_id')
-      .eq('receipt_id', receiptId);
+    setLoadingOrders(prev => ({ ...prev, [receiptId]: true }));
 
-    if (!receiptOrders) return;
+    try {
+      const { data: receiptOrders } = await supabase
+        .from('receipt_orders')
+        .select('order_id')
+        .eq('receipt_id', receiptId);
 
-    const orderIds = receiptOrders.map(ro => ro.order_id);
+      if (!receiptOrders || receiptOrders.length === 0) {
+        setOrders(prev => ({ ...prev, [receiptId]: [] }));
+        setLoadingOrders(prev => ({ ...prev, [receiptId]: false }));
+        return;
+      }
 
-    const { data: ordersData } = await supabase
-      .from('orders')
-      .select('*')
-      .in('id', orderIds);
+      const orderIds = receiptOrders.map(ro => ro.order_id);
 
-    const { data: snapshotsData } = await supabase
-      .from('receipt_order_snapshots')
-      .select('*')
-      .eq('receipt_id', receiptId);
+      const { data: ordersData } = await supabase
+        .from('orders')
+        .select('*')
+        .in('id', orderIds);
 
-    if (ordersData) {
-      const ordersWithSnapshots: EditableOrder[] = ordersData.map(order => {
-        const snapshot = snapshotsData?.find(s => s.order_id === order.id);
-        return {
-          ...order,
-          snapshot: snapshot ? {
-            original_weight_kg: snapshot.original_weight_kg,
-            original_part_price: snapshot.original_part_price,
-            original_delivery_cost: snapshot.original_delivery_cost,
-            original_received_pln: snapshot.original_received_pln,
-            original_cash_on_delivery: snapshot.original_cash_on_delivery,
-            original_transport_cost_usd: snapshot.original_transport_cost_usd
-          } : undefined,
-          editableWeight: order.weight_kg || 0,
-          editableParts: order.part_price || 0,
-          editableDelivery: order.delivery_cost || 0,
-          editableReceipt: order.received_pln || 0,
-          editableCash: order.cash_on_delivery || 0,
-          editableTransport: order.transport_cost_usd || 0
-        };
-      });
+      const { data: snapshotsData } = await supabase
+        .from('receipt_order_snapshots')
+        .select('*')
+        .eq('receipt_id', receiptId);
 
-      setOrders(prev => ({ ...prev, [receiptId]: ordersWithSnapshots }));
+      if (ordersData) {
+        const ordersWithSnapshots: EditableOrder[] = ordersData.map(order => {
+          const snapshot = snapshotsData?.find(s => s.order_id === order.id);
+          return {
+            ...order,
+            snapshot: snapshot ? {
+              original_weight_kg: snapshot.original_weight_kg,
+              original_part_price: snapshot.original_part_price,
+              original_delivery_cost: snapshot.original_delivery_cost,
+              original_received_pln: snapshot.original_received_pln,
+              original_cash_on_delivery: snapshot.original_cash_on_delivery,
+              original_transport_cost_usd: snapshot.original_transport_cost_usd
+            } : undefined,
+            editableWeight: order.weight_kg || 0,
+            editableParts: order.part_price || 0,
+            editableDelivery: order.delivery_cost || 0,
+            editableReceipt: order.received_pln || 0,
+            editableCash: order.cash_on_delivery || 0,
+            editableTransport: order.transport_cost_usd || 0
+          };
+        });
+
+        setOrders(prev => ({ ...prev, [receiptId]: ordersWithSnapshots }));
+      }
+    } catch (error) {
+      console.error('Помилка завантаження замовлень:', error);
+      setOrders(prev => ({ ...prev, [receiptId]: [] }));
+    } finally {
+      setLoadingOrders(prev => ({ ...prev, [receiptId]: false }));
     }
   }
 
@@ -207,9 +219,7 @@ export default function ReceiptManagement() {
       setExpandedReceipt(null);
     } else {
       setExpandedReceipt(receiptId);
-      if (!orders[receiptId]) {
-        loadOrdersForReceipt(receiptId);
-      }
+      loadOrdersForReceipt(receiptId);
     }
   }
 
@@ -1109,44 +1119,50 @@ export default function ReceiptManagement() {
             </div>
           )}
 
-          {expandedReceipt === receipt.id && orders[receipt.id] && (
+          {expandedReceipt === receipt.id && (
             <div>
-              <div className="px-4 py-3 bg-gray-50 dark:bg-gray-750 border-t border-b dark:border-gray-700 flex justify-between items-center">
-                <div className="text-sm text-gray-700 dark:text-gray-300">
-                  Замовлень у документі: <span className="font-semibold">{orders[receipt.id].length}</span>
+              {loadingOrders[receipt.id] ? (
+                <div className="px-4 py-8 bg-gray-50 dark:bg-gray-750 border-t border-b dark:border-gray-700 text-center">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Завантаження замовлень...</div>
                 </div>
-                <button
-                  onClick={() => exportReceiptDetails(receipt.id)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-gradient-to-br dark:from-blue-800 dark:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-600 transition flex items-center gap-2 shadow-sm"
-                  title="Експортувати документ в CSV"
-                >
-                  <FileDown size={16} />
-                  <span className="font-medium">Експортувати документ</span>
-                </button>
-              </div>
-              <div className="overflow-x-auto">
-              <table className="w-full text-xs table-fixed">
-                <thead className="bg-gray-100 dark:bg-gray-700 sticky top-0">
-                  <tr>
-                    <th className="w-20 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">ID клієнта</th>
-                    <th className="w-28 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">№ запчастини</th>
-                    <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Вага (кг)</th>
-                    <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Запч. (zl)</th>
-                    <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Дост. (zl)</th>
-                    <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Прийом (zl)</th>
-                    <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Побр. (zl)</th>
-                    <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Перев. ($)</th>
-                    <th className="w-36 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Назва</th>
-                    <th className="w-20 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Посилання</th>
-                    <th className="w-24 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Трекінг PL</th>
-                    <th className="w-24 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Тип оплати</th>
-                    <th className="w-24 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Дата</th>
-                    <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Всього</th>
-                    <th className="w-12 px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200">Дія</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {orders[receipt.id].map(order => (
+              ) : orders[receipt.id] && orders[receipt.id].length > 0 ? (
+                <>
+                  <div className="px-4 py-3 bg-gray-50 dark:bg-gray-750 border-t border-b dark:border-gray-700 flex justify-between items-center">
+                    <div className="text-sm text-gray-700 dark:text-gray-300">
+                      Замовлень у документі: <span className="font-semibold">{orders[receipt.id].length}</span>
+                    </div>
+                    <button
+                      onClick={() => exportReceiptDetails(receipt.id)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-gradient-to-br dark:from-blue-800 dark:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-600 transition flex items-center gap-2 shadow-sm"
+                      title="Експортувати документ в CSV"
+                    >
+                      <FileDown size={16} />
+                      <span className="font-medium">Експортувати документ</span>
+                    </button>
+                  </div>
+                  <div className="overflow-x-auto">
+                  <table className="w-full text-xs table-fixed">
+                    <thead className="bg-gray-100 dark:bg-gray-700 sticky top-0">
+                      <tr>
+                        <th className="w-20 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">ID клієнта</th>
+                        <th className="w-28 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">№ запчастини</th>
+                        <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Вага (кг)</th>
+                        <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Запч. (zl)</th>
+                        <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Дост. (zl)</th>
+                        <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Прийом (zl)</th>
+                        <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Побр. (zl)</th>
+                        <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Перев. ($)</th>
+                        <th className="w-36 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Назва</th>
+                        <th className="w-20 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Посилання</th>
+                        <th className="w-24 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Трекінг PL</th>
+                        <th className="w-24 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Тип оплати</th>
+                        <th className="w-24 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Дата</th>
+                        <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Всього</th>
+                        <th className="w-12 px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200">Дія</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {orders[receipt.id].map(order => (
                     <tr key={order.id} className={hasChanges(order) ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}>
                       <td className="px-2 py-2 text-gray-900 dark:text-gray-100">{order.client_id || '***'}</td>
                       <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.part_number || '***'}</td>
@@ -1232,6 +1248,12 @@ export default function ReceiptManagement() {
                 </tbody>
               </table>
               </div>
+                </>
+              ) : (
+                <div className="px-4 py-8 bg-gray-50 dark:bg-gray-750 border-t border-b dark:border-gray-700 text-center">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">В цій прийомці немає замовлень</div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1360,44 +1382,50 @@ export default function ReceiptManagement() {
             </div>
           )}
 
-          {expandedReceipt === receipt.id && orders[receipt.id] && (
+          {expandedReceipt === receipt.id && (
             <div>
-              <div className="px-4 py-3 bg-green-50 dark:bg-gradient-to-br dark:from-green-950 dark:to-green-900 border-t border-b dark:border-green-800 flex justify-between items-center">
-                <div className="text-sm text-green-700 dark:text-green-300">
-                  Замовлень у документі: <span className="font-semibold">{orders[receipt.id].length}</span>
+              {loadingOrders[receipt.id] ? (
+                <div className="px-4 py-8 bg-green-50 dark:bg-gradient-to-br dark:from-green-950 dark:to-green-900 border-t border-b dark:border-green-800 text-center">
+                  <div className="text-sm text-green-700 dark:text-green-300">Завантаження замовлень...</div>
                 </div>
-                <button
-                  onClick={() => exportReceiptDetails(receipt.id)}
-                  className="px-4 py-2 bg-green-700 text-white rounded-lg hover:bg-green-700 dark:bg-gradient-to-br dark:from-green-800 dark:to-green-700 dark:hover:from-green-700 dark:hover:to-green-600 transition flex items-center gap-2 shadow-sm"
-                  title="Експортувати підтверджений документ в CSV"
-                >
-                  <FileDown size={16} />
-                  <span className="font-medium">Експортувати документ</span>
-                </button>
-              </div>
-              <div className="overflow-x-auto">
-              <table className="w-full text-xs table-fixed">
-                <thead className="bg-gray-100 dark:bg-gray-700 sticky top-0">
-                  <tr>
-                    <th className="w-20 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">ID клієнта</th>
-                    <th className="w-28 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">№ запчастини</th>
-                    <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Вага (кг)</th>
-                    <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Запч. (zl)</th>
-                    <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Дост. (zl)</th>
-                    <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Прийом (zl)</th>
-                    <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Побр. (zl)</th>
-                    <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Перев. ($)</th>
-                    <th className="w-36 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Назва</th>
-                    <th className="w-20 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Посилання</th>
-                    <th className="w-24 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Трекінг PL</th>
-                    <th className="w-24 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Тип оплати</th>
-                    <th className="w-24 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Дата</th>
-                    <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Всього</th>
-                    <th className="w-12 px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200">Дія</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {orders[receipt.id].map(order => (
+              ) : orders[receipt.id] && orders[receipt.id].length > 0 ? (
+                <>
+                  <div className="px-4 py-3 bg-green-50 dark:bg-gradient-to-br dark:from-green-950 dark:to-green-900 border-t border-b dark:border-green-800 flex justify-between items-center">
+                    <div className="text-sm text-green-700 dark:text-green-300">
+                      Замовлень у документі: <span className="font-semibold">{orders[receipt.id].length}</span>
+                    </div>
+                    <button
+                      onClick={() => exportReceiptDetails(receipt.id)}
+                      className="px-4 py-2 bg-green-700 text-white rounded-lg hover:bg-green-700 dark:bg-gradient-to-br dark:from-green-800 dark:to-green-700 dark:hover:from-green-700 dark:hover:to-green-600 transition flex items-center gap-2 shadow-sm"
+                      title="Експортувати підтверджений документ в CSV"
+                    >
+                      <FileDown size={16} />
+                      <span className="font-medium">Експортувати документ</span>
+                    </button>
+                  </div>
+                  <div className="overflow-x-auto">
+                  <table className="w-full text-xs table-fixed">
+                    <thead className="bg-gray-100 dark:bg-gray-700 sticky top-0">
+                      <tr>
+                        <th className="w-20 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">ID клієнта</th>
+                        <th className="w-28 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">№ запчастини</th>
+                        <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Вага (кг)</th>
+                        <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Запч. (zl)</th>
+                        <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Дост. (zl)</th>
+                        <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Прийом (zl)</th>
+                        <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Побр. (zl)</th>
+                        <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Перев. ($)</th>
+                        <th className="w-36 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Назва</th>
+                        <th className="w-20 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Посилання</th>
+                        <th className="w-24 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Трекінг PL</th>
+                        <th className="w-24 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Тип оплати</th>
+                        <th className="w-24 px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200">Дата</th>
+                        <th className="w-24 px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-200">Всього</th>
+                        <th className="w-12 px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200">Дія</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {orders[receipt.id].map(order => (
                     <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-2 py-2 text-gray-900 dark:text-gray-100">{order.client_id || '***'}</td>
                       <td className="px-2 py-2 truncate text-gray-900 dark:text-gray-100">{order.part_number || '***'}</td>
@@ -1475,6 +1503,12 @@ export default function ReceiptManagement() {
                 </tbody>
               </table>
               </div>
+                </>
+              ) : (
+                <div className="px-4 py-8 bg-green-50 dark:bg-gradient-to-br dark:from-green-950 dark:to-green-900 border-t border-b dark:border-green-800 text-center">
+                  <div className="text-sm text-green-700 dark:text-green-300">В цій прийомці немає замовлень</div>
+                </div>
+              )}
             </div>
           )}
         </div>
