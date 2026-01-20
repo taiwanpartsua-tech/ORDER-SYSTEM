@@ -131,52 +131,78 @@ export default function ReceiptManagement() {
     setLoadingOrders(prev => ({ ...prev, [receiptId]: true }));
 
     try {
-      const { data: receiptOrders } = await supabase
-        .from('receipt_orders')
-        .select('order_id')
-        .eq('receipt_id', receiptId);
+      const receipt = receipts.find(r => r.id === receiptId);
+      const isDraft = receipt?.status === 'draft';
 
-      if (!receiptOrders || receiptOrders.length === 0) {
-        setOrders(prev => ({ ...prev, [receiptId]: [] }));
-        setLoadingOrders(prev => ({ ...prev, [receiptId]: false }));
-        return;
-      }
+      if (isDraft) {
+        const { data: draftOrders } = await supabase
+          .from('draft_orders')
+          .select('*')
+          .eq('receipt_id', receiptId);
 
-      const orderIds = receiptOrders.map(ro => ro.order_id);
-
-      const { data: ordersData } = await supabase
-        .from('orders')
-        .select('*')
-        .in('id', orderIds);
-
-      const { data: snapshotsData } = await supabase
-        .from('receipt_order_snapshots')
-        .select('*')
-        .eq('receipt_id', receiptId);
-
-      if (ordersData) {
-        const ordersWithSnapshots: EditableOrder[] = ordersData.map(order => {
-          const snapshot = snapshotsData?.find(s => s.order_id === order.id);
-          return {
+        if (draftOrders && draftOrders.length > 0) {
+          const ordersWithEditable: EditableOrder[] = draftOrders.map(order => ({
             ...order,
-            snapshot: snapshot ? {
-              original_weight_kg: snapshot.original_weight_kg,
-              original_part_price: snapshot.original_part_price,
-              original_delivery_cost: snapshot.original_delivery_cost,
-              original_received_pln: snapshot.original_received_pln,
-              original_cash_on_delivery: snapshot.original_cash_on_delivery,
-              original_transport_cost_usd: snapshot.original_transport_cost_usd
-            } : undefined,
             editableWeight: order.weight_kg || 0,
             editableParts: order.part_price || 0,
             editableDelivery: order.delivery_cost || 0,
             editableReceipt: order.received_pln || 0,
             editableCash: order.cash_on_delivery || 0,
             editableTransport: order.transport_cost_usd || 0
-          };
-        });
+          }));
 
-        setOrders(prev => ({ ...prev, [receiptId]: ordersWithSnapshots }));
+          setOrders(prev => ({ ...prev, [receiptId]: ordersWithEditable }));
+        } else {
+          setOrders(prev => ({ ...prev, [receiptId]: [] }));
+        }
+      } else {
+        const { data: receiptOrders } = await supabase
+          .from('receipt_orders')
+          .select('order_id')
+          .eq('receipt_id', receiptId);
+
+        if (!receiptOrders || receiptOrders.length === 0) {
+          setOrders(prev => ({ ...prev, [receiptId]: [] }));
+          setLoadingOrders(prev => ({ ...prev, [receiptId]: false }));
+          return;
+        }
+
+        const orderIds = receiptOrders.map(ro => ro.order_id);
+
+        const { data: ordersData } = await supabase
+          .from('orders')
+          .select('*')
+          .in('id', orderIds);
+
+        const { data: snapshotsData } = await supabase
+          .from('receipt_order_snapshots')
+          .select('*')
+          .eq('receipt_id', receiptId);
+
+        if (ordersData) {
+          const ordersWithSnapshots: EditableOrder[] = ordersData.map(order => {
+            const snapshot = snapshotsData?.find(s => s.order_id === order.id);
+            return {
+              ...order,
+              snapshot: snapshot ? {
+                original_weight_kg: snapshot.original_weight_kg,
+                original_part_price: snapshot.original_part_price,
+                original_delivery_cost: snapshot.original_delivery_cost,
+                original_received_pln: snapshot.original_received_pln,
+                original_cash_on_delivery: snapshot.original_cash_on_delivery,
+                original_transport_cost_usd: snapshot.original_transport_cost_usd
+              } : undefined,
+              editableWeight: order.weight_kg || 0,
+              editableParts: order.part_price || 0,
+              editableDelivery: order.delivery_cost || 0,
+              editableReceipt: order.received_pln || 0,
+              editableCash: order.cash_on_delivery || 0,
+              editableTransport: order.transport_cost_usd || 0
+            };
+          });
+
+          setOrders(prev => ({ ...prev, [receiptId]: ordersWithSnapshots }));
+        }
       }
     } catch (error) {
       console.error('Помилка завантаження замовлень:', error);
