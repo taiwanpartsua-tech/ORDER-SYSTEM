@@ -30,6 +30,8 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
   const [paidOrders, setPaidOrders] = useState<EditableOrder[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [draftOrders, setDraftOrders] = useState<DraftOrder[]>([]);
+  const [archivedDrafts, setArchivedDrafts] = useState<DraftOrder[]>([]);
+  const [showArchivedDrafts, setShowArchivedDrafts] = useState(false);
 
   const [cashOnDeliveryReceiptNumber, setCashOnDeliveryReceiptNumber] = useState<string>('');
   const [paidReceiptNumber, setPaidReceiptNumber] = useState<string>('');
@@ -97,6 +99,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
     loadAvailableOrders();
     loadActiveReceiptOrders();
     loadDraftOrders();
+    loadArchivedDrafts();
   }, []);
 
   async function loadAvailableOrders() {
@@ -133,6 +136,31 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
       }
     } catch (err) {
       console.error('Помилка при завантаженні чернеток:', err);
+    }
+  }
+
+  async function loadArchivedDrafts() {
+    try {
+      const projectId = await getCurrentProjectId();
+      if (!projectId) {
+        console.error('Не знайдено project_id для завантаження архіву чернеток');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('draft_orders')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('archived', true)
+        .order('archived_at', { ascending: false });
+
+      if (error) {
+        console.error('Помилка завантаження архіву чернеток:', error);
+      } else if (data) {
+        setArchivedDrafts(data);
+      }
+    } catch (err) {
+      console.error('Помилка при завантаженні архіву чернеток:', err);
     }
   }
 
@@ -230,6 +258,32 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
 
       showSuccess('Чернетку архівовано!');
       loadDraftOrders();
+      loadArchivedDrafts();
+    } catch (err) {
+      console.error('Network error:', err);
+      showError('Помилка мережі');
+    }
+  }
+
+  async function unarchiveDraft(draftId: string) {
+    try {
+      const { error } = await supabase
+        .from('draft_orders')
+        .update({
+          archived: false,
+          archived_at: null
+        })
+        .eq('id', draftId);
+
+      if (error) {
+        console.error('Error unarchiving draft:', error);
+        showError('Помилка розархівування чернетки');
+        return;
+      }
+
+      showSuccess('Чернетку розархівовано!');
+      loadDraftOrders();
+      loadArchivedDrafts();
     } catch (err) {
       console.error('Network error:', err);
       showError('Помилка мережі');
@@ -849,7 +903,7 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
             )}
 
             {draftOrders.length > 0 && (
-              <div>
+              <div className="mb-4">
                 <div className="bg-purple-100 dark:bg-gradient-to-br dark:from-purple-950 dark:to-purple-900 px-3 py-2 font-semibold text-sm text-purple-900 dark:text-purple-200 sticky top-0 z-20">
                   Чернетки ({draftOrders.length})
                 </div>
@@ -918,6 +972,86 @@ export default function ActiveReceipts({ onNavigateToManagement }: ActiveReceipt
                     })}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {archivedDrafts.length > 0 && (
+              <div>
+                <button
+                  onClick={() => setShowArchivedDrafts(!showArchivedDrafts)}
+                  className="w-full bg-gray-200 dark:bg-gray-700 px-3 py-2 font-semibold text-sm text-gray-700 dark:text-gray-300 sticky top-0 z-20 flex items-center justify-between hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                >
+                  <span>Архів чернеток ({archivedDrafts.length})</span>
+                  {showArchivedDrafts ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+
+                {showArchivedDrafts && (
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 dark:bg-gray-700 sticky top-8 z-10">
+                      <tr>
+                        <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">ID</th>
+                        <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Назва</th>
+                        <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">№ запч.</th>
+                        <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 text-xs w-10">Посил.</th>
+                        <th className="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-200 text-xs">Трекінг</th>
+                        <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 text-xs">Тип оплати</th>
+                        <th className="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-200 w-16"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {archivedDrafts.map((draft) => {
+                        const draftGroup = draft.payment_type?.toLowerCase().includes('побран') ||
+                                          draft.payment_type?.toLowerCase().includes('самовив')
+                                          ? 'cash_on_delivery' : 'paid';
+
+                        return (
+                          <tr key={draft.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700 opacity-60">
+                            <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs">{draft.client_id || '-'}</td>
+                            <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs max-w-[150px] truncate" title={draft.title || '-'}>{draft.title || '-'}</td>
+                            <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs">{draft.part_number || '-'}</td>
+                            <td className="px-2 py-2 text-center">
+                              {draft.link ? (
+                                <a
+                                  href={draft.link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-900 inline-block"
+                                  title="Відкрити посилання"
+                                >
+                                  <ExternalLink size={14} />
+                                </a>
+                              ) : (
+                                <span className="text-gray-400">-</span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2 text-gray-600 dark:text-gray-300 text-xs">{draft.tracking_pl || '-'}</td>
+                            <td className="px-2 py-2 text-center text-gray-600 dark:text-gray-300 text-xs">
+                              {draft.payment_type || 'не обрано'}
+                            </td>
+                            <td className="px-2 py-2 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  onClick={() => moveDraftToActiveReceipt(draft, draftGroup)}
+                                  className="text-green-600 hover:text-green-900 hover:bg-green-50 dark:hover:bg-green-900 p-1 rounded transition"
+                                  title="Додати до прийомки"
+                                >
+                                  <Check size={16} />
+                                </button>
+                                <button
+                                  onClick={() => unarchiveDraft(draft.id)}
+                                  className="text-orange-600 hover:text-orange-900 hover:bg-orange-50 dark:hover:bg-orange-900 p-1 rounded transition"
+                                  title="Розархівувати"
+                                >
+                                  <Archive size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
               </div>
             )}
           </div>
