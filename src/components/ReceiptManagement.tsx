@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { Send, Check, ChevronDown, ChevronRight, Plus, X, FileText, ExternalLink, Search, XCircle, FileDown, Archive } from 'lucide-react';
+import { supabase, DraftOrder } from '../lib/supabase';
+import { Send, Check, ChevronDown, ChevronRight, Plus, X, FileText, ExternalLink, Search, XCircle, FileDown, Archive, RotateCcw } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { ExportButton } from './ExportButton';
 import { exportToCSV } from '../utils/exportData';
@@ -104,9 +104,12 @@ export default function ReceiptManagement() {
   const [showAddOrders, setShowAddOrders] = useState<string | null>(null);
   const [availableOrders, setAvailableOrders] = useState<AvailableOrder[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [archivedDrafts, setArchivedDrafts] = useState<DraftOrder[]>([]);
+  const [showArchivedDrafts, setShowArchivedDrafts] = useState(false);
 
   useEffect(() => {
     loadReceipts();
+    loadArchivedDrafts();
   }, []);
 
   async function loadReceipts() {
@@ -812,10 +815,61 @@ export default function ReceiptManagement() {
         .eq('id', receiptId);
 
       loadReceipts();
+      loadArchivedDrafts();
       showSuccess('Чернетку архівовано!');
     } catch (err) {
       console.error('Помилка при архівуванні:', err);
       showError('Помилка при архівуванні чернетки');
+    }
+  }
+
+  async function loadArchivedDrafts() {
+    try {
+      const projectId = await getCurrentProjectId();
+      if (!projectId) {
+        console.error('Не знайдено project_id для завантаження архіву чернеток');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('draft_orders')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('archived', true)
+        .order('archived_at', { ascending: false });
+
+      if (error) {
+        console.error('Помилка завантаження архіву чернеток:', error);
+      } else if (data) {
+        setArchivedDrafts(data);
+      }
+    } catch (err) {
+      console.error('Помилка при завантаженні архіву чернеток:', err);
+    }
+  }
+
+  async function unarchiveDraft(draftId: string) {
+    try {
+      const { error } = await supabase
+        .from('draft_orders')
+        .update({
+          archived: false,
+          archived_at: null
+        })
+        .eq('id', draftId);
+
+      if (error) {
+        console.error('Error unarchiving draft:', error);
+        showError('Помилка розархівування чернетки');
+        return;
+      }
+
+      showSuccess('Чернетку розархівовано і видалено з бази!');
+      loadArchivedDrafts();
+      setShowArchivedDrafts(false);
+    } catch (err) {
+      console.error('Network error:', err);
+      showError('Помилка мережі');
     }
   }
 
@@ -1041,7 +1095,7 @@ export default function ReceiptManagement() {
                 </button>
                 <button
                   onClick={() => {
-                    if (confirm('Архівувати чернетку? Вона буде доступна в архіві на сторінці "Активні прийомки".')) {
+                    if (confirm('Архівувати чернетку? Вона буде доступна в розділі "Архівні чернетки" на цій сторінці.')) {
                       archiveDraftReceipt(receipt.id);
                     }
                   }}
@@ -1526,6 +1580,83 @@ export default function ReceiptManagement() {
         </div>
       ))}
 
+      {/* Секція чернеток */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow mt-6">
+        <div className="p-4 border-b bg-gray-50 dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-750 dark:border-gray-700">
+          <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">Чернетки</h3>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowArchivedDrafts(false)}
+              className={`px-4 py-2 rounded transition ${
+                !showArchivedDrafts
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+              }`}
+            >
+              Активні чернетки
+            </button>
+            <button
+              onClick={() => setShowArchivedDrafts(true)}
+              className={`px-4 py-2 rounded transition flex items-center gap-2 ${
+                showArchivedDrafts
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+              }`}
+            >
+              <Archive size={16} />
+              Архівні чернетки ({archivedDrafts.length})
+            </button>
+          </div>
+        </div>
+
+        <div className="p-4">
+          {!showArchivedDrafts ? (
+            <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+              Активні чернетки створюються в розділі "Активні прийомки"
+            </div>
+          ) : archivedDrafts.length > 0 ? (
+            <div className="space-y-2">
+              {archivedDrafts.map((draft) => (
+                <div
+                  key={draft.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600"
+                >
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 dark:text-gray-100">
+                      {draft.order_number || 'Без номера'}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      Тип оплати: {draft.payment_type}
+                      {draft.archived_at && (
+                        <span className="ml-3">
+                          Архівовано: {new Date(draft.archived_at).toLocaleString('uk-UA')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (confirm('Розархівувати чернетку?')) {
+                        unarchiveDraft(draft.id);
+                      }
+                    }}
+                    className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 dark:bg-gradient-to-br dark:from-blue-800 dark:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-600 transition flex items-center gap-1"
+                    title="Розархівувати"
+                  >
+                    <RotateCcw size={14} />
+                    Розархівувати
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+              Немає архівних чернеток
+            </div>
+          )}
+        </div>
+      </div>
 
       {receipts.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 px-4">
