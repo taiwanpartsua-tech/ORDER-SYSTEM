@@ -6,7 +6,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import { statusColors, paymentTypeColors, verifiedColors, formatEmptyValue } from '../utils/themeColors';
 import { ExportButton } from './ExportButton';
-import { exportToCSV } from '../utils/exportData';
+import { exportToCSV, exportAllOrdersByCategories } from '../utils/exportData';
 import { ColumnViewType, getColumns, saveColumnView, loadColumnView } from '../utils/columnConfigs';
 import { getCurrentProjectId } from '../utils/projectAccess';
 import { useResizableColumns } from '../hooks/useResizableColumns';
@@ -1727,6 +1727,59 @@ export default function Orders() {
     exportToCSV(dataToExport, `zamovlennya_${activeViewTab}`, headers);
   };
 
+  const handleExportAllOrders = () => {
+    const dataToExport = orders.map(order => {
+      const manager = (order as any).manager;
+      return {
+        client_id: order.client_id || '',
+        order_number: order.order_number || '',
+        supplier: order.supplier?.name || '',
+        manager: manager ? (manager.full_name || manager.email) : '',
+        status: order.status,
+        order_date: order.order_date,
+        title: order.title || '',
+        link: order.link || '',
+        tracking_pl: order.tracking_pl || '',
+        part_price: order.part_price,
+        delivery_cost: order.delivery_cost,
+        total_cost: order.total_cost,
+        part_number: order.part_number || '',
+        payment_type: order.payment_type || '',
+        cash_on_delivery: order.cash_on_delivery,
+        received_pln: order.received_pln,
+        transport_cost_usd: order.transport_cost_usd,
+        weight_kg: order.weight_kg,
+        verified: order.verified ? 'Так' : 'Ні',
+        notes: order.notes || ''
+      };
+    });
+
+    const headers = {
+      client_id: 'ID Клієнта',
+      order_number: '№ Замовлення',
+      supplier: 'Постачальник',
+      manager: 'Менеджер',
+      status: 'Статус',
+      order_date: 'Дата',
+      title: 'Назва',
+      link: 'Ссилка на товар',
+      tracking_pl: 'Трекінг PL',
+      part_price: 'Ціна деталі',
+      delivery_cost: 'Доставка',
+      total_cost: 'Загальна вартість',
+      part_number: 'Артикул',
+      payment_type: 'Тип оплати',
+      cash_on_delivery: 'Готівка при отриманні',
+      received_pln: 'Отримано PLN',
+      transport_cost_usd: 'Транспорт USD',
+      weight_kg: 'Вага кг',
+      verified: 'Vortex',
+      notes: 'Примітки'
+    };
+
+    exportAllOrdersByCategories(dataToExport, 'vsih_zamovlen', 'status', headers);
+  };
+
   function renderColumnCell(order: Order & { supplier: Supplier }, columnKey: string, isAccepted: boolean) {
     const value = (order as any)[columnKey];
 
@@ -1896,6 +1949,17 @@ export default function Orders() {
               </select>
             )}
             <ExportButton onClick={handleExportOrders} disabled={filteredOrders.length === 0} />
+            {!isSupplier && (
+              <button
+                onClick={handleExportAllOrders}
+                disabled={orders.length === 0}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Експортувати ВСІ замовлення за категоріями"
+              >
+                <Download className="w-4 h-4" />
+                <span>Експорт Все</span>
+              </button>
+            )}
             {!isSupplier && (
               <button
                 onClick={() => setIsModalOpen(!isModalOpen)}
